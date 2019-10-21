@@ -18,7 +18,7 @@ All documents written in the research and developpement of the protocol are list
 
 * [Week 2 : Nyle + ByzCoin, Omniledger ... problem ?](https://docs.google.com/document/d/1Kr7lfgxPbYtWIZXCFvpErfSH_BVCClxr9dzfWnK9rrc/edit#heading=h.vurx1q67ow8z)
 
-* [A short description of Nyle](https://drive.google.com/drive/u/0/folders/1ZtMiUCeSMNNV1IIvO3EFbWyvO7Ho3JXC)
+* [A short description of Nyle](https://github.com/dedis/student_19_nyleCtrlPlane/blob/master/latex/Nyle/main.pdf)
 
   
 
