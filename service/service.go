@@ -209,16 +209,7 @@ func (s *Service) NewProtocol(n *onet.TreeNodeInstance, conf *onet.GenericConfig
 func (s *Service) Setup(args *SetupArgs) (*VoidReply, error) {
 	lc := gentree.LocalityContext{}
 
-	//crt, _ := os.Getwd()
-	//log.LLvl1(crt)
-	// TODO use when calling simulation test
-	lc.Setup(args.Roster, "../../nodeGen/nodes.txt")
-
-	// TODO path to use when running api test
-	//lc.Setup(args.Roster, "nodeGen/nodes.txt")
-
-	// TODO path to use when running service test
-	//lc.Setup(args.Roster, "../nodeGen/nodes.txt")
+	lc.Setup(args.Roster, args.Filename)
 
 	s.Lc = lc
 

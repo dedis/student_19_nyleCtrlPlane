@@ -24,9 +24,12 @@ func TestMain(m *testing.M) {
 
 func TestClientTreesBLSCoSi(t *testing.T) {
 	local := onet.NewTCPTest(testSuite)
-	servers, roster, _ := local.GenTree(45, true)
+	servers, roster, _ := local.GenTree(50, true)
 	lc := gentree.LocalityContext{}
-	lc.Setup(roster, "nodeGen/nodes.txt")
+	log.LLvl1("Passing 1")
+	filename := "nodeGen/nodes.txt"
+	lc.Setup(roster, filename)
+
 	defer local.CloseAll()
 
 	c := NewClient()
@@ -48,7 +51,8 @@ func TestClientTreesBLSCoSi(t *testing.T) {
 
 	translations := service.TreesToSetsOfNodes(fullTreeSlice, roster.List)
 	distances := service.CreateMatrixOfDistances(serverIDS, lc.Nodes)
-	err := c.Setup(roster, translations, distances)
+
+	err := c.Setup(roster, translations, distances, filename)
 	log.ErrFatal(err)
 
 	// Genesis of 2 different coins
@@ -143,7 +147,9 @@ func TestClientTreesBLSCoSi(t *testing.T) {
 	/*var wg sync.WaitGroup
 	n := len(servers[:3])
 	wg.Add(n)*/
-	for _, server := range servers[44:] {
+
+	for index, server := range servers[44:45] {
+		log.LLvl1(" \033[1;32m Passing for : ", index, "\033[m")
 		//go func(server *onet.Server) {
 		// I exclude the first tree of every slice since it only contains one node
 		trees := lc.LocalityTrees[lc.Nodes.GetServerIdentityToName(server.ServerIdentity)][1:]
@@ -153,11 +159,15 @@ func TestClientTreesBLSCoSi(t *testing.T) {
 			}
 			log.LLvl1("---")
 		}*/
+		log.LLvl1(" \033[1;32m Passing before if : ", index, "\033[m")
 		if len(trees) > 0 {
 			for _, encodedTX := range encodedTXs {
+
 				_, err = c.TreesBLSCoSi(server.ServerIdentity, encodedTX)
 				log.ErrFatal(err)
 			}
+		} else {
+			log.LLvl1(" \033[1;33m End: ", index, "\033[m")
 		}
 
 		// First valid Tx
@@ -185,7 +195,7 @@ func TestClientTreesBLSCoSi(t *testing.T) {
 		//wg.Done()
 		//}(server)
 	}
-
+	log.LLvl1(" \033[1;31m Not Passing 1 \033[m")
 	//wg.Wait()
 
 	averageMemories, err := c.RequestMemoryAllocated(serverIDS)

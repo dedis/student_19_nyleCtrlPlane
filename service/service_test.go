@@ -26,42 +26,13 @@ func TestMain(m *testing.M) {
 	log.MainTest(m)
 }
 
-/*func TestGenerateSubTrees(t *testing.T) {
-	local := onet.NewTCPTest(testSuite)
-	_, roster, _ := local.GenTree(20, true)
-	defer local.CloseAll()
-	subTreeReply, err := GenerateSubTrees(&SubTreeArgs{
-		Roster:       roster,
-		BF:           2,
-		SubTreeCount: 3,
-	})
-	require.Nil(t, err)
-	size := 0
-	for _, tree := range subTreeReply.Trees {
-		bool := size < tree.Size()
-		require.True(t, bool)
-		size = tree.Size()
-	}
-
-	subTreeReply, err = GenerateSubTrees(&SubTreeArgs{
-		Roster:       roster,
-		BF:           4,
-		SubTreeCount: 1,
-	})
-	require.Nil(t, err)
-	size = 0
-	for _, tree := range subTreeReply.Trees {
-		bool := size < tree.Size()
-		require.True(t, bool)
-		size = tree.Size()
-	}
-}*/
 func TestTreesBLSCoSi(t *testing.T) {
+	filename := "../nodeGen/nodes.txt"
 	local := onet.NewTCPTest(testSuite)
-	servers, roster, _ := local.GenTree(45, true)
+	servers, roster, _ := local.GenTree(50, true)
 	mapOfServers := make(map[string]*onet.Server)
 	lc := gentree.LocalityContext{}
-	lc.Setup(roster, "../nodeGen/nodes.txt")
+	lc.Setup(roster, filename)
 	defer local.CloseAll()
 
 	// Translating the trees into sets
@@ -87,6 +58,7 @@ func TestTreesBLSCoSi(t *testing.T) {
 			Roster:       roster,
 			Translations: translations,
 			Distances:    distances,
+			Filename:     filename,
 		})
 	}
 
@@ -116,45 +88,6 @@ func TestTreesBLSCoSi(t *testing.T) {
 		Signature: signature,
 	}
 	txEncoded, _ := protobuf.Encode(&tx)
-
-	// Second transaction
-
-	/*sha := sha256.New()
-	sha.Write(txEncoded)
-	iD01 := sha.Sum(nil)
-	inner02 := transaction.InnerTx{
-		CoinID:     coinID,
-		PreviousTx: iD01,
-		SenderPK:   PubK1,
-		ReceiverPK: PubK2,
-	}
-	innerEncoded02, _ := protobuf.Encode(&inner02)
-	signature02, _ := bls.Sign(testSuite, PrivK1, innerEncoded02)
-	tx02 := transaction.Tx{
-		Inner:     inner02,
-		Signature: signature02,
-	}
-	txEncoded02, _ := protobuf.Encode(&tx02)*/
-
-	// First transaction of the second coin
-
-	/*inner1 := transaction.InnerTx{
-		CoinID:     coinID1,
-		PreviousTx: iD1,
-		SenderPK:   PubK0,
-		ReceiverPK: PubK1,
-	}
-	innerEncoded1, _ := protobuf.Encode(&inner1)
-	signature1, _ := bls.Sign(testSuite, PrivK0, innerEncoded1)
-	tx1 := transaction.Tx{
-		Inner:     inner1,
-		Signature: signature1,
-	}
-	txEncoded1, _ := protobuf.Encode(&tx1)*/
-
-	// Alternative first Tx of coin 0 sending to PubK2 instead of PubK1
-
-
 	innerAlt := transaction.InnerTx{
 		CoinID:     coinID,
 		PreviousTx: iD0,
@@ -229,66 +162,9 @@ func TestTreesBLSCoSi(t *testing.T) {
 				if err0 == nil && err == nil {
 					log.Fatal("Double spending accepted")
 				}
-				//w.Wait()
-				//log.LLvl1(err0)
-
-				// Second valid Tx
-				/*_, err = service.TreesBLSCoSi(&CoSiTrees{
-					TreeIDs:   treeIDs,
-					Message: txEncoded02,
-				})*/
-				//log.LLvl1(err)
 			}
 			wg.Done()
 		}(server)
 	}
-
 	wg.Wait()
-
-	/*
-
-
-		// We do a loop for each treeID. We first get the latest Tx in the second bucket by usinge the right TreeID and coinID,
-		// then use that value to get the TxStorage in the first one. We then check that the stored senderPK is the right one.
-		for i := 0; i < 9; i++ {
-			services[i].(*Service).db.View(func(bboltTx *bbolt.Tx) error {
-				b := bboltTx.Bucket(services[i].(*Service).bucketNameLastTx)
-				v := b.Get(append([]byte(subTreeReply.IDs[2].String()), coinID...))
-				b = bboltTx.Bucket(services[i].(*Service).bucketNameTx)
-				v = b.Get(v)
-				txStorage := TxStorage{}
-				protobuf.Decode(v, &txStorage)
-				require.True(t, txStorage.Tx.Inner.SenderPK.Equal(PubK1))
-
-				return nil
-			})
-		}
-
-		for i := 0; i < 7; i++ {
-			services[i].(*Service).db.View(func(bboltTx *bbolt.Tx) error {
-				b := bboltTx.Bucket(services[i].(*Service).bucketNameLastTx)
-				v := b.Get(append([]byte(subTreeReply.IDs[1].String()), coinID...))
-				b = bboltTx.Bucket(services[i].(*Service).bucketNameTx)
-				v = b.Get(v)
-				txStorage := TxStorage{}
-				protobuf.Decode(v, &txStorage)
-				require.True(t, txStorage.Tx.Inner.SenderPK.Equal(PubK1))
-
-				return nil
-			})
-		}
-
-		for i := 0; i < 3; i++ {
-			services[i].(*Service).db.View(func(bboltTx *bbolt.Tx) error {
-				b := bboltTx.Bucket(services[i].(*Service).bucketNameLastTx)
-				v := b.Get(append([]byte(subTreeReply.IDs[0].String()), coinID...))
-				b = bboltTx.Bucket(services[i].(*Service).bucketNameTx)
-				v = b.Get(v)
-				txStorage := TxStorage{}
-				protobuf.Decode(v, &txStorage)
-				require.True(t, txStorage.Tx.Inner.SenderPK.Equal(PubK1))
-				return nil
-			})
-		}*/
-
 }

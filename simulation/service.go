@@ -87,7 +87,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	//log.LLvl1("!!!!!!!!!!!!!!!!!!!", crt)
 
 	// TODO path to use when running simulation test
-	lc.Setup(config.Roster, "../../nodeGen/nodes.txt")
+	filename := "../../nodeGen/nodes.txt"
+	lc.Setup(config.Roster, filename)
 
 	// TODO path to use when running api test
 	// lc.Setup(config.Roster, "nodeGen/nodes.txt")
@@ -102,7 +103,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	distances := service.CreateMatrixOfDistances(serverIDS, lc.Nodes)
 
 	translations := service.TreesToSetsOfNodes(fullTreeSlice, config.Roster.List)
-	err := clients[0].Setup(config.Roster, translations, distances)
+	err := clients[0].Setup(config.Roster, translations, distances, filename)
 	log.ErrFatal(err)
 	// Genesis of 2 different coins
 	suite := pairing.NewSuiteBn256()
@@ -142,9 +143,9 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	wg.Add(numberTXs)
 	for _, id := range ids {
 		//go func(i int, id []byte) {
-			err = clients[0].GenesisTx(serverIDS, id, id, PbK0)
-			log.ErrFatal(err)
-			wg.Done()
+		err = clients[0].GenesisTx(serverIDS, id, id, PbK0)
+		log.ErrFatal(err)
+		wg.Done()
 		//}(i, id)
 	}
 	wg.Wait()
