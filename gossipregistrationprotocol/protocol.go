@@ -27,9 +27,7 @@ type GossipRegistationProtocol struct {
 	*onet.TreeNodeInstance
 	announceChan      chan announceWrapper
 	repliesChan       chan []replyWrapper
-	ConfirmationsChan chan int
-
-	ParticipantsList []string
+	ConfirmationsChan chan map[string]bool
 }
 
 // Check that *TemplateProtocol implements onet.ProtocolInstance
@@ -39,7 +37,7 @@ var _ onet.ProtocolInstance = (*GossipRegistationProtocol)(nil)
 func NewProtocol(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	t := &GossipRegistationProtocol{
 		TreeNodeInstance:  n,
-		ConfirmationsChan: make(chan int),
+		ConfirmationsChan: make(chan map[string]bool),
 	}
 	if err := n.RegisterChannels(&t.announceChan, &t.repliesChan); err != nil {
 		return nil, err
@@ -59,26 +57,27 @@ func (p *GossipRegistationProtocol) Start() error {
 func (p *GossipRegistationProtocol) Dispatch() error {
 	defer p.Done()
 
-	nConf := 1
+	address := string(p.ServerIdentity().Address)
+	addressMap := map[string]bool{address: true}
 
 	ann := <-p.announceChan
-	p.ParticipantsList = append(p.ParticipantsList, ann.Announce.Message)
-	log.LLvl3("Participants List : ", p.ParticipantsList)
 
 	if p.IsLeaf() {
-		return p.SendToParent(&Reply{nConf})
+		return p.SendToParent(&Reply{addressMap})
 	}
 	p.SendToChildren(&ann.Announce)
 
 	replies := <-p.repliesChan
-	for _, c := range replies {
-		nConf += c.Confirmations
+	for _, confMap := range replies {
+		for k, v := range confMap.Confirmations {
+			addressMap[k] = v
+		}
 	}
 
 	if !p.IsRoot() {
-		return p.SendToParent(&Reply{nConf})
+		return p.SendToParent(&Reply{addressMap})
 	}
 
-	p.ConfirmationsChan <- nConf
+	p.ConfirmationsChan <- addressMap
 	return nil
 }

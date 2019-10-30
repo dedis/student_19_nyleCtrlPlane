@@ -26,7 +26,7 @@ type announceWrapper struct {
 
 // Reply returns the sum of all children random number
 type Reply struct {
-	Confirmations int
+	Confirmations map[string]bool
 }
 
 // replyWrapper just contains Reply and the data necessary to identify and

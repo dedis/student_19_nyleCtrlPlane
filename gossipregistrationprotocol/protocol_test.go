@@ -41,7 +41,7 @@ func TestGossip(t *testing.T) {
 		timeout := network.WaitRetry * time.Duration(network.MaxRetryConnect*nbrNodes*2) * time.Millisecond
 		select {
 		case sum := <-protocol.ConfirmationsChan:
-			require.Equal(t, sum, nbrNodes, "The number of confirmations is not the number of nodes")
+			require.Equal(t, nbrNodes, len(sum), "The number of confirmations is not the number of nodes")
 
 		case <-time.After(timeout):
 			t.Fatal("Didn't finish in time")
