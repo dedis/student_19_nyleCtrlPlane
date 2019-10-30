@@ -6,18 +6,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/satori/go.uuid"
+	"gopkg.in/dedis/onet.v2"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 	"math"
 	"math/rand"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
-
-	uuid "github.com/satori/go.uuid"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
-	"go.dedis.ch/onet/v3/network"
 )
 
 // TreeConverter is a structure for converting between a recursive tree (graph)
@@ -25,6 +25,11 @@ import (
 type TreeConverter struct {
 	BinaryTree    *onet.Tree
 	RecursiveTree *onet.Tree
+}
+
+type Compact struct {
+	Dist float64
+	ViaNodeName string
 }
 
 // ToRecursiveTreeNode finds the equivalent tree node in the recursive tree.
@@ -40,6 +45,7 @@ func (t *TreeConverter) ToBinaryTreeNode(target *onet.TreeNode) (*onet.TreeNode,
 // LocalityNode represents a locality preserving node.
 type LocalityNode struct {
 	Name           string
+	IP             map[string]bool
 	X              float64
 	Y              float64
 	Level          int
@@ -52,6 +58,11 @@ type LocalityNode struct {
 	Rings          []string
 	NrOwnRings     int
 	ServerIdentity *network.ServerIdentity
+	AvailablePortsStart int
+	AvailablePortsEnd int
+	NextPort int
+	NextPortMtx sync.Mutex
+
 }
 
 // LocalityNodes is a list of LocalityNode
@@ -59,13 +70,63 @@ type LocalityNodes struct {
 	All                   []*LocalityNode
 	ServerIdentityToName  map[network.ServerIdentityID]string
 	ClusterBunchDistances map[*LocalityNode]map[*LocalityNode]float64
-	Distances             map[*LocalityNode]map[*LocalityNode]float64
 	Links                 map[*LocalityNode]map[*LocalityNode]map[*LocalityNode]bool
 }
+
+// GetByIP gets the node by IP.
+func (ns LocalityNodes) GetByIP(ip string) *LocalityNode {
+
+	for _, n := range ns.All {
+		if n.IP[ip] {
+			return n
+		}
+	}
+	return nil
+}
+
+func (ns LocalityNodes) GetByServerIdentityIP(ip string) *LocalityNode {
+
+
+	for _, n := range ns.All {
+		//if strings.Contains(n.ServerIdentity.String(), ip) {
+		if n.IP[ip] {
+			return n
+		}
+	}
+	return nil
+}
+
+func (ns LocalityNodes) OccupyNextPort(ip string) int {
+
+	port := -1
+	for _, n := range ns.All {
+		if strings.Contains(n.ServerIdentity.String(), ip) {
+			n.NextPortMtx.Lock()
+			if n.NextPort != n.AvailablePortsEnd {
+				port = n.NextPort
+				n.NextPort++
+			}
+			n.NextPortMtx.Unlock()
+		}
+	}
+	return port
+}
+
 
 // GetByName gets the node by name.
 func (ns LocalityNodes) GetByName(name string) *LocalityNode {
 	nodeIdx := NodeNameToInt(name)
+
+	//log.LLvl1("name here is", name)
+
+	//log.LLvl1("ns length", len(ns.All), "nodeIdx", nodeIdx)
+	if len(ns.All) < nodeIdx {
+		//log.LLvl1("returning NOT fine")
+		return nil
+	}
+	//log.LLvl1("returning fine", ns.All[nodeIdx])
+	//log.LLvl1(ns.All)
+	return ns.All[nodeIdx%len(ns.All)]
 	return ns.All[nodeIdx]
 }
 
@@ -109,7 +170,7 @@ func findTreeNode(tree *onet.Tree, target *onet.TreeNode) (*onet.TreeNode, error
 //Third arguments is if the levels are random
 //Fourth argument is how many levels there should be if they are random
 //Second and Third arguments should always be the same
-func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, levels int, pingDist map[string]map[string]float64) {
+func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, levels int, pingDist map[string]map[string]float64, w3 *bufio.Writer) {
 
 	nodes := all.All
 
@@ -209,8 +270,9 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 		}
 	}
 
+
 	for _, n := range all.All {
-		log.Lvl3(n.Name, "cluster=", n.Cluster, "bunch=", n.Bunch)
+		log.LLvl1(n.Name, "cluster=", n.Cluster, "bunch=", n.Bunch)
 	}
 
 	// write to file
@@ -239,16 +301,37 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 	file, _ = os.Create("nodes_read.txt")
 	w = bufio.NewWriter(file)
 	for _, node := range all.All {
-		w.WriteString(node.Name + " " + fmt.Sprint(node.X) + "," + fmt.Sprint(node.Y) + " 127.0.0.1 " + strconv.Itoa(node.Level) + "\n")
+		w.WriteString(node.Name + " " + fmt.Sprint(node.X) + "," + fmt.Sprint(node.Y) + " 127.0.0.1 " + strconv.Itoa(node.Level))
 
 	}
 
 	w.Flush()
 	file.Close()
 
+	w3.WriteString("cluster-bunch-init-start\n")
+
+	// loop in order
+	for i := 0 ; i < len(all.ClusterBunchDistances) ; i++ {
+		name1 := "node_" + strconv.Itoa(i)
+		for j := 0; j < len(all.ClusterBunchDistances); j++ {
+			name2 := "node_" + strconv.Itoa(j)
+			dist := all.ClusterBunchDistances[all.GetByName(name1)][all.GetByName(name2)]
+			if dist > 10000.0 {
+				w3.WriteString("inf ")
+			} else {
+				w3.WriteString(fmt.Sprintf("%.2f", dist) + " ")
+			}
+
+		}
+		w3.WriteString("\n")
+
+	}
+
+	w3.WriteString("cluster-bunch-init-end\n")
+
 }
 
-//Checks if a Node is suitable to be another Node's bunch depending on its distance to it
+	//Checks if a Node is suitable to be another Node's bunch depending on its distance to it
 func checkDistance(distance float64, lvl int, lvls int, Adist []float64) bool {
 
 	for i := lvl + 1; i < lvls; i++ {
@@ -311,6 +394,7 @@ func GenerateBunchRings(node *LocalityNode, allNodes LocalityNodes) {
 //Computes the Euclidian distance between two nodes
 func ComputeDist(v1 *LocalityNode, v2 *LocalityNode, pingDist map[string]map[string]float64) float64 {
 	if len(pingDist) == 0 {
+		panic("aaa")
 		dist := math.Sqrt(math.Pow(v1.X-v2.X, 2) + math.Pow(v1.Y-v2.Y, 2))
 		return dist
 	}
@@ -324,12 +408,14 @@ func GenerateRadius(maxDist float64) []float64 {
 	radiuses := make([]float64, 0)
 	for i := 0; ; i++ {
 		crtMaxRadius := multiplier * math.Pow(base, float64(i))
-		//prevRadius := 0.0
-		//if i != 0 {
-		//	prevRadius = multiplier * math.Pow(base, float64(i - 1))
-		//}
+		/*
+		prevRadius := 0.0
+		if i != 0 {
+			prevRadius = multiplier * math.Pow(base, float64(i - 1))
+		}
 
-		//if crtMaxRadius > maxDist && prevRadius > maxDist {
+		if crtMaxRadius > maxDist && prevRadius > maxDist {
+		 */
 		if crtMaxRadius > 20 {
 			break
 		}
@@ -342,6 +428,7 @@ func GenerateRadius(maxDist float64) []float64 {
 
 	//radiuses = []float64{10000.0}
 
+
 	//radiuses = []float64{20.0, 50.0, 100.0, 300.0, 500.0, 10000.0}
 	//--->radiuses = []float64{15.0, 100.0, 10000.0}
 
@@ -351,7 +438,10 @@ func GenerateRadius(maxDist float64) []float64 {
 
 	//radiuses = []float64{30.0, 300, 10000.0}
 
-	//log.LLvl1(radiuses)
+	//-- prev radiuses =[]float64{5.0,10.0,15.0,20.0,25.0,30.0,100.0}
+
+	log.LLvl1(radiuses)
+
 
 	return radiuses
 }
@@ -486,7 +576,7 @@ func NodeNameToInt(nodeName string) int {
 
 //Filters Nodes depending on their distance to the root given as an argument
 //distances is the distance between two nodes in the current graph
-func Filter(all LocalityNodes, root *LocalityNode, radius float64, distances map[*LocalityNode]map[*LocalityNode]float64) []*LocalityNode {
+func Filter(all LocalityNodes, root *LocalityNode, radius float64, distances map[*LocalityNode]map[*LocalityNode]Compact) []*LocalityNode {
 
 	//Childrend That are in the radius
 	ChildrenInRange := make(map[*LocalityNode]bool)
@@ -506,7 +596,7 @@ func Filter(all LocalityNodes, root *LocalityNode, radius float64, distances map
 	for n, _ := range root.Cluster {
 
 		//checks if node is inside the radius
-		if distances[root][all.GetByName(n)] <= radius {
+		if distances[root][all.GetByName(n)].Dist <= radius {
 			//Adds it to the final nodes if it is inside of the radius
 			ChildrenInRange[all.GetByName(n)] = true
 
@@ -605,7 +695,7 @@ func OptimizeGraph(all LocalityNodes, rootName string, Optimization int, OptType
 // CreateOnetLPTree TODO add documentation
 // Will Build The Tree calling different functions for different purposes
 // It's the main function, all functions created are called directly or indirectly through this one
-func CreateOnetLPTree(all LocalityNodes, rootName string, BunchLowerBound int) ([]*onet.Tree, [][]*onet.TreeNode, []map[*onet.TreeNode][]*onet.TreeNode, map[*LocalityNode]map[*LocalityNode]float64) {
+func CreateOnetLPTree(all LocalityNodes, rootName string, BunchLowerBound int) ([]*onet.Tree, [][]*onet.TreeNode, []map[*onet.TreeNode][]*onet.TreeNode, map[*LocalityNode]map[*LocalityNode]Compact) {
 
 	//Slice of Trees to be returned
 	Trees := make([]*onet.Tree, 0)
@@ -748,7 +838,7 @@ func (a ByServerIdentityAlphabetical) Less(i, j int) bool {
 	return a[i].String() < a[j].String()
 }
 
-func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode]map[*LocalityNode]float64) ([]*onet.Tree, [][]*onet.TreeNode, []map[*onet.TreeNode][]*onet.TreeNode) {
+func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode]map[*LocalityNode]Compact) ([]*onet.Tree, [][]*onet.TreeNode, []map[*onet.TreeNode][]*onet.TreeNode, []float64) {
 
 	//Slice of Trees to be returned
 	Trees := make([]*onet.Tree, 0)
@@ -759,16 +849,18 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 	//Slice of Parents for each node od each Tree
 	Parents := make([]map[*onet.TreeNode][]*onet.TreeNode, 0)
 
+	TreeRadiuses := make([]float64, 0)
+
 	radiuses := GenerateRadius(10000)
 
 	//Distance between nodes after Optimisation
 
 	/*
-		var Links map[*LocalityNode]map[*LocalityNode]map[*LocalityNode]bool
-		Dist2, _ := AproximateDistanceOracle(all)
+	var Links map[*LocalityNode]map[*LocalityNode]map[*LocalityNode]bool
+	Dist2, _ := AproximateDistanceOracle(all)
 
-		//Returns maps of link nodes between two nodes ([NodeA][NodeB][NodeC]Returns True if NodeC is a link between NodeA and NodeB )
-		_, Links = AproximateDistanceOracle(all)
+	//Returns maps of link nodes between two nodes ([NodeA][NodeB][NodeC]Returns True if NodeC is a link between NodeA and NodeB )
+	_, Links = AproximateDistanceOracle(all)
 	*/
 
 	prevRosterLen := 0
@@ -794,6 +886,13 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 
 		for _, n := range Filterr {
 			AllowedNodes[n.Name] = true
+		}
+
+
+		for name, allowed := range AllowedNodes {
+			if allowed && !all.GetByName(rootName).Cluster[name] && name != rootName {
+				log.Panic("adding node to ring that is not in the cluster!", "root", rootName, "child", name, "but cluster is", all.GetByName(rootName).Cluster)
+			}
 		}
 
 		parents := make(map[*onet.TreeNode][]*onet.TreeNode)
@@ -871,6 +970,7 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 
 		//Computes Final Roster
 
+
 		// deterministic roster order
 		// the roster order does not affect the locality graph, because the locality graph is built using Parents
 		if len(roster) > 1 {
@@ -892,15 +992,15 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 				if i == 0 {
 					continue
 				}
-				roster[i] = rosterAux[i-1]
+				roster[i] = rosterAux[i - 1]
 			}
 		}
 
 		finalRoster := onet.NewRoster(roster)
-		countt++
 
 		if len(finalRoster.List) == prevRosterLen {
-			log.Lvl3("it's a repeat tree, skip it!")
+			countt++
+			log.Lvl2("it's a repeat tree, skip it!")
 			if countt == len(radiuses) {
 				break
 			}
@@ -910,6 +1010,7 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 		prevRosterLen = len(finalRoster.List)
 
 		//log.LLvl1(finalRoster)
+
 
 		//Hashing
 		h := sha256.New()
@@ -945,11 +1046,14 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 		Lists = append(Lists, list)
 		Trees = append(Trees, t)
 		Parents = append(Parents, parents)
+		TreeRadiuses = append(TreeRadiuses, radiuses[countt])
 
+
+		countt++
 		if countt == len(radiuses) {
 			break
 		}
 	}
 
-	return Trees, Lists, Parents
+	return Trees, Lists, Parents, TreeRadiuses
 }

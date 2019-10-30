@@ -1,9 +1,8 @@
 package gentree
 
 import (
+	"gopkg.in/dedis/onet.v2/log"
 	"math"
-
-	"go.dedis.ch/onet/v3/log"
 )
 
 //Removes a link from The LinkLlist
@@ -583,7 +582,7 @@ Links *map[*LocalityNode]map[*LocalityNode]map[*LocalityNode]bool) bool {
 }
 */
 
-func approxDistance(all LocalityNodes, nodeU *LocalityNode, nodeV *LocalityNode) float64 {
+func approxDistance(all LocalityNodes, nodeU *LocalityNode, nodeV *LocalityNode) (float64, string) {
 
 	w := nodeU
 	i := 0
@@ -628,13 +627,14 @@ func approxDistance(all LocalityNodes, nodeU *LocalityNode, nodeV *LocalityNode)
 		log.Error(nodeV.OptimalBunch, nodeV.OptimalCluster, nodeV.PDist)
 	}
 
-	return all.ClusterBunchDistances[w][nodeU] + all.ClusterBunchDistances[w][nodeV]
+
+	return all.ClusterBunchDistances[w][nodeU] + all.ClusterBunchDistances[w][nodeV], w.Name
 }
 
-func AproximateDistanceOracle(all LocalityNodes) (map[*LocalityNode]map[*LocalityNode]float64) {
+func AproximateDistanceOracle(all LocalityNodes) (map[*LocalityNode]map[*LocalityNode]Compact) {
 
 	//Creates maps for links and distances
-	dist2 := make(map[*LocalityNode]map[*LocalityNode]float64)
+	dist2 := make(map[*LocalityNode]map[*LocalityNode]Compact)
 
 
 
@@ -678,10 +678,10 @@ func AproximateDistanceOracle(all LocalityNodes) (map[*LocalityNode]map[*Localit
 
 	for _, aux := range all.All {
 
-		dist2[aux] = make(map[*LocalityNode]float64)
+		dist2[aux] = make(map[*LocalityNode]Compact)
 
 		for _, aux2 := range all.All {
-			dist2[aux][aux2] = all.ClusterBunchDistances[aux][aux2]
+			dist2[aux][aux2] = Compact{all.ClusterBunchDistances[aux][aux2], ""}
 		}
 	}
 
@@ -690,15 +690,21 @@ func AproximateDistanceOracle(all LocalityNodes) (map[*LocalityNode]map[*Localit
 		for _, nodeV := range all.All {
 
 			if nodeU.Name == nodeV.Name {
-				dist2[nodeU][nodeV] = 0
+				dist2[nodeU][nodeV] = Compact{0, ""}
 				continue
 			}
 
-			dist2[nodeU][nodeV] = approxDistance(all, nodeU, nodeV)
+
+
+			dist, viaNodeName := approxDistance(all, nodeU, nodeV)
+			dist2[nodeU][nodeV] = Compact{dist, viaNodeName}
+
+
 			//log.LLvl1("!!!!!!!!!!!!!!!!!!!! distance between", nodeU.Name, nodeV.Name, dist2[nodeU][nodeV])
 
 		}
 	}
+
 
 
 
