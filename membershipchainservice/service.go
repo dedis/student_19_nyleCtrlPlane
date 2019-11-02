@@ -15,14 +15,14 @@ import (
 )
 
 // Used for tests
-var templateID onet.ServiceID
+var membershipID onet.ServiceID
 
 // ServiceName is used for registration on the onet.
 const ServiceName = "MemberchainService"
 
 func init() {
 	var err error
-	templateID, err = onet.RegisterNewService(ServiceName, newService)
+	membershipID, err = onet.RegisterNewService(ServiceName, newService)
 	log.ErrFatal(err)
 	network.RegisterMessage(&storage{})
 }
@@ -41,22 +41,22 @@ var storageID = []byte("main")
 
 // storage is used to save our data.
 type storage struct {
-	Participants map[string]bool
+	Signers map[string]bool
 	sync.Mutex
 }
 
-// SetGenesisParticipants is used to let now to the node what are the first signers.
-func (s *Service) SetGenesisParticipants(p map[string]bool) {
+// SetGenesisSigners is used to let now to the node what are the first signers.
+func (s *Service) SetGenesisSigners(p map[string]bool) {
 	s.storage.Lock()
-	s.storage.Participants = p
+	s.storage.Signers = p
 	s.storage.Unlock()
 }
 
-// GetRegistrations gives the registrations that are stored on this node
-func (s *Service) GetRegistrations() (*RegistrationsListReply, error) {
+// GetSigners gives the registrations that are stored on this node
+func (s *Service) GetSigners() *SignersReply {
 	s.storage.Lock()
 	defer s.storage.Unlock()
-	return &RegistrationsListReply{List: s.storage.Participants}, nil
+	return &SignersReply{Set: s.storage.Signers}
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is

@@ -8,7 +8,7 @@ import (
 // We need to register all messages so the network knows how to handle them.
 func init() {
 	network.RegisterMessages(
-		GossipArgs{}, GossipReply{}, RegistrationsListReply{},
+		GossipArgs{}, GossipReply{}, SignersReply{},
 	)
 }
 
@@ -22,7 +22,7 @@ type GossipReply struct {
 	Status int
 }
 
-// RegistrationsListReply is used to communicate the registrations that are stored on one node
-type RegistrationsListReply struct {
-	List map[string]bool
+// SignersReply is used to communicate the registrations that are stored on one node
+type SignersReply struct {
+	Set map[string]bool
 }
