@@ -9,7 +9,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
@@ -42,35 +41,22 @@ var storageID = []byte("main")
 
 // storage is used to save our data.
 type storage struct {
-	ParticipantsAnswers map[string]bool
+	Participants map[string]bool
 	sync.Mutex
 }
 
-// GossipRegistration starts a Gossip-Registration-protocol
-func (s *Service) GossipRegistration(req *GossipArgs) (*GossipReply, error) {
-	tree := req.Roster.GenerateNaryTreeWithRoot(2, s.ServerIdentity())
-	if tree == nil {
-		return nil, errors.New("couldn't create tree")
-	}
-	pi, err := s.CreateProtocol(gossipregistrationprotocol.Name, tree)
-	if err != nil {
-		return nil, err
-	}
-	pi.Start()
-
+// SetGenesisParticipants is used to let now to the node what are the first signers.
+func (s *Service) SetGenesisParticipants(p map[string]bool) {
 	s.storage.Lock()
-	s.storage.ParticipantsAnswers = <-pi.(*gossipregistrationprotocol.GossipRegistationProtocol).ConfirmationsChan
+	s.storage.Participants = p
 	s.storage.Unlock()
-	s.save()
-
-	return &GossipReply{Status: 1}, nil
 }
 
 // GetRegistrations gives the registrations that are stored on this node
 func (s *Service) GetRegistrations() (*RegistrationsListReply, error) {
 	s.storage.Lock()
 	defer s.storage.Unlock()
-	return &RegistrationsListReply{List: s.storage.ParticipantsAnswers}, nil
+	return &RegistrationsListReply{List: s.storage.Participants}, nil
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
@@ -121,10 +107,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
 	}
-	if err := s.RegisterHandler(s.GossipRegistration); err != nil {
-		log.LLvl1(err)
-		return nil, errors.New("Couldn't register messages")
-	}
+
 	if err := s.tryLoad(); err != nil {
 		log.Error(err)
 		return nil, err
