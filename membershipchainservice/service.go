@@ -134,6 +134,13 @@ func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) 
 
 }
 
+// StartNewEpoch stop the registration for nodes and run CRUX
+func (s *Service) StartNewEpoch() error {
+
+	// TODO IMPLEMENT
+	return nil
+}
+
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
 // the one starting the protocol) so it's the Service that will be called to
 // generate the PI on all others node.

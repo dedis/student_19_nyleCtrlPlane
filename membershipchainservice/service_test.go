@@ -85,3 +85,37 @@ func TestRegisterNewSigners(t *testing.T) {
 		}
 	}
 }
+
+func TestNewEpoch(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+
+	// Generate 10 nodes, the first 2 are the first signers
+	nbrNodes := 10
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+	services := local.GetServices(hosts, membershipID)
+
+	blsServ := local.GetServices(hosts, blscosi.ServiceID)
+
+	signers := SignersSet{
+		hosts[0].ServerIdentity: true,
+		hosts[1].ServerIdentity: true,
+	}
+
+	var listServices []*Service
+	for _, s := range services {
+		service := s.(*Service)
+		listServices = append(listServices, s.(*Service))
+		service.SetGenesisSigners(signers)
+	}
+
+	for i := 0; i < nbrNodes; i++ {
+		services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), listServices, 1)
+	}
+
+	for i := 0; i < nbrNodes; i++ {
+		services[i].(*Service).StartNewEpoch()
+
+	}
+
+}
