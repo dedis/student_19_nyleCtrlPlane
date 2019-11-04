@@ -6,7 +6,6 @@ import (
 	"github.com/dedis/cothority/blscosi"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/suites"
-	"go.dedis.ch/onet/network"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 )
@@ -26,21 +25,24 @@ func TestSetGenesisSigners(t *testing.T) {
 	defer local.CloseAll()
 	services := local.GetServices(hosts, membershipID)
 
-	signers := map[*network.ServerIdentity]bool{
-		hosts[0].ServerIdentity: true,
-		hosts[1].ServerIdentity: true,
+	signers := SignersSet{
+		hosts[0].ServerIdentity: 0,
+		hosts[1].ServerIdentity: 0,
 	}
 
 	for _, s := range services {
 		service := s.(*Service)
 
-		reply := service.GetSigners()
+		reply := service.GetSigners(0)
 		assert.Equal(t, len(reply.Set), 0)
 
 		service.SetGenesisSigners(signers)
 
-		reply = service.GetSigners()
+		reply = service.GetSigners(0)
 		assert.Equal(t, reply.Set, signers)
+
+		reply = service.GetSigners(1)
+		assert.Equal(t, len(reply.Set), 0)
 
 	}
 }
@@ -56,9 +58,9 @@ func TestRegisterNewSigners(t *testing.T) {
 
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
 
-	signers := map[*network.ServerIdentity]bool{
-		hosts[0].ServerIdentity: true,
-		hosts[1].ServerIdentity: true,
+	signers := SignersSet{
+		hosts[0].ServerIdentity: 0,
+		hosts[1].ServerIdentity: 0,
 	}
 
 	var listServices []*Service
@@ -68,14 +70,15 @@ func TestRegisterNewSigners(t *testing.T) {
 		service.SetGenesisSigners(signers)
 	}
 
-	assert.NoError(t, services[2].(*Service).Registrate(blsServ[2].(*blscosi.Service), listServices))
-	for _, s := range services {
-		service := s.(*Service)
-		reply := service.GetSigners()
+	for i := 2; i < nbrNodes; i++ {
+		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), listServices, 1))
+		for _, s := range services {
+			service := s.(*Service)
+			reply := service.GetSigners(1)
 
-		log.LLvl1(" Node :", service, " have these signers ", reply.Set)
-		assert.True(t, reply.Set[hosts[2].ServerIdentity])
+			assert.Contains(t, reply.Set, hosts[i].ServerIdentity)
 
+		}
 	}
 
 }

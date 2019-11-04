@@ -24,5 +24,11 @@ type GossipReply struct {
 
 // SignersReply is used to communicate the registrations that are stored on one node
 type SignersReply struct {
-	Set map[*network.ServerIdentity]bool
+	Set SignersSet
 }
+
+// SignersSet describes the type used to store the signers on nodes
+type SignersSet map[*network.ServerIdentity]Epoch
+
+// Epoch corresponds for now only to the number of the Epoch
+type Epoch int

@@ -42,36 +42,41 @@ var storageID = []byte("main")
 
 // storage is used to save our data.
 type storage struct {
-	Signers map[*network.ServerIdentity]bool
+	Signers SignersSet
 	sync.Mutex
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
-func (s *Service) SetGenesisSigners(p map[*network.ServerIdentity]bool) {
+func (s *Service) SetGenesisSigners(p SignersSet) {
 	s.storage.Lock()
 	s.storage.Signers = p
 	s.storage.Unlock()
 }
 
 // addSigner will add one signer to the storage if the proof is convincing
-func (s *Service) addSigner(signer *network.ServerIdentity, proof *blscosi.SignatureResponse) {
-	log.LLvl1(s.ServerIdentity(), " will  add Signer", signer)
+func (s *Service) addSigner(signer *network.ServerIdentity, proof *blscosi.SignatureResponse, e Epoch) {
 	// TODO : check the proof
 	if proof.Signature != nil {
 		s.storage.Lock()
-		s.storage.Signers[signer] = true
+		s.storage.Signers[signer] = e
 		s.storage.Unlock()
 	}
 }
 
 // GetSigners gives the registrations that are stored on this node
-func (s *Service) GetSigners() *SignersReply {
+func (s *Service) GetSigners(e Epoch) *SignersReply {
+	signers := make(SignersSet)
 	s.storage.Lock()
+	for s, es := range s.storage.Signers {
+		if es == e {
+			signers[s] = e
+		}
+	}
 	defer s.storage.Unlock()
-	return &SignersReply{Set: s.storage.Signers}
+	return &SignersReply{Set: signers}
 }
 
-func getKeys(m map[*network.ServerIdentity]bool) []*network.ServerIdentity {
+func getKeys(m SignersSet) []*network.ServerIdentity {
 	var keys []*network.ServerIdentity
 	for k := range m {
 		keys = append(keys, k)
@@ -81,7 +86,7 @@ func getKeys(m map[*network.ServerIdentity]bool) []*network.ServerIdentity {
 
 // Registrate will get signatures from Signers,
 // then propagate the signed block to all the nodes it is aware of to be registred as new Signers
-func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service) error {
+func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) error {
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
@@ -89,15 +94,11 @@ func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service) error {
 	ro := onet.NewRoster(mbrs)
 	defer s.storage.Unlock()
 
-	log.LLvl1(ro)
-
 	buf, err := blsS.SignatureRequest(&blscosi.SignatureRequest{Message: msg, Roster: ro})
 
-	log.LLvl1("Buf : ", buf)
-	log.LLvl1("Err : ", err)
 	for _, serv := range toSend {
 		if s != serv {
-			serv.addSigner(s.ServerIdentity(), buf.(*blscosi.SignatureResponse))
+			serv.addSigner(s.ServerIdentity(), buf.(*blscosi.SignatureResponse), e)
 		}
 	}
 
