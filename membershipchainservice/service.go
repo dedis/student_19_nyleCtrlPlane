@@ -90,7 +90,11 @@ func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) 
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
-	mbrs := append(getKeys(s.storage.Signers), s.ServerIdentity())
+	mbrs := getKeys(s.storage.Signers)
+	if _, ok := s.storage.Signers[s.ServerIdentity()]; !ok {
+		mbrs = append(getKeys(s.storage.Signers), s.ServerIdentity())
+	}
+
 	ro := onet.NewRoster(mbrs)
 	defer s.storage.Unlock()
 

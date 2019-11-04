@@ -70,7 +70,7 @@ func TestRegisterNewSigners(t *testing.T) {
 		service.SetGenesisSigners(signers)
 	}
 
-	for i := 2; i < nbrNodes; i++ {
+	for i := 0; i < nbrNodes; i++ {
 		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), listServices, 1))
 		for _, s := range services {
 			service := s.(*Service)
