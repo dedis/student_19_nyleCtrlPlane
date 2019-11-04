@@ -26,8 +26,8 @@ func TestSetGenesisSigners(t *testing.T) {
 	services := local.GetServices(hosts, membershipID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity: 0,
-		hosts[1].ServerIdentity: 0,
+		hosts[0].ServerIdentity: true,
+		hosts[1].ServerIdentity: true,
 	}
 
 	for _, s := range services {
@@ -59,8 +59,8 @@ func TestRegisterNewSigners(t *testing.T) {
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity: 0,
-		hosts[1].ServerIdentity: 0,
+		hosts[0].ServerIdentity: true,
+		hosts[1].ServerIdentity: true,
 	}
 
 	var listServices []*Service
@@ -72,13 +72,16 @@ func TestRegisterNewSigners(t *testing.T) {
 
 	for i := 0; i < nbrNodes; i++ {
 		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), listServices, 1))
+
 		for _, s := range services {
 			service := s.(*Service)
 			reply := service.GetSigners(1)
+			assert.Contains(t, reply.Set, services[i].(*Service).ServerIdentity())
 
-			assert.Contains(t, reply.Set, hosts[i].ServerIdentity)
+			// Does not change the signers of Epoch 0
+			reply = service.GetSigners(0)
+			assert.Equal(t, reply.Set, signers)
 
 		}
 	}
-
 }

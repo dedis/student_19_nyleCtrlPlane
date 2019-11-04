@@ -1,8 +1,8 @@
 package membershipchainservice
 
 import (
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/network"
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/network"
 )
 
 // We need to register all messages so the network knows how to handle them.
@@ -28,7 +28,7 @@ type SignersReply struct {
 }
 
 // SignersSet describes the type used to store the signers on nodes
-type SignersSet map[*network.ServerIdentity]Epoch
+type SignersSet map[*network.ServerIdentity]bool
 
 // Epoch corresponds for now only to the number of the Epoch
 type Epoch int

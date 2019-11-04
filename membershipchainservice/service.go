@@ -7,6 +7,7 @@ runs on the node.
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/dedis/cothority/blscosi"
@@ -42,38 +43,50 @@ var storageID = []byte("main")
 
 // storage is used to save our data.
 type storage struct {
-	Signers SignersSet
+	Signers []SignersSet
 	sync.Mutex
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(p SignersSet) {
 	s.storage.Lock()
-	s.storage.Signers = p
+	s.storage.Signers = append(s.storage.Signers, p)
 	s.storage.Unlock()
 }
 
 // addSigner will add one signer to the storage if the proof is convincing
-func (s *Service) addSigner(signer *network.ServerIdentity, proof *blscosi.SignatureResponse, e Epoch) {
+func (s *Service) addSigner(signer *network.ServerIdentity, proof *blscosi.SignatureResponse, e Epoch) error {
 	// TODO : check the proof
 	if proof.Signature != nil {
+		if e < 0 {
+			return errors.New("Epoch cannot be negative")
+		}
+		if e > Epoch(len(s.storage.Signers)) {
+			return errors.New("Epoch is too in the future")
+		}
+
 		s.storage.Lock()
-		s.storage.Signers[signer] = e
+		if e == Epoch(len(s.storage.Signers)) {
+			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
+		}
+		s.storage.Signers[e][signer] = true
 		s.storage.Unlock()
+
+		return nil
 	}
+	return errors.New("No signature")
+
 }
 
 // GetSigners gives the registrations that are stored on this node
 func (s *Service) GetSigners(e Epoch) *SignersReply {
-	signers := make(SignersSet)
-	s.storage.Lock()
-	for s, es := range s.storage.Signers {
-		if es == e {
-			signers[s] = e
-		}
+	if e < 0 || e >= Epoch(len(s.storage.Signers)) {
+		return &SignersReply{Set: nil}
 	}
+	s.storage.Lock()
 	defer s.storage.Unlock()
-	return &SignersReply{Set: signers}
+	return &SignersReply{Set: s.storage.Signers[e]}
+
 }
 
 func getKeys(m SignersSet) []*network.ServerIdentity {
@@ -90,13 +103,24 @@ func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) 
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
-	mbrs := getKeys(s.storage.Signers)
-	if _, ok := s.storage.Signers[s.ServerIdentity()]; !ok {
-		mbrs = append(getKeys(s.storage.Signers), s.ServerIdentity())
+	mbrs := getKeys(s.storage.Signers[e-1])
+
+	if _, ok := s.storage.Signers[e-1][s.ServerIdentity()]; !ok {
+		mbrs = append(mbrs, s.ServerIdentity())
 	}
 
-	ro := onet.NewRoster(mbrs)
+	// Register itself
+	if e == Epoch(len(s.storage.Signers)) {
+		s.storage.Signers = append(s.storage.Signers, make(SignersSet))
+	}
+	s.storage.Signers[e][s.ServerIdentity()] = true
+
 	defer s.storage.Unlock()
+
+	if len(mbrs) == 1 {
+		return fmt.Errorf("No signers for epoch %d", e)
+	}
+	ro := onet.NewRoster(mbrs)
 
 	buf, err := blsS.SignatureRequest(&blscosi.SignatureRequest{Message: msg, Roster: ro})
 
