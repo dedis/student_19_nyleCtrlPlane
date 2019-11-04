@@ -3,8 +3,8 @@ package membershipchainservice
 import (
 	"testing"
 
+	"github.com/dedis/cothority/blscosi"
 	"github.com/stretchr/testify/assert"
-
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/network"
 	"go.dedis.ch/onet/v3"
@@ -22,7 +22,7 @@ func TestSetGenesisSigners(t *testing.T) {
 
 	// Generate 10 nodes, the first 2 are the first signers
 	nbrNodes := 10
-	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, membershipID)
 
@@ -54,21 +54,27 @@ func TestRegisterNewSigners(t *testing.T) {
 	defer local.CloseAll()
 	services := local.GetServices(hosts, membershipID)
 
-	signers := map[*onet.Server]bool{
-		hosts[0]: true,
-		hosts[1]: true,
+	blsServ := local.GetServices(hosts, blscosi.ServiceID)
+
+	signers := map[*network.ServerIdentity]bool{
+		hosts[0].ServerIdentity: true,
+		hosts[1].ServerIdentity: true,
 	}
 
+	var listServices []*Service
 	for _, s := range services {
 		service := s.(*Service)
+		listServices = append(listServices, s.(*Service))
 		service.SetGenesisSigners(signers)
 	}
 
-	assert.NoError(t, services[2].(*Service).Registrate())
+	assert.NoError(t, services[2].(*Service).Registrate(blsServ[2].(*blscosi.Service), listServices))
 	for _, s := range services {
 		service := s.(*Service)
 		reply := service.GetSigners()
-		assert.True(t, reply.Set[hosts[2]])
+
+		log.LLvl1(" Node :", service, " have these signers ", reply.Set)
+		assert.True(t, reply.Set[hosts[2].ServerIdentity])
 
 	}
 

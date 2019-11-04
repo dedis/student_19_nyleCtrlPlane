@@ -9,6 +9,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/dedis/cothority/blscosi"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
@@ -41,15 +42,26 @@ var storageID = []byte("main")
 
 // storage is used to save our data.
 type storage struct {
-	Signers map[string]bool
+	Signers map[*network.ServerIdentity]bool
 	sync.Mutex
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
-func (s *Service) SetGenesisSigners(p map[string]bool) {
+func (s *Service) SetGenesisSigners(p map[*network.ServerIdentity]bool) {
 	s.storage.Lock()
 	s.storage.Signers = p
 	s.storage.Unlock()
+}
+
+// addSigner will add one signer to the storage if the proof is convincing
+func (s *Service) addSigner(signer *network.ServerIdentity, proof *blscosi.SignatureResponse) {
+	log.LLvl1(s.ServerIdentity(), " will  add Signer", signer)
+	// TODO : check the proof
+	if proof.Signature != nil {
+		s.storage.Lock()
+		s.storage.Signers[signer] = true
+		s.storage.Unlock()
+	}
 }
 
 // GetSigners gives the registrations that are stored on this node
@@ -57,6 +69,40 @@ func (s *Service) GetSigners() *SignersReply {
 	s.storage.Lock()
 	defer s.storage.Unlock()
 	return &SignersReply{Set: s.storage.Signers}
+}
+
+func getKeys(m map[*network.ServerIdentity]bool) []*network.ServerIdentity {
+	var keys []*network.ServerIdentity
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Registrate will get signatures from Signers,
+// then propagate the signed block to all the nodes it is aware of to be registred as new Signers
+func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service) error {
+	msg := []byte("Register me !")
+
+	s.storage.Lock()
+	mbrs := append(getKeys(s.storage.Signers), s.ServerIdentity())
+	ro := onet.NewRoster(mbrs)
+	defer s.storage.Unlock()
+
+	log.LLvl1(ro)
+
+	buf, err := blsS.SignatureRequest(&blscosi.SignatureRequest{Message: msg, Roster: ro})
+
+	log.LLvl1("Buf : ", buf)
+	log.LLvl1("Err : ", err)
+	for _, serv := range toSend {
+		if s != serv {
+			serv.addSigner(s.ServerIdentity(), buf.(*blscosi.SignatureResponse))
+		}
+	}
+
+	return err
+
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is

@@ -24,5 +24,5 @@ type GossipReply struct {
 
 // SignersReply is used to communicate the registrations that are stored on one node
 type SignersReply struct {
-	Set map[string]bool
+	Set map[*network.ServerIdentity]bool
 }
