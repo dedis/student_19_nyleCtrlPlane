@@ -77,7 +77,7 @@ func NewProtocol(node *onet.TreeNodeInstance, vf VerificationFn, treeID onet.Tre
 func (c *SimpleBLSCoSi) Dispatch() error {
 	nbrChild := len(c.Children())
 	if !c.IsRoot() {
-		log.Lvl3(c.ServerIdentity(), "waiting for prepare")
+		log.LLvl3(c.ServerIdentity(), "waiting for prepare")
 		prep := (<-c.prepare).SimplePrepare
 		err := c.handlePrepare(&prep)
 		if err != nil {
@@ -148,6 +148,7 @@ func (c *SimpleBLSCoSi) Dispatch() error {
 // Start will call the announcement function of its inner Round structure. It
 // will pass nil as *in* message.
 func (c *SimpleBLSCoSi) Start() error {
+	log.LLvl1("Start - Message : ", c.Message)
 	out := &SimplePrepare{c.Message}
 	return c.handlePrepare(out)
 }
@@ -158,7 +159,7 @@ func (c *SimpleBLSCoSi) handlePrepare(in *SimplePrepare) error {
 	var err error
 
 	c.Message = in.Message
-	log.Lvlf3("%s prepare message: %x", c.ServerIdentity(), c.Message)
+	log.LLvlf3("%s prepare message: %x", c.ServerIdentity(), c.Message)
 
 	// if we are leaf, we should go to prepare-reply
 	if c.IsLeaf() {
@@ -188,7 +189,7 @@ func (c *SimpleBLSCoSi) handlePrepare(in *SimplePrepare) error {
 // It expects *in* to be the full set of messages from the children.
 // The children's commitment must remain constants.
 func (c *SimpleBLSCoSi) handlePrepareReplies(replies []*SimplePrepareReply) error {
-	log.Lvl3(c.ServerIdentity(), "aggregated")
+	log.LLvl3(c.ServerIdentity(), "aggregated")
 
 	// verify that txn signed by sender, last txn in the coin and holder is sender
 	if err := c.vf(c.Message, c.Tree().ID); err != nil {
@@ -202,20 +203,27 @@ func (c *SimpleBLSCoSi) handlePrepareReplies(replies []*SimplePrepareReply) erro
 		return c.handleError(&TransmitError{Error: err.Error()})
 	}
 
+	log.LLvl1(" HandlePrepareReply : HERE")
+	// TODO REFACTOR
+	// For example pass a "Prepare" function from the service
+
 	// reserve the resource
 	tx := transaction.Tx{}
 	err = protobuf.Decode(c.Message, &tx)
 	if err != nil {
+		log.LLvl1(" HandlePrepareReply : ERROR")
 		return err
 	}
 	key := c.treeID.String() + string(tx.Inner.CoinID)
 	resourceIdx := c.coinToAtomic[key]
 	succeeded := atomic.CompareAndSwapInt32(&(c.atomicCoinReserved[resourceIdx]), 0, 1)
 
+	log.LLvl1(" HandlePrepareReply : PASSING REFACTOR")
+
 	var posAggrSig, negAggrSig []byte
 	if !succeeded {
 		// resource occupied, send negative answer
-		log.Lvl3(c.ServerIdentity(), "sending to parent negative for", tx.Inner.ReceiverPK)
+		log.LLvl3(c.ServerIdentity(), "sending to parent negative for", tx.Inner.ReceiverPK)
 		sigs := prepareRepliesToSigs(replies, false)
 		if len(sigs) > 0 {
 			negAggrSig, err = bls.AggregateSignatures(c.suite, append(sigs, mySig)...)
@@ -232,11 +240,12 @@ func (c *SimpleBLSCoSi) handlePrepareReplies(replies []*SimplePrepareReply) erro
 			return err
 		}
 	} else {
-		log.Lvl3(c.ServerIdentity(), "sending to parent positive for", tx.Inner.ReceiverPK)
+		log.LLvl3(c.ServerIdentity(), "sending to parent positive for", tx.Inner.ReceiverPK)
 		sigs := prepareRepliesToSigs(replies, true)
 		if len(sigs) > 0 {
 			posAggrSig, err = bls.AggregateSignatures(c.suite, append(sigs, mySig)...)
 			if err != nil {
+				log.LLvl1("Err in signature : ", err)
 				log.Error(c.ServerIdentity(), err)
 				return c.handleError(&TransmitError{Error: err.Error()})
 			}
@@ -246,10 +255,13 @@ func (c *SimpleBLSCoSi) handlePrepareReplies(replies []*SimplePrepareReply) erro
 
 		negAggrSig, err = bls.AggregateSignatures(c.suite, prepareRepliesToSigs(replies, false)...)
 		if err != nil {
+
+			log.LLvl1("AFTER : Err in signature : ", err)
 			return err
 		}
 	}
 
+	log.LLvl1("PASSING TO ROOT ...........")
 	// combine the signatures from the replies
 
 	// if we are the root, we need to start the commit phase
@@ -259,7 +271,7 @@ func (c *SimpleBLSCoSi) handlePrepareReplies(replies []*SimplePrepareReply) erro
 			PosAggrSig: posAggrSig,
 		}
 
-		log.Lvlf3("%s starting commit (message = %x)", c.ServerIdentity(), c.Message)
+		log.LLvlf3("%s starting commit (message = %x)", c.ServerIdentity(), c.Message)
 		return c.handleCommit(out)
 	}
 
@@ -272,7 +284,7 @@ func (c *SimpleBLSCoSi) handlePrepareReplies(replies []*SimplePrepareReply) erro
 
 	//dist := c.distances[c.ServerIdentity().String()][c.Parent().ServerIdentity.String()]
 	//time.Sleep(time.Duration(dist) / 10 * time.Millisecond)
-	log.Lvlf3("%s sending to parent", c.ServerIdentity())
+	log.LLvlf3("%s sending to parent", c.ServerIdentity())
 	return c.SendTo(c.Parent(), outMsg)
 }
 
@@ -283,7 +295,7 @@ func (c *SimpleBLSCoSi) handleCommit(in *SimpleCommit) error {
 	var err error
 	c.commitMsg = *in
 
-	log.Lvlf3("%s handling commit", c.ServerIdentity())
+	log.LLvlf3("%s handling commit", c.ServerIdentity())
 
 	// if we are leaf, then go to commitReply
 	if c.IsLeaf() {
@@ -311,6 +323,7 @@ func (c *SimpleBLSCoSi) handleCommit(in *SimpleCommit) error {
 // handleCommitReplies brings up the commitReply of each node in the tree to the root.
 func (c *SimpleBLSCoSi) handleCommitReplies(replies []*SimpleCommitReply) error {
 
+	log.LLvlf3("%s handling commitReply", c.ServerIdentity())
 	defer func() {
 		// protocol is finished
 		close(c.done)
@@ -320,6 +333,7 @@ func (c *SimpleBLSCoSi) handleCommitReplies(replies []*SimpleCommitReply) error 
 	tx := transaction.Tx{}
 	err := protobuf.Decode(c.Message, &tx)
 	if err != nil {
+
 		return err
 	}
 
@@ -334,6 +348,7 @@ func (c *SimpleBLSCoSi) handleCommitReplies(replies []*SimpleCommitReply) error 
 
 	mySig, err := bls.Sign(c.suite, c.Private(), c.Message)
 	if err != nil {
+
 		return err
 	}
 
@@ -371,8 +386,10 @@ func (c *SimpleBLSCoSi) handleCommitReplies(replies []*SimpleCommitReply) error 
 		// combine the signatures from the replies and my own signature
 		sigs := commitRepliesToSigs(replies, true)
 		if len(sigs) > 0 {
+			log.LLvlf3("PASSING HERE ? ")
 			posAggrSig, err = bls.AggregateSignatures(c.suite, append(sigs, mySig)...)
 			if err != nil {
+				log.LLvlf3("Error HERE ? ")
 				return err
 			}
 		} else {
@@ -381,12 +398,13 @@ func (c *SimpleBLSCoSi) handleCommitReplies(replies []*SimpleCommitReply) error 
 
 		negAggrSig, err = bls.AggregateSignatures(c.suite, commitRepliesToSigs(replies, false)...)
 		if err != nil {
+			log.LLvlf3("Error HERE 2 ? ")
 			return err
 		}
 
 	}
 
-	log.Lvl3(c.ServerIdentity(), "aggregated")
+	log.LLvl3(c.ServerIdentity(), "aggregated")
 
 	out := &SimpleCommitReply{
 		PosSig: posAggrSig,
@@ -401,13 +419,14 @@ func (c *SimpleBLSCoSi) handleCommitReplies(replies []*SimpleCommitReply) error 
 	}
 
 	// send it to the output channel
-	log.Lvl3(c.ServerIdentity(), "sending the final signature to channel")
+	log.LLvl3(c.ServerIdentity(), "sending the final signature to channel")
 	c.FinalSignature <- posAggrSig
 	return nil
 }
 
 // handleError transmits the error up the tree
 func (c *SimpleBLSCoSi) handleError(tErr *TransmitError) error {
+	log.LLvl1("Handle Error")
 	if c.IsRoot() {
 		return c.handleShutdown(&Shutdown{Error: tErr.Error})
 	}
@@ -434,6 +453,8 @@ func (c *SimpleBLSCoSi) handleShutdown(shutdown *Shutdown) error {
 		key := string(c.set) + string(tx.Inner.CoinID)
 		c.atomicCoinReserved[key].Unlock()
 	*/
+
+	// TODO : Refactor.
 
 	key := c.treeID.String() + string(tx.Inner.CoinID)
 	resourceIdx := c.coinToAtomic[key]
