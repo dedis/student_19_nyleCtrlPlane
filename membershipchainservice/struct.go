@@ -28,7 +28,10 @@ type SignersReply struct {
 }
 
 // SignersSet describes the type used to store the signers on nodes
-type SignersSet map[*network.ServerIdentity]bool
+type SignersSet map[network.ServerIdentityID]bool
 
 // Epoch corresponds for now only to the number of the Epoch
 type Epoch int
+
+// ServiceFn is used to pass the service to the registration protocol
+type ServiceFn func() *Service

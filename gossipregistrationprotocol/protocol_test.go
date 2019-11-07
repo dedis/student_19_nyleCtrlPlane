@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dedis/cothority/blscosi"
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
@@ -26,22 +27,35 @@ func TestMain(m *testing.M) {
 // Tests a 2, 5 and 13-node system. It is good practice to test different
 // sizes of trees to make sure your protocol is stable.
 func TestGossip(t *testing.T) {
+	addSigner := func(signer network.ServerIdentityID, proof *blscosi.SignatureResponse, e int) error {
+		return nil
+	}
+	_, err := onet.GlobalProtocolRegister(Name, NewGossipProtocol(addSigner))
+	if err != nil {
+		panic(err)
+	}
+
 	nodes := []int{2, 5, 13}
 	for _, nbrNodes := range nodes {
 		local := onet.NewLocalTest(tSuite)
-		_, _, tree := local.GenTree(nbrNodes, true)
-		log.Lvl3(tree.Dump())
+		hosts, _, tree := local.GenTree(nbrNodes, true)
+		ann := Announce{
+			Signer: hosts[0].ServerIdentity.ID,
+			Proof:  &blscosi.SignatureResponse{},
+			Epoch:  2,
+		}
 
 		pi, err := local.CreateProtocol(Name, tree)
 		require.Nil(t, err)
 
 		protocol := pi.(*GossipRegistationProtocol)
+		protocol.Ann = ann
 		require.NoError(t, protocol.Start())
 
 		timeout := network.WaitRetry * time.Duration(network.MaxRetryConnect*nbrNodes*2) * time.Millisecond
 		select {
 		case sum := <-protocol.ConfirmationsChan:
-			require.Equal(t, nbrNodes, len(sum), "The number of confirmations is not the number of nodes")
+			require.Equal(t, nbrNodes, sum, "The number of confirmations is not the number of nodes")
 
 		case <-time.After(timeout):
 			t.Fatal("Didn't finish in time")

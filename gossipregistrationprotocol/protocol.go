@@ -11,44 +11,49 @@ node will only use the `Handle`-methods, and not call `Start` again.
 */
 
 import (
+	"github.com/dedis/cothority/blscosi"
+	"go.dedis.ch/onet/network"
 	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
 )
 
+// AddSignersCallback is a callback function that is called in the protocol
+type AddSignersCallback func(signer network.ServerIdentityID, proof *blscosi.SignatureResponse, e int) error
+
 func init() {
-	_, err := onet.GlobalProtocolRegister(Name, NewProtocol)
-	if err != nil {
-		panic(err)
-	}
+	network.RegisterMessages(&Announce{})
 }
 
 // GossipRegistationProtocol holds the state of gossip
 type GossipRegistationProtocol struct {
 	*onet.TreeNodeInstance
+	Ann               Announce
+	addSigners        AddSignersCallback
 	announceChan      chan announceWrapper
 	repliesChan       chan []replyWrapper
-	ConfirmationsChan chan map[string]bool
+	ConfirmationsChan chan int
 }
 
 // Check that *TemplateProtocol implements onet.ProtocolInstance
 var _ onet.ProtocolInstance = (*GossipRegistationProtocol)(nil)
 
-// NewProtocol initialises the structure for use in one round
-func NewProtocol(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
-	t := &GossipRegistationProtocol{
-		TreeNodeInstance:  n,
-		ConfirmationsChan: make(chan map[string]bool),
+// NewGossipProtocol initialises the structure for use in one round
+func NewGossipProtocol(addSigners AddSignersCallback) func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
+	return func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
+		t := &GossipRegistationProtocol{
+			TreeNodeInstance:  n,
+			ConfirmationsChan: make(chan int),
+			addSigners:        addSigners,
+		}
+		if err := n.RegisterChannels(&t.announceChan, &t.repliesChan); err != nil {
+			return nil, err
+		}
+		return t, nil
 	}
-	if err := n.RegisterChannels(&t.announceChan, &t.repliesChan); err != nil {
-		return nil, err
-	}
-	return t, nil
 }
 
 // Start sends the Announce-message to all children
 func (p *GossipRegistationProtocol) Start() error {
-	log.LLvl3(p.ServerIdentity(), "Starting Gossip")
-	return p.SendTo(p.TreeNode(), &Announce{string(p.ServerIdentity().Address)})
+	return p.SendTo(p.TreeNode(), &p.Ann)
 }
 
 // Dispatch implements the main logic of the protocol. The function is only
@@ -56,28 +61,25 @@ func (p *GossipRegistationProtocol) Start() error {
 // Done is called.
 func (p *GossipRegistationProtocol) Dispatch() error {
 	defer p.Done()
-
-	address := string(p.ServerIdentity().Address)
-	addressMap := map[string]bool{address: true}
+	nConf := 1
 
 	ann := <-p.announceChan
+	a := &ann.Announce
+	p.addSigners(a.Signer, a.Proof, a.Epoch)
 
 	if p.IsLeaf() {
-		return p.SendToParent(&Reply{addressMap})
+		return p.SendToParent(&Reply{nConf})
 	}
 	p.SendToChildren(&ann.Announce)
 
 	replies := <-p.repliesChan
-	for _, confMap := range replies {
-		for k, v := range confMap.Confirmations {
-			addressMap[k] = v
-		}
+	for _, r := range replies {
+		nConf += r.Confirmations
 	}
 
 	if !p.IsRoot() {
-		return p.SendToParent(&Reply{addressMap})
+		return p.SendToParent(&Reply{nConf})
 	}
-
-	p.ConfirmationsChan <- addressMap
+	p.ConfirmationsChan <- nConf
 	return nil
 }

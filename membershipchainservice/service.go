@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/dedis/cothority/blscosi"
+	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
@@ -55,23 +56,20 @@ func (s *Service) SetGenesisSigners(p SignersSet) {
 }
 
 // addSigner will add one signer to the storage if the proof is convincing
-func (s *Service) addSigner(signer *network.ServerIdentity, proof *blscosi.SignatureResponse, e Epoch) error {
-	// TODO : check the proof
+func (s *Service) addSigner(signer network.ServerIdentityID, proof *blscosi.SignatureResponse, e int) error {
 	if proof.Signature != nil {
 		if e < 0 {
 			return errors.New("Epoch cannot be negative")
 		}
-		if e > Epoch(len(s.storage.Signers)) {
+		if e > len(s.storage.Signers) {
 			return errors.New("Epoch is too in the future")
 		}
-
 		s.storage.Lock()
-		if e == Epoch(len(s.storage.Signers)) {
+		if e == len(s.storage.Signers) {
 			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 		}
-		s.storage.Signers[e][signer] = true
+		s.storage.Signers[Epoch(e)][signer] = true
 		s.storage.Unlock()
-
 		return nil
 	}
 	return errors.New("No signature")
@@ -89,8 +87,8 @@ func (s *Service) GetSigners(e Epoch) *SignersReply {
 
 }
 
-func getKeys(m SignersSet) []*network.ServerIdentity {
-	var keys []*network.ServerIdentity
+func getKeys(m SignersSet) []network.ServerIdentityID {
+	var keys []network.ServerIdentityID
 	for k := range m {
 		keys = append(keys, k)
 	}
@@ -99,13 +97,21 @@ func getKeys(m SignersSet) []*network.ServerIdentity {
 
 // Registrate will get signatures from Signers,
 // then propagate the signed block to all the nodes it is aware of to be registred as new Signers
-func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) error {
+func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch) error {
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
-	mbrs := getKeys(s.storage.Signers[e-1])
+	mbrsIDs := getKeys(s.storage.Signers[e-1])
+	var mbrs []*network.ServerIdentity
+	for _, mID := range mbrsIDs {
+		_, si := roster.Search(mID)
+		if si == nil {
+			return errors.New("Server Identity not found in Roster")
+		}
+		mbrs = append(mbrs, si)
+	}
 
-	if _, ok := s.storage.Signers[e-1][s.ServerIdentity()]; !ok {
+	if _, ok := s.storage.Signers[e-1][s.ServerIdentity().ID]; !ok {
 		mbrs = append(mbrs, s.ServerIdentity())
 	}
 
@@ -113,9 +119,8 @@ func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) 
 	if e == Epoch(len(s.storage.Signers)) {
 		s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	}
-	s.storage.Signers[e][s.ServerIdentity()] = true
-
-	defer s.storage.Unlock()
+	s.storage.Signers[e][s.ServerIdentity().ID] = true
+	s.storage.Unlock()
 
 	if len(mbrs) == 1 {
 		return fmt.Errorf("No signers for epoch %d", e)
@@ -124,13 +129,24 @@ func (s *Service) Registrate(blsS *blscosi.Service, toSend []*Service, e Epoch) 
 
 	buf, err := blsS.SignatureRequest(&blscosi.SignatureRequest{Message: msg, Roster: ro})
 
-	for _, serv := range toSend {
-		if s != serv {
-			serv.addSigner(s.ServerIdentity(), buf.(*blscosi.SignatureResponse), e)
-		}
+	nbrNodes := len(roster.List) - 1
+	tree := roster.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
+	pi, err := s.CreateProtocol(gpr.Name, tree)
+	if err != nil {
+		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
+	p := pi.(*gpr.GossipRegistationProtocol)
+	p.Ann = gpr.Announce{
+		Signer: s.ServerIdentity().ID,
+		Proof:  buf.(*blscosi.SignatureResponse),
+		Epoch:  int(e),
+	}
+	p.Start()
 
-	return err
+	select {
+	case <-p.ConfirmationsChan:
+		return nil
+	}
 
 }
 
@@ -190,7 +206,13 @@ func newService(c *onet.Context) (onet.Service, error) {
 		ServiceProcessor: onet.NewServiceProcessor(c),
 	}
 
-	if err := s.tryLoad(); err != nil {
+	// configure the Gossiping protocol
+	_, err := s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSigner))
+	if err != nil {
+		return nil, err
+	}
+
+	if err = s.tryLoad(); err != nil {
 		log.Error(err)
 		return nil, err
 	}

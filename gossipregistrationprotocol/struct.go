@@ -7,14 +7,21 @@ with the `*onet.TreeNode` embedded. The latter is used in the handler-function
 so that it can find out who sent the message.
 */
 
-import "go.dedis.ch/onet/v3"
+import (
+	"github.com/dedis/cothority/blscosi"
+
+	"go.dedis.ch/onet/network"
+	"go.dedis.ch/onet/v3"
+)
 
 // Name can be used from other packages to refer to this protocol.
 const Name = "GossipRegistrationProtocol"
 
 // Announce is used to pass a message to all children.
 type Announce struct {
-	Message string
+	Signer network.ServerIdentityID
+	Proof  *blscosi.SignatureResponse
+	Epoch  int
 }
 
 // announceWrapper just contains Announce and the data necessary to identify
@@ -26,7 +33,7 @@ type announceWrapper struct {
 
 // Reply returns the sum of all children random number
 type Reply struct {
-	Confirmations map[string]bool
+	Confirmations int
 }
 
 // replyWrapper just contains Reply and the data necessary to identify and
@@ -34,4 +41,7 @@ type Reply struct {
 type replyWrapper struct {
 	*onet.TreeNode
 	Reply
+}
+
+type processAnnouce interface {
 }

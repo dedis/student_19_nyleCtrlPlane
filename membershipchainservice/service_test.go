@@ -26,8 +26,8 @@ func TestSetGenesisSigners(t *testing.T) {
 	services := local.GetServices(hosts, membershipID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity: true,
-		hosts[1].ServerIdentity: true,
+		hosts[0].ServerIdentity.ID: true,
+		hosts[1].ServerIdentity.ID: true,
 	}
 
 	for _, s := range services {
@@ -52,31 +52,29 @@ func TestRegisterNewSigners(t *testing.T) {
 
 	// Generate 10 nodes, the first 2 are the first signers
 	nbrNodes := 10
-	hosts, _, _ := local.GenTree(nbrNodes, true)
+	hosts, roster, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, membershipID)
 
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity: true,
-		hosts[1].ServerIdentity: true,
+		hosts[0].ServerIdentity.ID: true,
+		hosts[1].ServerIdentity.ID: true,
 	}
 
-	var listServices []*Service
 	for _, s := range services {
-		service := s.(*Service)
-		listServices = append(listServices, s.(*Service))
-		service.SetGenesisSigners(signers)
+		s.(*Service).SetGenesisSigners(signers)
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), listServices, 1))
+		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 1))
 
 		for _, s := range services {
 			service := s.(*Service)
 			reply := service.GetSigners(1)
-			assert.Contains(t, reply.Set, services[i].(*Service).ServerIdentity())
+
+			assert.Contains(t, reply.Set, services[i].(*Service).ServerIdentity().ID)
 
 			// Does not change the signers of Epoch 0
 			reply = service.GetSigners(0)
@@ -91,15 +89,15 @@ func TestNewEpoch(t *testing.T) {
 
 	// Generate 10 nodes, the first 2 are the first signers
 	nbrNodes := 10
-	hosts, _, _ := local.GenTree(nbrNodes, true)
+	hosts, roster, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, membershipID)
 
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity: true,
-		hosts[1].ServerIdentity: true,
+		hosts[0].ServerIdentity.ID: true,
+		hosts[1].ServerIdentity.ID: true,
 	}
 
 	var listServices []*Service
@@ -110,7 +108,7 @@ func TestNewEpoch(t *testing.T) {
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), listServices, 1)
+		services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 1)
 	}
 
 	for i := 0; i < nbrNodes; i++ {
