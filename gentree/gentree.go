@@ -391,7 +391,7 @@ func GenerateBunchRings(node *LocalityNode, allNodes LocalityNodes) {
 //Computes the Euclidian distance between two nodes
 func ComputeDist(v1 *LocalityNode, v2 *LocalityNode, pingDist map[string]map[string]float64) float64 {
 	if len(pingDist) == 0 {
-		panic("aaa")
+		//panic("aaa")
 		dist := math.Sqrt(math.Pow(v1.X-v2.X, 2) + math.Pow(v1.Y-v2.Y, 2))
 		return dist
 	}
