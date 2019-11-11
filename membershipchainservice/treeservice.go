@@ -111,7 +111,7 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 
 	s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
 
-	file7, _ := os.Create("compact-pings" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
+	file7, _ := os.Create("Specs/compact-pings" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 	w7 := bufio.NewWriter(file7)
 
 	for i := 0; i < len(s.Nodes.All); i++ {
@@ -274,7 +274,7 @@ func (s *Service) getPings(readFromFile bool) {
 
 		// ping node_0 node_1 = 19.314
 		if s.Nodes.GetServerIdentityToName(s.ServerIdentity()) == "node_0" {
-			file8, _ := os.Create("mypings.txt")
+			file8, _ := os.Create("Specs/mypings.txt")
 			w8 := bufio.NewWriter(file8)
 
 			for n1, m := range s.PingDistances {
@@ -321,7 +321,7 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 
 	// genTrees placeholder code, ideally we'll generate trees from small to large
 
-	file3, _ := os.Create("gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
+	file3, _ := os.Create("Specs/gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 	w3 := bufio.NewWriter(file3)
 
 	gentree.CreateLocalityGraph(s.Nodes, RandomCoordsLevels, RandomCoordsLevels, Levels, pingDist, w3)
@@ -341,13 +341,13 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 
 	log.Lvl1("andnowcomingdist2", dist2)
 
-	file5, _ := os.Create("check-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
+	file5, _ := os.Create("Specs/check-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 	w5 := bufio.NewWriter(file5)
 
-	file6, _ := os.Create("sanity-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
+	file6, _ := os.Create("Specs/sanity-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 	w6 := bufio.NewWriter(file6)
 
-	file7, _ := os.Create("tiv-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
+	file7, _ := os.Create("Specs/tiv-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 	w7 := bufio.NewWriter(file7)
 
 	w3.WriteString("approximate-start\n")
