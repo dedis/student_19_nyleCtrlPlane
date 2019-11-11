@@ -1,6 +1,7 @@
 package membershipchainservice
 
 import (
+	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/network"
 )
@@ -35,3 +36,31 @@ type Epoch int
 
 // ServiceFn is used to pass the service to the registration protocol
 type ServiceFn func() *Service
+
+// InitRequest is used to pass information to create the trees in CRUX protocol.
+type InitRequest struct {
+	Nodes                []*gentree.LocalityNode
+	ServerIdentityToName map[*network.ServerIdentity]string
+	NrOps                int
+	OpIdxStart           int
+	Roster               *onet.Roster
+}
+
+//GraphTree represents The actual graph that will be linked to the Binary Tree of the Protocol
+type GraphTree struct {
+	Tree        *onet.Tree
+	ListOfNodes []*onet.TreeNode
+	Parents     map[*onet.TreeNode][]*onet.TreeNode
+	Radius      float64
+}
+
+// ReqPings is use to request pings
+type ReqPings struct {
+	SenderName string
+}
+
+// ReplyPings hold the reply form the ping request
+type ReplyPings struct {
+	Pings      string
+	SenderName string
+}

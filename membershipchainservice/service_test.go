@@ -69,6 +69,10 @@ func TestRegisterNewSigners(t *testing.T) {
 
 	for i := 0; i < nbrNodes; i++ {
 		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 1))
+		err := services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 2)
+		assert.NotNil(t, err)
+		err = services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 0)
+		assert.NotNil(t, err)
 
 		for _, s := range services {
 			service := s.(*Service)
@@ -86,11 +90,10 @@ func TestRegisterNewSigners(t *testing.T) {
 
 func TestNewEpoch(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
-
-	// Generate 10 nodes, the first 2 are the first signers
 	nbrNodes := 10
 	hosts, roster, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
+
 	services := local.GetServices(hosts, membershipID)
 
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
@@ -112,7 +115,7 @@ func TestNewEpoch(t *testing.T) {
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		services[i].(*Service).StartNewEpoch()
+		assert.NoError(t, services[i].(*Service).StartNewEpoch(roster))
 
 	}
 

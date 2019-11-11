@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/dedis/cothority/blscosi"
+	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
@@ -28,6 +29,8 @@ func init() {
 	membershipID, err = onet.RegisterNewService(ServiceName, newService)
 	log.ErrFatal(err)
 	network.RegisterMessage(&storage{})
+	execReqPingsMsgID = network.RegisterMessage(&ReqPings{})
+	execReplyPingsMsgID = network.RegisterMessage(&ReplyPings{})
 }
 
 // Service is our template-service
@@ -36,6 +39,21 @@ type Service struct {
 	// are correctly handled.
 	*onet.ServiceProcessor
 	storage *storage
+	e       Epoch
+
+	// From Crux
+	Nodes             gentree.LocalityNodes
+	GraphTree         map[string][]GraphTree
+	BinaryTree        map[string][]*onet.Tree
+	alive             bool
+	Distances         map[*gentree.LocalityNode]map[*gentree.LocalityNode]gentree.Compact
+	PingDistances     map[string]map[string]float64
+	ShortestDistances map[string]map[string]float64
+	OwnPings          map[string]float64
+	DonePing          bool
+	PingMapMtx        sync.Mutex
+	PingAnswerMtx     sync.Mutex
+	NrPingAnswers     int
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -50,6 +68,7 @@ type storage struct {
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(p SignersSet) {
+	s.e = 0
 	s.storage.Lock()
 	s.storage.Signers = append(s.storage.Signers, p)
 	s.storage.Unlock()
@@ -95,22 +114,34 @@ func getKeys(m SignersSet) []network.ServerIdentityID {
 	return keys
 }
 
-// Registrate will get signatures from Signers,
-// then propagate the signed block to all the nodes it is aware of to be registred as new Signers
-func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch) error {
-	msg := []byte("Register me !")
-
-	s.storage.Lock()
-	mbrsIDs := getKeys(s.storage.Signers[e-1])
+func (s *Service) getServerIdentityFromSignersSet(m SignersSet, ro *onet.Roster) ([]*network.ServerIdentity, error) {
+	mbrsIDs := getKeys(m)
 	var mbrs []*network.ServerIdentity
 	for _, mID := range mbrsIDs {
-		_, si := roster.Search(mID)
+		_, si := ro.Search(mID)
 		if si == nil {
-			return errors.New("Server Identity not found in Roster")
+			return nil, errors.New("Server Identity not found in Roster")
 		}
 		mbrs = append(mbrs, si)
 	}
+	return mbrs, nil
 
+}
+
+// Registrate will get signatures from Signers,
+// then propagate the signed block to all the nodes it is aware of to be registred as new Signers
+func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch) error {
+	if s.e != e-1 {
+		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
+	}
+
+	msg := []byte("Register me !")
+
+	s.storage.Lock()
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[e-1], roster)
+	if err != nil {
+		return err
+	}
 	if _, ok := s.storage.Signers[e-1][s.ServerIdentity().ID]; !ok {
 		mbrs = append(mbrs, s.ServerIdentity())
 	}
@@ -151,10 +182,29 @@ func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch
 }
 
 // StartNewEpoch stop the registration for nodes and run CRUX
-func (s *Service) StartNewEpoch() error {
+func (s *Service) StartNewEpoch(roster *onet.Roster) error {
+	s.e++
 
-	// TODO IMPLEMENT
-	return nil
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e], roster)
+	ro := onet.NewRoster(mbrs)
+
+	lc := gentree.LocalityContext{}
+	lc.Setup(ro, "../gentree/nodes_small.txt")
+
+	si2name := make(map[*network.ServerIdentity]string)
+	for _, n := range lc.Nodes.All {
+		si2name[n.ServerIdentity] = n.Name
+	}
+
+	s.Setup(&InitRequest{
+		Nodes:                lc.Nodes.All,
+		ServerIdentityToName: si2name,
+		NrOps:                10,
+		OpIdxStart:           0,
+		Roster:               ro,
+	})
+
+	return err
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
