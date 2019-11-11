@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dedis/cothority/blscosi"
+	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
@@ -23,7 +24,7 @@ func TestSetGenesisSigners(t *testing.T) {
 	nbrNodes := 10
 	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
-	services := local.GetServices(hosts, membershipID)
+	services := local.GetServices(hosts, MembershipID)
 
 	signers := SignersSet{
 		hosts[0].ServerIdentity.ID: true,
@@ -54,7 +55,7 @@ func TestRegisterNewSigners(t *testing.T) {
 	nbrNodes := 10
 	hosts, roster, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
-	services := local.GetServices(hosts, membershipID)
+	services := local.GetServices(hosts, MembershipID)
 
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
 
@@ -94,7 +95,7 @@ func TestNewEpoch(t *testing.T) {
 	hosts, roster, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 
-	services := local.GetServices(hosts, membershipID)
+	services := local.GetServices(hosts, MembershipID)
 
 	blsServ := local.GetServices(hosts, blscosi.ServiceID)
 
@@ -114,9 +115,11 @@ func TestNewEpoch(t *testing.T) {
 		services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 1)
 	}
 
-	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).StartNewEpoch(roster))
+	lc := gentree.LocalityContext{}
+	lc.Setup(roster, "../gentree/nodes_small.txt")
 
+	for i := 0; i < nbrNodes; i++ {
+		assert.NoError(t, services[i].(*Service).StartNewEpoch(roster, lc.Nodes.All))
 	}
 
 }

@@ -19,14 +19,14 @@ import (
 )
 
 // Used for tests
-var membershipID onet.ServiceID
+var MembershipID onet.ServiceID
 
 // ServiceName is used for registration on the onet.
 const ServiceName = "MemberchainService"
 
 func init() {
 	var err error
-	membershipID, err = onet.RegisterNewService(ServiceName, newService)
+	MembershipID, err = onet.RegisterNewService(ServiceName, newService)
 	log.ErrFatal(err)
 	network.RegisterMessage(&storage{})
 	execReqPingsMsgID = network.RegisterMessage(&ReqPings{})
@@ -182,22 +182,19 @@ func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch
 }
 
 // StartNewEpoch stop the registration for nodes and run CRUX
-func (s *Service) StartNewEpoch(roster *onet.Roster) error {
+func (s *Service) StartNewEpoch(roster *onet.Roster, nodes []*gentree.LocalityNode) error {
 	s.e++
 
 	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e], roster)
 	ro := onet.NewRoster(mbrs)
 
-	lc := gentree.LocalityContext{}
-	lc.Setup(ro, "../gentree/nodes_small.txt")
-
 	si2name := make(map[*network.ServerIdentity]string)
-	for _, n := range lc.Nodes.All {
+	for _, n := range nodes {
 		si2name[n.ServerIdentity] = n.Name
 	}
 
 	s.Setup(&InitRequest{
-		Nodes:                lc.Nodes.All,
+		Nodes:                nodes,
 		ServerIdentityToName: si2name,
 		NrOps:                10,
 		OpIdxStart:           0,
