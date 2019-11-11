@@ -91,11 +91,11 @@ func (s *LocalityContext) genTrees(RandomCoordsLevels bool, Levels int, Optimize
 	CreateLocalityGraph(s.Nodes, RandomCoordsLevels, RandomCoordsLevels, Levels, pingDist, w)
 
 	dist2 := AproximateDistanceOracle(s.Nodes)
+	log.Lvl1("Dist 2", dist2)
 
 	// we generate trees for all nodes
 	for _, crtRoot := range s.Nodes.All {
 		crtRootName := crtRoot.Name
-
 		tree, NodesList, Parents, _ := CreateOnetRings(s.Nodes, crtRootName, dist2)
 
 		// update distances only if i'm the root
@@ -106,7 +106,6 @@ func (s *LocalityContext) genTrees(RandomCoordsLevels bool, Levels int, Optimize
 				log.Lvl3("comparing for", src.Name, "-", dst.Name, "physical dist", ComputeDist(src, dst, pingDist), "approx dist", dist)
 			}
 		}
-
 		for i, n := range tree {
 			s.graphTree[crtRootName] = append(s.graphTree[crtRootName], GraphTree{
 				n,
@@ -124,7 +123,7 @@ func (s *LocalityContext) genTrees(RandomCoordsLevels bool, Levels int, Optimize
 				rosterNames = append(rosterNames, s.Nodes.GetServerIdentityToName(si))
 			}
 
-			//log.LLvl1("rootName x", rootName, "creates binary with roster", rosterNames)
+			log.Lvl1("rootName x", rootName, "creates binary with roster", rosterNames)
 
 			s.LocalityTrees[rootName] = append(s.LocalityTrees[rootName], s.createBinaryTreeFromGraphTree(n))
 		}
@@ -169,8 +168,8 @@ func (s *Service) Test(config *onet.SimulationConfig) {
 
 func (s *LocalityContext) initializeServerToNodeMap(roster *onet.Roster) {
 	if len(roster.List) != len(s.Nodes.All) {
-		log.LLvl1(len(roster.List))
-		log.LLvl1(len(s.Nodes.All))
+		log.Lvl1(len(roster.List))
+		log.Lvl1(len(s.Nodes.All))
 		log.Panic("Roster has different length than the nr of nodes read from the file")
 	}
 
@@ -178,6 +177,7 @@ func (s *LocalityContext) initializeServerToNodeMap(roster *onet.Roster) {
 		s.Nodes.All[i].ServerIdentity = rosterNode
 		s.Nodes.All[i].ServerIdentity.Address = rosterNode.Address
 		s.Nodes.ServerIdentityToName[rosterNode.ID] = s.Nodes.All[i].Name
+
 	}
 }
 

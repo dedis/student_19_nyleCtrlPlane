@@ -269,7 +269,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 	}
 
 	for _, n := range all.All {
-		log.LLvl1(n.Name, "cluster=", n.Cluster, "bunch=", n.Bunch)
+		log.Lvl1(n.Name, "cluster=", n.Cluster, "bunch=", n.Bunch)
 	}
 
 	// write to file
@@ -436,7 +436,7 @@ func GenerateRadius(maxDist float64) []float64 {
 
 	//-- prev radiuses =[]float64{5.0,10.0,15.0,20.0,25.0,30.0,100.0}
 
-	log.LLvl1(radiuses)
+	log.Lvl1(radiuses)
 
 	return radiuses
 }
@@ -560,7 +560,7 @@ func CreateAndSetChildren(Rings bool, AllowedNodes map[string]bool, file *os.Fil
 func NodeNameToInt(nodeName string) int {
 	separation := strings.Split(nodeName, "_")
 	if len(separation) != 2 {
-		log.LLvl1(separation)
+		log.Lvl1(separation)
 	}
 	idx, err := strconv.Atoi(separation[1])
 	if err != nil {
