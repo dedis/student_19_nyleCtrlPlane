@@ -201,7 +201,34 @@ func (s *Service) StartNewEpoch(roster *onet.Roster, nodes []*gentree.LocalityNo
 		Roster:               ro,
 	})
 
+	/*
+		log.LLvl1("HERE : ", s.ServerIdentity(), "\n\n")
+
+		log.LLvl1("Nodes", s.Nodes, "\n")
+		log.LLvl1("Graph Tree ", s.GraphTree)
+		log.LLvl1("Binary", s.BinaryTree)
+		log.LLvl1("Alive", s.alive)
+		log.LLvl1("Distances", s.Distances)
+		log.LLvl1("Ping Distances", s.PingDistances)
+		log.LLvl1("Shortest Distances", s.ShortestDistances)
+		log.LLvl1("Own Pings", s.OwnPings)
+		log.LLvl1("Done Ping", s.DonePing)
+		log.LLvl1("Ping MAP MTX", s.PingMapMtx)
+		log.LLvl1("Ping MTX", s.PingAnswerMtx)
+		log.LLvl1("Ping NrPingAnswer", s.NrPingAnswers)
+
+		log.LLvl1("\n\n")
+	*/
+
 	return err
+}
+
+func (s *Service) Deregistrate() error {
+	return errors.New("Unimplemented Error")
+}
+
+func (s *Service) ChangeLatencies(ic float64) {
+
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
@@ -254,6 +281,9 @@ func newService(c *onet.Context) (onet.Service, error) {
 	}
 
 	// configure the Gossiping protocol
+	s.RegisterProcessorFunc(execReqPingsMsgID, s.ExecReqPings)
+	s.RegisterProcessorFunc(execReplyPingsMsgID, s.ExecReplyPings)
+
 	_, err := s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSigner))
 	if err != nil {
 		return nil, err

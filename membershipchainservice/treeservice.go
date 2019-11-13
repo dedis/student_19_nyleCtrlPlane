@@ -2,6 +2,7 @@ package membershipchainservice
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -107,7 +108,7 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 
 	log.Lvl1("called init service on", s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 
-	s.getPings(true)
+	s.getPings(false)
 
 	s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
 
@@ -530,20 +531,20 @@ func (s *Service) measureOwnPings() {
 
 		if node.ServerIdentity.String() != s.ServerIdentity().String() {
 
-			log.Lvl2(myName, "meas ping to ", s.Nodes.GetServerIdentityToName(node.ServerIdentity))
+			log.LLvl2(myName, "meas ping to ", s.Nodes.GetServerIdentityToName(node.ServerIdentity))
 
 			for {
-
 				peerName := node.Name
 				pingCmdStr := "ping -W 150 -q -c 10 -i 1 " + node.ServerIdentity.Address.Host() + " | tail -n 1"
 				pingCmd := exec.Command("sh", "-c", pingCmdStr)
 				pingOutput, err := pingCmd.Output()
+
 				if err != nil {
 					log.Fatal("couldn't measure ping")
 				}
 
 				if strings.Contains(string(pingOutput), "pipe") || len(strings.TrimSpace(string(pingOutput))) == 0 {
-					log.Lvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), "retrying for", peerName, node.ServerIdentity.Address.Host(), node.ServerIdentity.String())
+					log.LLvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), "retrying for", peerName, node.ServerIdentity.Address.Host(), node.ServerIdentity.String())
 					log.LLvl1("retry")
 					continue
 				}
@@ -580,13 +581,13 @@ func (s *Service) measureOwnPings() {
 	}
 }
 
-func (s *Service) ExecReqPings(env *network.Envelope) {
+func (s *Service) ExecReqPings(env *network.Envelope) error {
 	log.LLvl1("EXEC REQ : ")
 	// Parse message
 	req, ok := env.Msg.(*ReqPings)
 	if !ok {
 		log.Error(s.ServerIdentity(), "failed to cast to ReqPings")
-		return
+		return errors.New("failed to cast to ReplyPings")
 	}
 
 	// wait for pings to be finished
@@ -605,23 +606,25 @@ func (s *Service) ExecReqPings(env *network.Envelope) {
 		//}
 	}
 
-	log.Lvl3("sending", reply)
+	log.LLvl3("\033[941  SENDING", reply, "\033[39m ")
 	requesterIdentity := s.Nodes.GetByName(req.SenderName).ServerIdentity
 
 	e := s.SendRaw(requesterIdentity, &ReplyPings{Pings: reply, SenderName: myName})
 	if e != nil {
 		panic(e)
+
 	}
+	return e
 }
 
-func (s *Service) ExecReplyPings(env *network.Envelope) {
-	log.LLvl1("EXEC REPLY : ")
+func (s *Service) ExecReplyPings(env *network.Envelope) error {
+	log.LLvl1("\033[94m REPLY ?????????????????? :  \033[39m ")
 
 	// Parse message
 	req, ok := env.Msg.(*ReplyPings)
 	if !ok {
 		log.Error(s.ServerIdentity(), "failed to cast to ReplyPings")
-		return
+		return errors.New("failed to cast to ReplyPings")
 	}
 
 	// process ping output
@@ -659,4 +662,5 @@ func (s *Service) ExecReplyPings(env *network.Envelope) {
 	s.NrPingAnswers++
 	s.PingAnswerMtx.Unlock()
 
+	return nil
 }
