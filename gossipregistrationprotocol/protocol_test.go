@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/cothority/blscosi"
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
@@ -27,7 +26,7 @@ func TestMain(m *testing.M) {
 // Tests a 2, 5 and 13-node system. It is good practice to test different
 // sizes of trees to make sure your protocol is stable.
 func TestGossip(t *testing.T) {
-	addSigner := func(signer network.ServerIdentityID, proof *blscosi.SignatureResponse, e int) error {
+	addSigner := func(Announce) error {
 		return nil
 	}
 	_, err := onet.GlobalProtocolRegister(Name, NewGossipProtocol(addSigner))
@@ -41,7 +40,7 @@ func TestGossip(t *testing.T) {
 		hosts, _, tree := local.GenTree(nbrNodes, true)
 		ann := Announce{
 			Signer: hosts[0].ServerIdentity.ID,
-			Proof:  &blscosi.SignatureResponse{},
+			Proof:  &SignatureResponse{},
 			Epoch:  2,
 		}
 
@@ -49,7 +48,7 @@ func TestGossip(t *testing.T) {
 		require.Nil(t, err)
 
 		protocol := pi.(*GossipRegistationProtocol)
-		protocol.Ann = ann
+		protocol.Msg = ann
 		require.NoError(t, protocol.Start())
 
 		timeout := network.WaitRetry * time.Duration(network.MaxRetryConnect*nbrNodes*2) * time.Millisecond
