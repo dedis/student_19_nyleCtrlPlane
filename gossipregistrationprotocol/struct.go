@@ -9,8 +9,8 @@ so that it can find out who sent the message.
 
 import (
 	"go.dedis.ch/cothority/v3/blscosi/protocol"
-	"go.dedis.ch/onet/network"
 	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/network"
 )
 
 // Name can be used from other packages to refer to this protocol.

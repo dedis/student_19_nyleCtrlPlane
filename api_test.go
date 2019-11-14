@@ -8,7 +8,7 @@ import (
 	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
-	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 )
 

@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 )
 

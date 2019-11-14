@@ -228,7 +228,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 
 				d := ComputeDist(v1, v2, pingDist)
 
-				//log.LLvl1("assigning", v1.Name, v2.Name)
+				log.LLvl1("assigning", v1.Name, v2.Name)
 
 				if v2.Level >= i {
 
@@ -331,6 +331,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 //Checks if a Node is suitable to be another Node's bunch depending on its distance to it
 func checkDistance(distance float64, lvl int, lvls int, Adist []float64) bool {
 
+	log.LLvl1("A Dist: ", Adist, " ---- len : ", len(Adist))
 	for i := lvl + 1; i < lvls; i++ {
 
 		if distance <= Adist[i] {

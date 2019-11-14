@@ -9,7 +9,7 @@ matrix:
         - 1.13.x
 
       script:
-        - env GO111MODULE=on make test
+        - env GO111MODULE=on go test ./...
 
 
 
