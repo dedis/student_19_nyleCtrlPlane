@@ -8,21 +8,13 @@ so that it can find out who sent the message.
 */
 
 import (
-	"github.com/dedis/cothority/blscosi"
-
+	"go.dedis.ch/cothority/v3/blscosi/protocol"
 	"go.dedis.ch/onet/network"
 	"go.dedis.ch/onet/v3"
 )
 
 // Name can be used from other packages to refer to this protocol.
 const Name = "GossipRegistrationProtocol"
-
-// Announce is used to pass a message to all children.
-type Announce struct {
-	Signer network.ServerIdentityID
-	Proof  *blscosi.SignatureResponse
-	Epoch  int
-}
 
 // announceWrapper just contains Announce and the data necessary to identify
 // and process the message in onet.
@@ -43,5 +35,15 @@ type replyWrapper struct {
 	Reply
 }
 
-type processAnnouce interface {
+// Announce is used by the gossip protocole
+type Announce struct {
+	Signer network.ServerIdentityID
+	Proof  *SignatureResponse
+	Epoch  int
+}
+
+// SignatureResponse is what the Cosi service will reply to clients.
+type SignatureResponse struct {
+	Hash      []byte
+	Signature protocol.BlsSignature
 }

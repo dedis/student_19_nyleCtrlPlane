@@ -612,7 +612,6 @@ func (s *Service) ExecReqPings(env *network.Envelope) error {
 	e := s.SendRaw(requesterIdentity, &ReplyPings{Pings: reply, SenderName: myName})
 	if e != nil {
 		panic(e)
-
 	}
 	return e
 }

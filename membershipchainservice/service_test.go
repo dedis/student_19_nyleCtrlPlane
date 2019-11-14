@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/cothority/blscosi"
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,8 +60,6 @@ func TestRegisterNewSigners(t *testing.T) {
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
 
-	blsServ := local.GetServices(hosts, blscosi.ServiceID)
-
 	signers := SignersSet{
 		hosts[0].ServerIdentity.ID: true,
 		hosts[1].ServerIdentity.ID: true,
@@ -73,10 +70,10 @@ func TestRegisterNewSigners(t *testing.T) {
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 1))
-		err := services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 2)
+		assert.NoError(t, services[i].(*Service).Registrate(roster, 1))
+		err := services[i].(*Service).Registrate(roster, 2)
 		assert.NotNil(t, err)
-		err = services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, 0)
+		err = services[i].(*Service).Registrate(roster, 0)
 		assert.NotNil(t, err)
 
 		for _, s := range services {
@@ -101,8 +98,6 @@ func TestNewEpoch(t *testing.T) {
 
 	services := local.GetServices(hosts, MembershipID)
 
-	blsServ := local.GetServices(hosts, blscosi.ServiceID)
-
 	signers := SignersSet{
 		hosts[0].ServerIdentity.ID: true,
 		hosts[1].ServerIdentity.ID: true,
@@ -121,7 +116,7 @@ func TestNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			services[idx].(*Service).Registrate(blsServ[idx].(*blscosi.Service), roster, 1)
+			services[idx].(*Service).Registrate(roster, 1)
 			wg.Done()
 		}(i)
 	}
@@ -165,8 +160,6 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
 
-	blsServ := local.GetServices(hosts, blscosi.ServiceID)
-
 	signers := SignersSet{}
 
 	for i := 0; i < joiningPerEpoch; i++ {
@@ -182,7 +175,7 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 
 		// Registration
 		for i := joiningPerEpoch * int(e); i < joiningPerEpoch*(int(e)+1); i++ {
-			err = services[i].(*Service).Registrate(blsServ[i].(*blscosi.Service), roster, e)
+			err = services[i].(*Service).Registrate(roster, e)
 			if err != nil {
 				return err
 			}

@@ -11,22 +11,17 @@ node will only use the `Handle`-methods, and not call `Start` again.
 */
 
 import (
-	"github.com/dedis/cothority/blscosi"
-	"go.dedis.ch/onet/network"
+	"go.dedis.ch/onet/log"
 	"go.dedis.ch/onet/v3"
 )
 
 // AddSignersCallback is a callback function that is called in the protocol
-type AddSignersCallback func(signer network.ServerIdentityID, proof *blscosi.SignatureResponse, e int) error
-
-func init() {
-	network.RegisterMessages(&Announce{})
-}
+type AddSignersCallback func(Announce) error
 
 // GossipRegistationProtocol holds the state of gossip
 type GossipRegistationProtocol struct {
 	*onet.TreeNodeInstance
-	Ann               Announce
+	Msg               Announce
 	addSigners        AddSignersCallback
 	announceChan      chan announceWrapper
 	repliesChan       chan []replyWrapper
@@ -53,19 +48,21 @@ func NewGossipProtocol(addSigners AddSignersCallback) func(n *onet.TreeNodeInsta
 
 // Start sends the Announce-message to all children
 func (p *GossipRegistationProtocol) Start() error {
-	return p.SendTo(p.TreeNode(), &p.Ann)
+	return p.SendTo(p.TreeNode(), &p.Msg)
 }
 
 // Dispatch implements the main logic of the protocol. The function is only
 // called once. The protocol is considered finished when Dispatch returns and
 // Done is called.
 func (p *GossipRegistationProtocol) Dispatch() error {
+	log.LLvl1("HERE ")
+
 	defer p.Done()
 	nConf := 1
 
 	ann := <-p.announceChan
-	a := &ann.Announce
-	p.addSigners(a.Signer, a.Proof, a.Epoch)
+	log.LLvl1(ann)
+	p.addSigners(ann.Announce)
 
 	if p.IsLeaf() {
 		return p.SendToParent(&Reply{nConf})

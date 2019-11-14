@@ -9,14 +9,21 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
-	"github.com/dedis/cothority/blscosi"
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 )
+
+// For Blscosi
+const protocolTimeout = 20 * time.Second
+
+var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
 // Used for tests
 var MembershipID onet.ServiceID
@@ -26,11 +33,12 @@ const ServiceName = "MemberchainService"
 
 func init() {
 	var err error
-	MembershipID, err = onet.RegisterNewService(ServiceName, newService)
+	MembershipID, err = onet.RegisterNewServiceWithSuite(ServiceName, suite, newService)
 	log.ErrFatal(err)
-	network.RegisterMessage(&storage{})
+	network.RegisterMessages(&storage{}, &gpr.Announce{})
 	execReqPingsMsgID = network.RegisterMessage(&ReqPings{})
 	execReplyPingsMsgID = network.RegisterMessage(&ReplyPings{})
+
 }
 
 // Service is our template-service
@@ -40,6 +48,12 @@ type Service struct {
 	*onet.ServiceProcessor
 	storage *storage
 	e       Epoch
+
+	// From BlsCoSi
+	Threshold int
+	NSubtrees int
+	Timeout   time.Duration
+	suite     pairing.Suite
 
 	// From Crux
 	Nodes             gentree.LocalityNodes
@@ -74,8 +88,12 @@ func (s *Service) SetGenesisSigners(p SignersSet) {
 	s.storage.Unlock()
 }
 
+func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
+	return s.addSigner(ann.Signer, ann.Proof, ann.Epoch)
+}
+
 // addSigner will add one signer to the storage if the proof is convincing
-func (s *Service) addSigner(signer network.ServerIdentityID, proof *blscosi.SignatureResponse, e int) error {
+func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.SignatureResponse, e int) error {
 	if proof.Signature != nil {
 		if e < 0 {
 			return errors.New("Epoch cannot be negative")
@@ -130,7 +148,7 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet, ro *onet.Roster)
 
 // Registrate will get signatures from Signers,
 // then propagate the signed block to all the nodes it is aware of to be registred as new Signers
-func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch) error {
+func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 	if s.e != e-1 {
 		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
 	}
@@ -158,7 +176,12 @@ func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch
 	}
 	ro := onet.NewRoster(mbrs)
 
-	buf, err := blsS.SignatureRequest(&blscosi.SignatureRequest{Message: msg, Roster: ro})
+	log.LLvl1("Start Signing")
+	buf, err := s.SignatureRequest(&SignatureRequest{Message: msg, Roster: ro})
+	if err != nil {
+		return err
+	}
+	log.LLvl1("End Signing")
 
 	nbrNodes := len(roster.List) - 1
 	tree := roster.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
@@ -166,12 +189,20 @@ func (s *Service) Registrate(blsS *blscosi.Service, roster *onet.Roster, e Epoch
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
+
+	signResp := buf.(*gpr.SignatureResponse)
+
+	log.LLvl1(signResp)
+
 	p := pi.(*gpr.GossipRegistationProtocol)
-	p.Ann = gpr.Announce{
+	p.Msg = gpr.Announce{
 		Signer: s.ServerIdentity().ID,
-		Proof:  buf.(*blscosi.SignatureResponse),
+		Proof:  signResp,
 		Epoch:  int(e),
 	}
+
+	log.LLvl1(p.Msg)
+
 	p.Start()
 
 	select {
@@ -278,13 +309,15 @@ func (s *Service) tryLoad() error {
 func newService(c *onet.Context) (onet.Service, error) {
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
+		Timeout:          protocolTimeout,
+		suite:            suite,
 	}
 
 	// configure the Gossiping protocol
 	s.RegisterProcessorFunc(execReqPingsMsgID, s.ExecReqPings)
 	s.RegisterProcessorFunc(execReplyPingsMsgID, s.ExecReplyPings)
 
-	_, err := s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSigner))
+	_, err := s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSignerFromMessage))
 	if err != nil {
 		return nil, err
 	}

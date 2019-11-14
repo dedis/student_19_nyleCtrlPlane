@@ -2,6 +2,7 @@ package membershipchainservice
 
 import (
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
+	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/network"
 )
@@ -11,6 +12,8 @@ func init() {
 	network.RegisterMessages(
 		GossipArgs{}, GossipReply{}, SignersReply{},
 	)
+	network.RegisterMessage(&SignatureRequest{})
+	network.RegisterMessage(&gpr.SignatureResponse{})
 }
 
 // GossipArgs will give the roster on which a the node will gossip
@@ -63,4 +66,10 @@ type ReqPings struct {
 type ReplyPings struct {
 	Pings      string
 	SenderName string
+}
+
+// SignatureRequest is what the Cosi service is expected to receive from clients.
+type SignatureRequest struct {
+	Message []byte
+	Roster  *onet.Roster
 }
