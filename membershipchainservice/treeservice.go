@@ -309,12 +309,14 @@ func (s *Service) getPings(readFromFile bool) {
 				log.Error("Problem when parsing pings")
 			}
 
+			s.PingMapMtx.Lock()
 			if _, ok := s.PingDistances[src]; !ok {
 				s.PingDistances[src] = make(map[string]float64)
 			}
 
 			s.PingDistances[src][dst] = math.Round(pingTime*100) / 100
 			log.LLvl1("PASSING PINGS.")
+			s.PingMapMtx.Unlock()
 		}
 	}
 }
