@@ -1,0 +1,20 @@
+notifications:
+  email: false
+
+matrix:
+  include:
+    - language: go
+
+      go:
+        - 1.13.x
+
+      script:
+        - env GO111MODULE=on go test ./...
+
+
+
+cache:
+  directories:
+    - $HOME/.m2
+    - $HOME/.cache/go-build
+    - $GOPATH/pkg/mod

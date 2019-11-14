@@ -1,4 +1,3 @@
-.DS_Store
 check-node_*
 compact-pingsnode_*
 gentree-node_*
@@ -6,6 +5,3 @@ nodes_read.txt
 out-gentree.txt
 sanity-node_*
 tiv-node_*
-nodes_read.txt
-Specs/
-out-gentree.txt
