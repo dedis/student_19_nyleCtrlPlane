@@ -3,8 +3,8 @@ package nylechain
 import (
 	"testing"
 
-	"github.com/dedis/cothority/blscosi"
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
+	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
@@ -27,11 +27,9 @@ func TestFewEpochs(t *testing.T) {
 
 	services := local.GetServices(hosts, mbrSer.MembershipID)
 
-	blsServ := local.GetServices(hosts, blscosi.ServiceID)
-
 	signers := mbrSer.SignersSet{
-		hosts[0].ServerIdentity.ID: true,
-		hosts[1].ServerIdentity.ID: true,
+		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
+		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
 	}
 
 	var listServices []*mbrSer.Service
@@ -42,7 +40,7 @@ func TestFewEpochs(t *testing.T) {
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		services[i].(*mbrSer.Service).Registrate(blsServ[i].(*blscosi.Service), roster, 1)
+		services[i].(*mbrSer.Service).Registrate(roster, 1)
 	}
 
 	lc := gentree.LocalityContext{}
