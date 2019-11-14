@@ -105,7 +105,7 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 		if e == len(s.storage.Signers) {
 			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 		}
-		s.storage.Signers[Epoch(e)][signer] = true
+		s.storage.Signers[Epoch(e)][signer] = *proof
 		s.storage.Unlock()
 		return nil
 	}
@@ -163,12 +163,6 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 	if _, ok := s.storage.Signers[e-1][s.ServerIdentity().ID]; !ok {
 		mbrs = append(mbrs, s.ServerIdentity())
 	}
-
-	// Register itself
-	if e == Epoch(len(s.storage.Signers)) {
-		s.storage.Signers = append(s.storage.Signers, make(SignersSet))
-	}
-	s.storage.Signers[e][s.ServerIdentity().ID] = true
 	s.storage.Unlock()
 
 	if len(mbrs) == 1 {
@@ -192,16 +186,12 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 
 	signResp := buf.(*gpr.SignatureResponse)
 
-	log.LLvl1(signResp)
-
 	p := pi.(*gpr.GossipRegistationProtocol)
 	p.Msg = gpr.Announce{
 		Signer: s.ServerIdentity().ID,
 		Proof:  signResp,
 		Epoch:  int(e),
 	}
-
-	log.LLvl1(p.Msg)
 
 	p.Start()
 

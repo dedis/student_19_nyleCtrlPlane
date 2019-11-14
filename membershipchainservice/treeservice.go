@@ -108,7 +108,7 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 
 	log.Lvl1("called init service on", s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 
-	s.getPings(false)
+	s.getPings(true)
 
 	s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
 
@@ -314,6 +314,7 @@ func (s *Service) getPings(readFromFile bool) {
 			}
 
 			s.PingDistances[src][dst] = math.Round(pingTime*100) / 100
+			log.LLvl1("PASSING PINGS.")
 		}
 	}
 }

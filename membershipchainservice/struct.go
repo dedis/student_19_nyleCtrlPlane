@@ -32,7 +32,7 @@ type SignersReply struct {
 }
 
 // SignersSet describes the type used to store the signers on nodes
-type SignersSet map[network.ServerIdentityID]bool
+type SignersSet map[network.ServerIdentityID]gpr.SignatureResponse
 
 // Epoch corresponds for now only to the number of the Epoch
 type Epoch int

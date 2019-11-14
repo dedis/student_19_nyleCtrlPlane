@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
+	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/suites"
@@ -30,8 +31,8 @@ func TestSetGenesisSigners(t *testing.T) {
 	services := local.GetServices(hosts, MembershipID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: true,
-		hosts[1].ServerIdentity.ID: true,
+		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
+		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
 	}
 
 	for _, s := range services {
@@ -61,8 +62,8 @@ func TestRegisterNewSigners(t *testing.T) {
 	services := local.GetServices(hosts, MembershipID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: true,
-		hosts[1].ServerIdentity.ID: true,
+		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
+		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
 	}
 
 	for _, s := range services {
@@ -99,8 +100,8 @@ func TestNewEpoch(t *testing.T) {
 	services := local.GetServices(hosts, MembershipID)
 
 	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: true,
-		hosts[1].ServerIdentity.ID: true,
+		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
+		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
 	}
 
 	var wg sync.WaitGroup
@@ -128,10 +129,10 @@ func TestNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			services[idx].(*Service).StartNewEpoch(roster, lc.Nodes.All)
+			assert.NoError(t, services[idx].(*Service).StartNewEpoch(roster, lc.Nodes.All))
 			wg.Done()
 		}(i)
-		//assert.NoError(t,  )
+
 	}
 	wg.Wait()
 
@@ -163,7 +164,7 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 	signers := SignersSet{}
 
 	for i := 0; i < joiningPerEpoch; i++ {
-		signers[hosts[i].ServerIdentity.ID] = true
+		signers[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
 	for _, s := range services {
