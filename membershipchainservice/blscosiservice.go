@@ -47,7 +47,7 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	}
 
 	// start the protocol
-	log.LLvl3("Cosi Service starting up root protocol")
+	log.Lvl3("Cosi Service starting up root protocol")
 	if err = p.Start(); err != nil {
 		return nil, err
 	}

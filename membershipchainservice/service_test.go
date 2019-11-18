@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,13 +122,10 @@ func TestNewEpoch(t *testing.T) {
 	}
 	wg.Wait()
 
-	lc := gentree.LocalityContext{}
-	lc.Setup(roster, "../gentree/nodes_small.txt")
-
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).StartNewEpoch(roster, lc.Nodes.All))
+			assert.NoError(t, services[idx].(*Service).StartNewEpoch(roster))
 			wg.Done()
 		}(i)
 
@@ -191,13 +187,9 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 		}
 		roForEpoch := onet.NewRoster(SIs)
 
-		lc := gentree.LocalityContext{}
-		// THIS WILL FAIL FOR NOW
-		lc.Setup(roForEpoch, "../gentree/nodes_small.txt")
-
 		for i := 0; i < nbrNodes; i++ {
 			// THIS MIGHT FAIL FOR NOW - SEEK WHAT WILL BE THE PROBLEM OF STARTING EPOCH WITHOUT ALL THE NODES
-			err = services[i].(*Service).StartNewEpoch(roForEpoch, lc.Nodes.All)
+			err = services[i].(*Service).StartNewEpoch(roForEpoch)
 			if err != nil {
 				return err
 			}

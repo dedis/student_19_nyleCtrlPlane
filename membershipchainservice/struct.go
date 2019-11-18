@@ -1,7 +1,6 @@
 package membershipchainservice
 
 import (
-	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/network"
@@ -42,11 +41,7 @@ type ServiceFn func() *Service
 
 // InitRequest is used to pass information to create the trees in CRUX protocol.
 type InitRequest struct {
-	Nodes                []*gentree.LocalityNode
 	ServerIdentityToName map[*network.ServerIdentity]string
-	NrOps                int
-	OpIdxStart           int
-	Roster               *onet.Roster
 }
 
 //GraphTree represents The actual graph that will be linked to the Binary Tree of the Protocol

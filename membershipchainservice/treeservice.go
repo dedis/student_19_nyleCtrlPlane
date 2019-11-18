@@ -32,12 +32,19 @@ var execReplyPingsMsgID network.MessageTypeID
 // Setup is a method that will initialize the Crux Protocol
 // it is copy-pasted from : https://github.com/dedis/paper_crux/blob/master/dsn_exp/service/service.go
 func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[network.ServerIdentityID]string, map[*gentree.LocalityNode]map[*gentree.LocalityNode]float64)*/ {
-
-	s.Nodes.All = req.Nodes
+	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
+
+	i := 0
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
+		s.Nodes.All[i] = &gentree.LocalityNode{}
+		s.Nodes.All[i].Name = v
+		s.Nodes.All[i].ServerIdentity = k
+		i++
 	}
+
+	log.LLvl1(" Nodes empty : ", s.Nodes.All)
 	for _, myNode := range s.Nodes.All {
 
 		myNode.ADist = make([]float64, 0)
@@ -78,6 +85,7 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 			//log.LLvl1("init map", node.Name, node2.Name)
 		}
 	}
+	log.LLvl1(" Nodes full : ", s.Nodes.All)
 
 	//ROOT_NAME := s.Nodes.GetServerIdentityToName(s.ServerIdentity())
 	//filename := "fullcall-" + ROOT_NAME + ".txt"
@@ -315,7 +323,7 @@ func (s *Service) getPings(readFromFile bool) {
 			}
 
 			s.PingDistances[src][dst] = math.Round(pingTime*100) / 100
-			log.LLvl1("PASSING PINGS.")
+			log.Lvl1("PASSING PINGS.")
 			s.PingMapMtx.Unlock()
 		}
 	}

@@ -8,6 +8,7 @@ runs on the node.
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -170,12 +171,10 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 	}
 	ro := onet.NewRoster(mbrs)
 
-	log.LLvl1("Start Signing")
 	buf, err := s.SignatureRequest(&SignatureRequest{Message: msg, Roster: ro})
 	if err != nil {
 		return err
 	}
-	log.LLvl1("End Signing")
 
 	nbrNodes := len(roster.List) - 1
 	tree := roster.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
@@ -203,25 +202,20 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 }
 
 // StartNewEpoch stop the registration for nodes and run CRUX
-func (s *Service) StartNewEpoch(roster *onet.Roster, nodes []*gentree.LocalityNode) error {
+func (s *Service) StartNewEpoch(roster *onet.Roster) error {
 	s.e++
 
 	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e], roster)
 	ro := onet.NewRoster(mbrs)
 
 	si2name := make(map[*network.ServerIdentity]string)
-	for _, n := range nodes {
-		si2name[n.ServerIdentity] = n.Name
+	for i, s := range ro.List {
+		si2name[s] = "node_" + strconv.Itoa(i)
 	}
 
 	s.Setup(&InitRequest{
-		Nodes:                nodes,
 		ServerIdentityToName: si2name,
-		NrOps:                10,
-		OpIdxStart:           0,
-		Roster:               ro,
 	})
-
 	/*
 		log.LLvl1("HERE : ", s.ServerIdentity(), "\n\n")
 
@@ -234,13 +228,9 @@ func (s *Service) StartNewEpoch(roster *onet.Roster, nodes []*gentree.LocalityNo
 		log.LLvl1("Shortest Distances", s.ShortestDistances)
 		log.LLvl1("Own Pings", s.OwnPings)
 		log.LLvl1("Done Ping", s.DonePing)
-		log.LLvl1("Ping MAP MTX", s.PingMapMtx)
-		log.LLvl1("Ping MTX", s.PingAnswerMtx)
-		log.LLvl1("Ping NrPingAnswer", s.NrPingAnswers)
 
 		log.LLvl1("\n\n")
 	*/
-
 	return err
 }
 

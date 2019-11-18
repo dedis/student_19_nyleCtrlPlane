@@ -12,7 +12,6 @@ node will only use the `Handle`-methods, and not call `Start` again.
 
 import (
 	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
 )
 
 // AddSignersCallback is a callback function that is called in the protocol
@@ -55,13 +54,11 @@ func (p *GossipRegistationProtocol) Start() error {
 // called once. The protocol is considered finished when Dispatch returns and
 // Done is called.
 func (p *GossipRegistationProtocol) Dispatch() error {
-	log.LLvl1("HERE ")
 
 	defer p.Done()
 	nConf := 1
 
 	ann := <-p.announceChan
-	log.LLvl1(ann)
 	p.addSigners(ann.Announce)
 
 	if p.IsLeaf() {
