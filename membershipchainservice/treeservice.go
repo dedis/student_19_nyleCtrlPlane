@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"os/exec"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +30,7 @@ var execReplyPingsMsgID network.MessageTypeID
 
 // Setup is a method that will initialize the Crux Protocol
 // it is copy-pasted from : https://github.com/dedis/paper_crux/blob/master/dsn_exp/service/service.go
-func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[network.ServerIdentityID]string, map[*gentree.LocalityNode]map[*gentree.LocalityNode]float64)*/ {
+func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 
@@ -44,9 +43,7 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 		i++
 	}
 
-	log.LLvl1(" Nodes empty : ", s.Nodes.All)
 	for _, myNode := range s.Nodes.All {
-
 		myNode.ADist = make([]float64, 0)
 		myNode.PDist = make([]string, 0)
 		myNode.OptimalCluster = make(map[string]bool)
@@ -60,7 +57,6 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 	nodes := make([]*gentree.LocalityNode, len(s.Nodes.All))
 	for _, n := range s.Nodes.All {
 		nodes[gentree.NodeNameToInt(n.Name)] = n
-		//log.Info(s.ServerIdentity(), fmt.Sprintf("%+v", nodes[gentree.NodeNameToInt(n.Name)]))
 	}
 	s.Nodes.All = nodes
 	s.Nodes.ClusterBunchDistances = make(map[*gentree.LocalityNode]map[*gentree.LocalityNode]float64)
@@ -81,122 +77,15 @@ func (s *Service) Setup(req *InitRequest) /*([]GraphTree, []*onet.Tree, map[netw
 			if node == node2 {
 				s.Nodes.ClusterBunchDistances[node][node2] = 0
 			}
-
-			//log.LLvl1("init map", node.Name, node2.Name)
 		}
 	}
-	log.LLvl1(" Nodes full : ", s.Nodes.All)
-
-	//ROOT_NAME := s.Nodes.GetServerIdentityToName(s.ServerIdentity())
-	//filename := "fullcall-" + ROOT_NAME + ".txt"
-
-	/*
-		var file *os.File
-		if _, err := os.Stat(filename); !os.IsNotExist(err) {
-
-			//file, err = os.OpenFile(filename, os.O_APPEND | os.O_WRONLY, 0600)
-			file, err = os.OpenFile(filename, os.O_WRONLY, 0600)
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			file, err = os.Create(filename)
-		}
-
-		s.File = file
-		s.W = bufio.NewWriter(file)
-	*/
-
-	/*
-		for _, node := range s.Nodes.All {
-			log.Lvl1(node.Name)
-		}
-	*/
-	//log.Lvl1(s.Nodes.ServerIdentityToName)
-
-	log.Lvl1("called init service on", s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
 
 	s.getPings(true)
 
 	s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
 
-	file7, _ := os.Create("Specs/compact-pings" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
-	w7 := bufio.NewWriter(file7)
-
-	for i := 0; i < len(s.Nodes.All); i++ {
-		rootName := "node_" + strconv.Itoa(i)
-		for _, n := range s.GraphTree[rootName] {
-
-			rosterNames := make([]string, 0)
-			for _, si := range n.Tree.Roster.List {
-				rosterNames = append(rosterNames, s.Nodes.GetServerIdentityToName(si))
-			}
-
-			sort.Strings(rosterNames)
-
-			rosterList := ""
-			for _, n := range rosterNames {
-				rosterList += n + " "
-			}
-
-			w7.WriteString("rootName " + rootName + "creates binary with roster " + rosterList + "\n")
-
-		}
-
-	}
-
-	w7.Flush()
-	file7.Close()
-
 	s.ShortestDistances = s.floydWarshall()
-	/*
-		for i := 0 ; i < len(s.Nodes.All); i++ {
-			namei := "node_" + strconv.Itoa(i)
-			for j := 0 ; j < len(s.Nodes.All); j++ {
-				namej := "node_" + strconv.Itoa(j)
 
-				if math.Abs(s.PingDistances[namei][namej] - s.ShortestDistances[namei][namej]) > 0.5 {
-					log.LLvl1("still not cool", namei, namej, "ping=", s.PingDistances[namei][namej], "straight=", s.ShortestDistances[namei][namej])
-				}
-			}
-		}
-
-
-		s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.ShortestDistances)
-
-		file8, _ := os.Create("compact-warshall" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
-		w8 := bufio.NewWriter(file8)
-
-		for i := 0 ; i < len(s.Nodes.All); i++ {
-			rootName := "node_" + strconv.Itoa(i)
-			for _, n := range s.GraphTree[rootName] {
-
-				rosterNames := make([]string, 0)
-				for _, si := range n.Tree.Roster.List {
-					rosterNames = append(rosterNames, s.Nodes.GetServerIdentityToName(si))
-				}
-
-				sort.Strings(rosterNames)
-
-				rosterList := ""
-				for _, n := range rosterNames {
-					rosterList += n + " "
-				}
-
-				w8.WriteString("rootName " + rootName + "creates binary with roster " + rosterList + "\n")
-
-			}
-
-		}
-
-		w8.Flush()
-		file8.Close()
-
-		////dist := make(map[string]map[string]float64)
-		////s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, dist)
-	*/
-
-	// create all rings you're part of
 }
 
 func (s *Service) getPings(readFromFile bool) {
@@ -351,59 +240,6 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 
 	dist2 := gentree.AproximateDistanceOracle(s.Nodes)
 
-	log.Lvl1("andnowcomingdist2", dist2)
-
-	file5, _ := os.Create("Specs/check-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
-	w5 := bufio.NewWriter(file5)
-
-	file6, _ := os.Create("Specs/sanity-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
-	w6 := bufio.NewWriter(file6)
-
-	file7, _ := os.Create("Specs/tiv-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
-	w7 := bufio.NewWriter(file7)
-
-	w3.WriteString("approximate-start\n")
-
-	// loop in order
-	for i := 0; i < len(dist2); i++ {
-		name1 := "node_" + strconv.Itoa(i)
-		for j := 0; j < len(dist2); j++ {
-			name2 := "node_" + strconv.Itoa(j)
-			compact := dist2[s.Nodes.GetByName(name1)][s.Nodes.GetByName(name2)]
-			checkDist := s.ShortestDistances[name1][compact.ViaNodeName] + s.ShortestDistances[compact.ViaNodeName][name2]
-			w3.WriteString(fmt.Sprintf("%.2f", compact.Dist) + " " + compact.ViaNodeName + " " + fmt.Sprintf("%.2f", checkDist) + " ")
-
-			if math.Abs(compact.Dist-checkDist) > 0.9 {
-				w5.WriteString(name1 + " " + name2 + " via " + compact.ViaNodeName + " should be " + fmt.Sprintf("%.2f", checkDist) + " is " + fmt.Sprintf("%.2f", compact.Dist) + "\n")
-			}
-
-			bound := 5 * s.ShortestDistances[name1][name2]
-			if compact.Dist > bound {
-				w6.WriteString(name1 + " " + name2 + " TOO LARGE, should be at most " + fmt.Sprintf("%.2f", bound) + "= 5 * " + fmt.Sprintf("%.2f", s.ShortestDistances[name1][name2]) + " is " + fmt.Sprintf("%.2f", compact.Dist) + "\n")
-			}
-
-			if s.ShortestDistances[name1][name2]+3.0 < s.PingDistances[name1][name2] {
-				w7.WriteString(name1 + " " + name2 + " TIV shortest " + fmt.Sprintf("%.2f", s.ShortestDistances[name1][name2]) + " ping " + fmt.Sprintf("%.2f", s.PingDistances[name1][name2]) + "\n")
-			}
-
-		}
-		w3.WriteString("\n")
-	}
-
-	w3.WriteString("approximate-end\n")
-
-	w3.Flush()
-	file3.Close()
-
-	w5.Flush()
-	file5.Close()
-
-	w6.Flush()
-	file6.Close()
-
-	w7.Flush()
-	file7.Close()
-
 	// TODO we generate trees for all nodes
 	for _, crtRoot := range s.Nodes.All {
 		crtRootName := crtRoot.Name
@@ -414,28 +250,8 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 		// update distances only if i'm the root
 		if crtRootName == myname {
 			s.Distances = dist2
-
-			// just one of them prints
-			/*
-				if crtRootName == "node_0" {
-					log.Lvl1("CHECK that distances make sense")
-					for src, m := range dist2 {
-						for dst, dist := range m {
-							log.Lvl1("comparing for", src.Name, "-", dst.Name, "physical dist", gentree.ComputeDist(src, dst, pingDist), "approx dist", dist)
-							if dist > 5*gentree.ComputeDist(src, dst, pingDist) {
-								log.Lvl1("comparing for", src.Name, "-", dst.Name, "physical dist", gentree.ComputeDist(src, dst, pingDist), "approx dist", dist, "5x dist", 5*gentree.ComputeDist(src, dst, pingDist))
-								log.Lvl1("WOAAAAA way too long!!!")
-							}
-
-						}
-
-					}
-				}
-			*/
-
 		}
 
-		//s.GraphTree[crtRootName] = make([]GraphTree, 0)
 		for i, n := range tree {
 			s.GraphTree[crtRootName] = append(s.GraphTree[crtRootName], GraphTree{
 				n,
@@ -446,10 +262,7 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 		}
 	}
 
-	//panic("")
-
 	// send the graph trees to all nodes part of them
-
 	//s.SendGraphTrees()
 
 	for rootName, graphTrees := range s.GraphTree {
@@ -461,19 +274,18 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 				rosterNames = append(rosterNames, s.Nodes.GetServerIdentityToName(si))
 				rosterList += s.Nodes.GetServerIdentityToName(si) + " "
 			}
-
-			// log.LLvl1("generation node ", s.Nodes.GetServerIdentityToName(s.ServerIdentity()), "rootName x", rootName, "creates binary with roster", rosterNames)
-			// w7.WriteString("rootName " + rootName + "creates binary with roster " + rosterList + "\n")
-
 			s.BinaryTree[rootName] = append(s.BinaryTree[rootName], s.CreateBinaryTreeFromGraphTree(n))
 		}
 	}
 
 }
 func (s *Service) floydWarshall() map[string]map[string]float64 {
+	log.LLvl1("Nodes : ", s.Nodes.All)
+	log.LLvl2("Ping distances : ", s.PingDistances)
 	shortest := make(map[string]map[string]float64)
 	for i := 0; i < len(s.Nodes.All); i++ {
 		name := "node_" + strconv.Itoa(i)
+		log.LLvl1(s.Nodes.All[i].Name, name)
 		shortest[name] = make(map[string]float64)
 	}
 
