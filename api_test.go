@@ -3,7 +3,6 @@ package nylechain
 import (
 	"testing"
 
-	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
 	"github.com/stretchr/testify/assert"
@@ -43,11 +42,8 @@ func TestFewEpochs(t *testing.T) {
 		services[i].(*mbrSer.Service).Registrate(roster, 1)
 	}
 
-	lc := gentree.LocalityContext{}
-	lc.Setup(roster, "gentree/nodes_small.txt")
-
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*mbrSer.Service).StartNewEpoch(roster, lc.Nodes.All))
+		assert.NoError(t, services[i].(*mbrSer.Service).StartNewEpoch(roster))
 	}
 
 }
