@@ -1,6 +1,7 @@
 package nylechain
 
 import (
+	"sync"
 	"testing"
 
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
@@ -31,19 +32,33 @@ func TestFewEpochs(t *testing.T) {
 		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
 	}
 
-	var listServices []*mbrSer.Service
+	var wg sync.WaitGroup
 	for _, s := range services {
-		service := s.(*mbrSer.Service)
-		listServices = append(listServices, s.(*mbrSer.Service))
-		service.SetGenesisSigners(signers)
+		wg.Add(1)
+		go func(serv *mbrSer.Service) {
+			serv.SetGenesisSigners(signers)
+			wg.Done()
+		}(s.(*mbrSer.Service))
 	}
+	wg.Wait()
 
 	for i := 0; i < nbrNodes; i++ {
-		services[i].(*mbrSer.Service).Registrate(roster, 1)
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*mbrSer.Service).Registrate(roster, 1)
+			wg.Done()
+		}(i)
 	}
+	wg.Wait()
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*mbrSer.Service).StartNewEpoch(roster))
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*mbrSer.Service).StartNewEpoch(roster))
+			wg.Done()
+		}(i)
+
 	}
+	wg.Wait()
 
 }

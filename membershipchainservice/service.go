@@ -214,18 +214,24 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 
 // StartNewEpoch stop the registration for nodes and run CRUX
 func (s *Service) StartNewEpoch(roster *onet.Roster) error {
+	s.e++
+	s.storage.Lock()
 	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e], roster)
 	if err != nil {
+		defer s.storage.Unlock()
 		return err
 	}
+	if _, ok := s.storage.Signers[s.e][s.ServerIdentity().ID]; !ok {
+		defer s.storage.Unlock()
+		return errors.New("One node cannot start a new Epoch if it didn't registrate")
+	}
+	s.storage.Unlock()
 
-	//err = s.AgreeOn(mbrs)
+	ro := onet.NewRoster(mbrs)
+	err = s.AgreeOnState(ro)
 	if err != nil {
 		return err
 	}
-
-	s.e++
-	_ = onet.NewRoster(mbrs)
 
 	si2name := make(map[*network.ServerIdentity]string)
 	for i, s := range roster.List {
@@ -235,8 +241,6 @@ func (s *Service) StartNewEpoch(roster *onet.Roster) error {
 	s.Setup(&InitRequest{
 		ServerIdentityToName: si2name,
 	})
-	log.LLvl1("Graph Tree ", s.GraphTree)
-	//err = s.AgreeOn(s.GraphTree)
 
 	return err
 }
