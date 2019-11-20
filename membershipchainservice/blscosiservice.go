@@ -2,9 +2,14 @@ package membershipchainservice
 
 import (
 	"errors"
+	"reflect"
+
+	"go.dedis.ch/protobuf"
 
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/cothority/v3/blscosi/protocol"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 )
@@ -60,4 +65,26 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	h := s.suite.Hash()
 	h.Write(req.Message)
 	return &gpr.SignatureResponse{h.Sum(nil), sig}, nil
+}
+
+const agreeProtocolName = "AgreeProtocol"
+const agreeSubProtocolName = "AgreeSubProtocol"
+
+// AgreeStateSubProtocol will get a signed message if the states of the nodes are the same
+func (s *Service) AgreeStateSubProtocol(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
+	vf := func(a, b []byte) bool {
+		var st State
+		err := protobuf.Decode(b, &st)
+		if err != nil {
+			panic(err)
+		}
+		return reflect.DeepEqual(getKeys(s.storage.Signers[s.e]), st.Signers) && reflect.DeepEqual(s.GraphTree, st.GraphTree)
+	}
+	return protocol.NewSubBlsCosi(n, vf, pairing.NewSuiteBn256())
+}
+
+// AgreeStateProtocol will call the AgreeStateSubProtocol
+func AgreeStateProtocol(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
+	vf := func(a, b []byte) bool { return true }
+	return protocol.NewBlsCosi(n, vf, agreeSubProtocolName, pairing.NewSuiteBn256())
 }

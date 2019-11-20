@@ -14,7 +14,7 @@ import (
 	"go.dedis.ch/onet/v3/log"
 )
 
-var tSuite = suites.MustFind("Ed25519")
+var tSuite = suites.MustFind("bn256.adapter")
 
 func TestMain(m *testing.M) {
 	log.MainTest(m)
@@ -88,6 +88,63 @@ func TestRegisterNewSigners(t *testing.T) {
 
 		}
 	}
+}
+
+func TestAgreeOn(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+	nbrNodes := 10
+	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+
+	services := local.GetServices(hosts, MembershipID)
+
+	emptySR := gpr.SignatureResponse{Signature: []byte("test"), Hash: []byte("test2")}
+
+	signers := SignersSet{
+		hosts[0].ServerIdentity.ID: emptySR,
+		hosts[1].ServerIdentity.ID: emptySR,
+	}
+	// Set same state
+	var wg sync.WaitGroup
+	for _, s := range services {
+		wg.Add(1)
+		go func(serv *Service) {
+			serv.SetGenesisSigners(signers)
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+	// Should work if all have the same state
+	for _, s := range services {
+		wg.Add(1)
+		go func(serv *Service) {
+			assert.NoError(t, serv.AgreeOnState(roster))
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
+	// Set different State
+	signers = SignersSet{}
+	for _, s := range services[0:5] {
+		wg.Add(1)
+		go func(serv *Service) {
+			serv.SetGenesisSigners(nil)
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
+	// Should fail for some
+	for _, s := range services {
+		wg.Add(1)
+		go func(serv *Service) {
+			assert.Error(t, serv.AgreeOnState(roster))
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
 }
 
 func TestNewEpoch(t *testing.T) {

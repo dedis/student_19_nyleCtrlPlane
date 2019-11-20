@@ -6,14 +6,19 @@ runs on the node.
 */
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
 
+	"go.dedis.ch/protobuf"
+
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
+	"go.dedis.ch/cothority/v3/blscosi/protocol"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
@@ -85,7 +90,8 @@ type storage struct {
 func (s *Service) SetGenesisSigners(p SignersSet) {
 	s.e = 0
 	s.storage.Lock()
-	s.storage.Signers = append(s.storage.Signers, p)
+	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
+	s.storage.Signers[0] = p
 	s.storage.Unlock()
 }
 
@@ -130,6 +136,11 @@ func getKeys(m SignersSet) []network.ServerIdentityID {
 	for k := range m {
 		keys = append(keys, k)
 	}
+	sort.Slice(keys, func(a, b int) bool {
+		aB := [16]byte(keys[a])
+		bB := [16]byte(keys[b])
+		return bytes.Compare(aB[:], bB[:]) < 0
+	})
 	return keys
 }
 
@@ -203,34 +214,30 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 
 // StartNewEpoch stop the registration for nodes and run CRUX
 func (s *Service) StartNewEpoch(roster *onet.Roster) error {
-	s.e++
-
 	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e], roster)
-	ro := onet.NewRoster(mbrs)
+	if err != nil {
+		return err
+	}
+
+	//err = s.AgreeOn(mbrs)
+	if err != nil {
+		return err
+	}
+
+	s.e++
+	_ = onet.NewRoster(mbrs)
 
 	si2name := make(map[*network.ServerIdentity]string)
-	for i, s := range ro.List {
+	for i, s := range roster.List {
 		si2name[s] = "node_" + strconv.Itoa(i)
 	}
 
 	s.Setup(&InitRequest{
 		ServerIdentityToName: si2name,
 	})
-	/*
-		log.LLvl1("HERE : ", s.ServerIdentity(), "\n\n")
+	log.LLvl1("Graph Tree ", s.GraphTree)
+	//err = s.AgreeOn(s.GraphTree)
 
-		log.LLvl1("Nodes", s.Nodes, "\n")
-		log.LLvl1("Graph Tree ", s.GraphTree)
-		log.LLvl1("Binary", s.BinaryTree)
-		log.LLvl1("Alive", s.alive)
-		log.LLvl1("Distances", s.Distances)
-		log.LLvl1("Ping Distances", s.PingDistances)
-		log.LLvl1("Shortest Distances", s.ShortestDistances)
-		log.LLvl1("Own Pings", s.OwnPings)
-		log.LLvl1("Done Ping", s.DonePing)
-
-		log.LLvl1("\n\n")
-	*/
 	return err
 }
 
@@ -239,7 +246,73 @@ func (s *Service) Deregistrate() error {
 }
 
 func (s *Service) ChangeLatencies(ic float64) {
+}
 
+// AgreeOnState checks that the members of the roster have the same signers + same maps
+func (s *Service) AgreeOnState(roster *onet.Roster) error {
+
+	msg := []byte("Do we Agree on state ?")
+
+	//log.LLvl1(msg)
+
+	// generate the tree
+	nNodes := len(roster.List)
+	rooted := roster.NewRosterWithRoot(s.ServerIdentity())
+	if rooted == nil {
+		return errors.New("we're not in the roster")
+	}
+	tree := rooted.GenerateNaryTree(nNodes)
+	if tree == nil {
+		return errors.New("failed to generate tree")
+	}
+
+	// configure the BlsCosi protocol
+	pi, err := s.CreateProtocol(agreeProtocolName, tree)
+	if err != nil {
+		return errors.New("Couldn't make new protocol: " + err.Error())
+	}
+	p := pi.(*protocol.BlsCosi)
+	p.CreateProtocol = s.CreateProtocol
+	p.Timeout = s.Timeout
+	p.Msg = msg
+
+	st := State{
+		Signers:   getKeys(s.storage.Signers[s.e]),
+		GraphTree: s.GraphTree,
+	}
+
+	p.Data, err = protobuf.Encode(&st)
+
+	if err != nil {
+		return err
+	}
+
+	// Threshold before the subtrees so that we can optimize situation
+	// like a threshold of one
+	if s.Threshold > 0 {
+		p.Threshold = s.Threshold
+	}
+
+	if s.NSubtrees > 0 {
+		err = p.SetNbrSubTree(s.NSubtrees)
+		if err != nil {
+			p.Done()
+			return err
+		}
+	}
+
+	// start the protocol
+	log.Lvl3("Cosi Service starting up root protocol")
+	if err = p.Start(); err != nil {
+		return err
+	}
+	// wait for reply. This will always eventually return.
+	sig := <-p.FinalSignature
+
+	res := protocol.BlsSignature(sig)
+	publics := rooted.ServicePublics(ServiceName)
+
+	return res.Verify(suite, msg, publics)
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
@@ -298,6 +371,15 @@ func newService(c *onet.Context) (onet.Service, error) {
 	s.RegisterProcessorFunc(execReplyPingsMsgID, s.ExecReplyPings)
 
 	_, err := s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSignerFromMessage))
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.ProtocolRegister(agreeSubProtocolName, s.AgreeStateSubProtocol)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.ProtocolRegister(agreeProtocolName, AgreeStateProtocol)
 	if err != nil {
 		return nil, err
 	}

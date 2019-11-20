@@ -9,7 +9,7 @@ import (
 // We need to register all messages so the network knows how to handle them.
 func init() {
 	network.RegisterMessages(
-		GossipArgs{}, GossipReply{}, SignersReply{},
+		GossipArgs{}, GossipReply{}, SignersReply{}, State{},
 	)
 	network.RegisterMessage(&SignatureRequest{})
 	network.RegisterMessage(&gpr.SignatureResponse{})
@@ -67,4 +67,10 @@ type ReplyPings struct {
 type SignatureRequest struct {
 	Message []byte
 	Roster  *onet.Roster
+}
+
+// State describes the state of one node
+type State struct {
+	Signers   []network.ServerIdentityID
+	GraphTree map[string][]GraphTree
 }
