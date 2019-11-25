@@ -280,12 +280,9 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 
 }
 func (s *Service) floydWarshall() map[string]map[string]float64 {
-	log.LLvl1("Nodes : ", s.Nodes.All)
-	log.LLvl2("Ping distances : ", s.PingDistances)
 	shortest := make(map[string]map[string]float64)
 	for i := 0; i < len(s.Nodes.All); i++ {
 		name := "node_" + strconv.Itoa(i)
-		log.LLvl1(s.Nodes.All[i].Name, name)
 		shortest[name] = make(map[string]float64)
 	}
 

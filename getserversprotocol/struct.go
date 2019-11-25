@@ -25,7 +25,7 @@ type announceWrapper struct {
 // Reply returns the sum of all children random number
 type Reply struct {
 	Confirmations int
-	Servers       map[*network.ServerIdentity]bool
+	Servers       map[string]*network.ServerIdentity
 }
 
 // replyWrapper just contains Reply and the data necessary to identify and

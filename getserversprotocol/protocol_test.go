@@ -27,7 +27,9 @@ func TestMain(m *testing.M) {
 // sizes of trees to make sure your protocol is stable.
 func TestGossip(t *testing.T) {
 
-	_, err := onet.GlobalProtocolRegister(Name, NewGetServersProtocol(nil))
+	getServer := func() map[string]*network.ServerIdentity { return nil }
+
+	_, err := onet.GlobalProtocolRegister(Name, NewGetServersProtocol(getServer))
 	if err != nil {
 		panic(err)
 	}

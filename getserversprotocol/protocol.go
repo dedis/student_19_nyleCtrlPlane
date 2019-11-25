@@ -8,7 +8,7 @@ import (
 // GetServersProtocol holds the state of GetServer
 type GetServersProtocol struct {
 	*onet.TreeNodeInstance
-	Servers           map[*network.ServerIdentity]bool
+	GetServers        func() map[string]*network.ServerIdentity
 	announceChan      chan announceWrapper
 	repliesChan       chan []replyWrapper
 	ConfirmationsChan chan Reply
@@ -18,12 +18,12 @@ type GetServersProtocol struct {
 var _ onet.ProtocolInstance = (*GetServersProtocol)(nil)
 
 // NewGetServersProtocol initialises the structure for use in one round
-func NewGetServersProtocol(servers map[*network.ServerIdentity]bool) func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
+func NewGetServersProtocol(getServers func() map[string]*network.ServerIdentity) func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	return func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 		t := &GetServersProtocol{
 			TreeNodeInstance:  n,
 			ConfirmationsChan: make(chan Reply),
-			Servers:           servers,
+			GetServers:        getServers,
 		}
 		if err := n.RegisterChannels(&t.announceChan, &t.repliesChan); err != nil {
 			return nil, err
@@ -44,7 +44,7 @@ func (p *GetServersProtocol) Dispatch() error {
 
 	defer p.Done()
 	nConf := 1
-	servers := p.Servers
+	servers := p.GetServers()
 
 	ann := <-p.announceChan
 

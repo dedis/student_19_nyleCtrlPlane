@@ -64,6 +64,7 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	// same way as blscosi and then return it.
 	h := s.suite.Hash()
 	h.Write(req.Message)
+
 	return &gpr.SignatureResponse{h.Sum(nil), sig}, nil
 }
 

@@ -1,6 +1,7 @@
 package nylechain
 
 import (
+	"strconv"
 	"sync"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/onet/network"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 )
@@ -22,21 +24,27 @@ func TestFewEpochs(t *testing.T) {
 	local := onet.NewTCPTest(testSuite)
 
 	nbrNodes := 10
-	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 
 	services := local.GetServices(hosts, mbrSer.MembershipID)
+	for i, s := range services {
+		s.(*mbrSer.Service).Name = "node_" + strconv.Itoa(i)
+	}
 
-	signers := mbrSer.SignersSet{
-		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
-		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(mbrSer.SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*mbrSer.Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
 	var wg sync.WaitGroup
+	wg.Add(len(services))
 	for _, s := range services {
-		wg.Add(1)
 		go func(serv *mbrSer.Service) {
-			serv.SetGenesisSigners(signers)
+			serv.SetGenesisSigners(servers)
 			wg.Done()
 		}(s.(*mbrSer.Service))
 	}
@@ -45,7 +53,7 @@ func TestFewEpochs(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			services[idx].(*mbrSer.Service).Registrate(roster, 1)
+			services[idx].(*mbrSer.Service).CreateProofForEpoch(1)
 			wg.Done()
 		}(i)
 	}
@@ -54,7 +62,16 @@ func TestFewEpochs(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			assert.NoError(t, services[idx].(*mbrSer.Service).StartNewEpoch(roster))
+			services[idx].(*mbrSer.Service).ShareProof()
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*mbrSer.Service).StartNewEpoch())
 			wg.Done()
 		}(i)
 

@@ -85,13 +85,16 @@ func TestRegisterNewSigners(t *testing.T) {
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).Registrate(1))
-		err := services[i].(*Service).Registrate(2)
+		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
+		err := services[i].(*Service).CreateProofForEpoch(2)
 		assert.NotNil(t, err)
-		err = services[i].(*Service).Registrate(0)
+		err = services[i].(*Service).CreateProofForEpoch(0)
 		assert.NotNil(t, err)
+	}
 
-		for _, s := range services[:2] {
+	for i := 0; i < nbrNodes; i++ {
+		assert.NoError(t, services[i].(*Service).ShareProof())
+		for _, s := range services[:i] {
 			service := s.(*Service)
 			reply := service.GetSigners(1)
 
@@ -104,10 +107,37 @@ func TestRegisterNewSigners(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < nbrNodes; i++ {
-		s := services[i].(*Service)
-		log.LLvl1(s.Name, " : ----------- ", s.Servers, "\n\n")
+}
+
+func TestGetServer(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+
+	// Generate 10 nodes, the first 2 are the first signers
+	nbrNodes := 10
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
 	}
+
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	// Gives everybody different genesis set and try to reconstruct the whole system
+	for i := 0; i < nbrNodes; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		services[nbrNodes-i-1].(*Service).SetGenesisSigners(servers)
+	}
+
+	for i := 0; i < nbrNodes; i++ {
+		retServ := services[i].(*Service).GetGlobalServers()
+		for _, serv := range services {
+			assert.Contains(t, retServ, serv.(*Service).Name)
+		}
+	}
+
 }
 
 func TestAgreeOn(t *testing.T) {
@@ -190,8 +220,8 @@ func TestNewEpoch(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
+	wg.Add(len(services))
 	for _, s := range services {
-		wg.Add(1)
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
 			wg.Done()
@@ -202,7 +232,16 @@ func TestNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			services[idx].(*Service).Registrate(1)
+			services[idx].(*Service).CreateProofForEpoch(1)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*Service).ShareProof()
 			wg.Done()
 		}(i)
 	}
@@ -270,21 +309,19 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 
 		// Registration
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			err = services[i].(*Service).Registrate(e)
+			err = services[i].(*Service).CreateProofForEpoch(e)
 			if err != nil {
 				return err
 			}
 		}
 
-		// Participating
-		s0 := services[0].(*Service)
-		cs := s0.GetSigners(e)
-
-		s1 := services[1].(*Service)
-		cs1 := s1.GetSigners(e)
-
-		log.LLvl1("Signers 0 : ", cs)
-		log.LLvl1("Signers 1 : ", cs1)
+		// Registration
+		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+			err = services[i].(*Service).ShareProof()
+			if err != nil {
+				return err
+			}
+		}
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			err = services[i].(*Service).StartNewEpoch()

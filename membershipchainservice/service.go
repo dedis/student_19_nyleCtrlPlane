@@ -16,6 +16,7 @@ import (
 	"go.dedis.ch/protobuf"
 
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
+	"github.com/dedis/student_19_nyleCtrlPlane/getserversprotocol"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/cothority/v3/blscosi/protocol"
 	"go.dedis.ch/kyber/v3/pairing"
@@ -53,11 +54,12 @@ type Service struct {
 	*onet.ServiceProcessor
 	storage *storage
 	e       Epoch
+	Proof   *gpr.SignatureResponse
 
 	// All services maintain a list of the servers it heard of.
 	// Helps recreate the roster for each epoch
 	Name                 string
-	Servers              []*network.ServerIdentity
+	Servers              map[string]*network.ServerIdentity
 	ServerIdentityToName map[network.ServerIdentityID]string
 
 	// From BlsCoSi
@@ -94,9 +96,11 @@ type storage struct {
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
+	s.Servers = make(map[string]*network.ServerIdentity)
+	s.Servers[s.Name] = s.ServerIdentity()
 	signers := make(SignersSet)
 	for si, name := range servers {
-		s.Servers = append(s.Servers, si)
+		s.Servers[name] = si
 		s.ServerIdentityToName[si.ID] = name
 		signers[si.ID] = gpr.SignatureResponse{}
 	}
@@ -109,7 +113,7 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
-	s.Servers = append(s.Servers, ann.Server)
+	s.Servers[ann.Name] = ann.Server
 	s.ServerIdentityToName[ann.Signer] = ann.Name
 	return s.addSigner(ann.Signer, ann.Proof, ann.Epoch)
 }
@@ -132,6 +136,32 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 		return nil
 	}
 	return errors.New("No signature")
+
+}
+
+// GetGlobalServers gossips on existing info to get info about all the Servers
+func (s *Service) GetGlobalServers() map[string]*network.ServerIdentity {
+
+	ro := s.getGlobalRoster()
+
+	nbrNodes := len(ro.List) - 1
+	tree := ro.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
+	pi, err := s.CreateProtocol(getserversprotocol.Name, tree)
+	if err != nil {
+		panic(errors.New("Couldn't make new protocol: " + err.Error()))
+	}
+
+	p := pi.(*getserversprotocol.GetServersProtocol)
+	p.Start()
+
+	select {
+	case r := <-p.ConfirmationsChan:
+		for name, si := range r.Servers {
+			s.Servers[name] = si
+		}
+
+		return s.Servers
+	}
 
 }
 
@@ -158,11 +188,19 @@ func getKeys(m SignersSet) []network.ServerIdentityID {
 	})
 	return keys
 }
+func (s *Service) getGlobalRoster() *onet.Roster {
+	sis := []*network.ServerIdentity{}
+	for _, v := range s.Servers {
+		sis = append(sis, v)
+	}
+
+	return onet.NewRoster(sis)
+}
 
 func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.ServerIdentity, error) {
 	mbrsIDs := getKeys(m)
 	var mbrs []*network.ServerIdentity
-	ro := onet.NewRoster(s.Servers)
+	ro := s.getGlobalRoster()
 	for _, mID := range mbrsIDs {
 		_, si := ro.Search(mID)
 		if si == nil {
@@ -174,17 +212,17 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 }
 
-// Registrate will get signatures from Signers,
-// then propagate the signed block to all the nodes it is aware of to be registred as new Signers
-func (s *Service) Registrate(e Epoch) error {
+// CreateProofForEpoch will get signatures from Signers from previous epoch
+func (s *Service) CreateProofForEpoch(e Epoch) error {
 	if s.e != e-1 {
 		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
 	}
 
+	// Get proof from the signer of epoch e-1
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
-	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[e-1])
 	if err != nil {
 		return err
 	}
@@ -203,22 +241,35 @@ func (s *Service) Registrate(e Epoch) error {
 		return err
 	}
 
-	nbrNodes := len(ro.List) - 1
-	tree := ro.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
+	s.Proof = buf.(*gpr.SignatureResponse)
+	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
+	s.ShareProof()
+	return nil
+
+}
+
+// ShareProof will send the proof created in CreateProofForEpoch to all the nodes it is aware of
+// It starts by getting informations about the other servers
+func (s *Service) ShareProof() error {
+	// Get info about all the servers in the system
+	s.GetGlobalServers()
+	roForPropa := s.getGlobalRoster()
+
+	// Send them the proof
+	nbrNodes := len(roForPropa.List) - 1
+	tree := roForPropa.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
-
-	signResp := buf.(*gpr.SignatureResponse)
 
 	p := pi.(*gpr.GossipRegistationProtocol)
 	p.Msg = gpr.Announce{
 		Name:   s.Name,
 		Server: s.ServerIdentity(),
 		Signer: s.ServerIdentity().ID,
-		Proof:  signResp,
-		Epoch:  int(e),
+		Proof:  s.Proof,
+		Epoch:  int(s.e + 1),
 	}
 
 	p.Start()
@@ -244,8 +295,6 @@ func (s *Service) StartNewEpoch() error {
 		return errors.New("One node cannot start a new Epoch if it didn't registrate")
 	}
 	s.storage.Unlock()
-
-	log.LLvl1("LEN MEMBERS : ", len(mbrs))
 
 	ro := onet.NewRoster(mbrs)
 	err = s.AgreeOnState(ro)
@@ -379,6 +428,10 @@ func (s *Service) tryLoad() error {
 	return nil
 }
 
+func (s *Service) getServers() map[string]*network.ServerIdentity {
+	return s.Servers
+}
+
 // newService receives the context that holds information about the node it's
 // running on. Saving and loading can be done using the context. The data will
 // be stored in memory for tests and simulations, and on disk for real deployments.
@@ -401,8 +454,11 @@ func newService(c *onet.Context) (onet.Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = s.ProtocolRegister(agreeProtocolName, AgreeStateProtocol)
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.ProtocolRegister(getserversprotocol.Name, getserversprotocol.NewGetServersProtocol(s.getServers))
 	if err != nil {
 		return nil, err
 	}

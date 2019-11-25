@@ -228,7 +228,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 
 				d := ComputeDist(v1, v2, pingDist)
 
-				log.LLvl1("assigning", v1.Name, v2.Name)
+				//log.LLvl1("assigning", v1.Name, v2.Name)
 
 				if v2.Level >= i {
 
@@ -331,7 +331,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 //Checks if a Node is suitable to be another Node's bunch depending on its distance to it
 func checkDistance(distance float64, lvl int, lvls int, Adist []float64) bool {
 
-	log.LLvl1("A Dist: ", Adist, " ---- len : ", len(Adist))
+	//log.LLvl1("A Dist: ", Adist, " ---- len : ", len(Adist))
 	for i := lvl + 1; i < lvls; i++ {
 
 		if distance <= Adist[i] {
@@ -437,7 +437,7 @@ func GenerateRadius(maxDist float64) []float64 {
 
 	//-- prev radiuses =[]float64{5.0,10.0,15.0,20.0,25.0,30.0,100.0}
 
-	log.Lvl1(radiuses)
+	//log.Lvl1(radiuses)
 
 	return radiuses
 }
@@ -560,9 +560,9 @@ func CreateAndSetChildren(Rings bool, AllowedNodes map[string]bool, file *os.Fil
 //Converts a Node to it's index
 func NodeNameToInt(nodeName string) int {
 	separation := strings.Split(nodeName, "_")
-	if len(separation) != 2 {
-		log.Lvl1(separation)
-	}
+	//if len(separation) != 2 {
+	//	log.Lvl1(separation)
+	//}
 	idx, err := strconv.Atoi(separation[1])
 	if err != nil {
 		panic(err.Error())
@@ -994,7 +994,7 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 
 		if len(finalRoster.List) == prevRosterLen {
 			countt++
-			log.Lvl2("it's a repeat tree, skip it!")
+			//log.Lvl2("it's a repeat tree, skip it!")
 			if countt == len(radiuses) {
 				break
 			}
