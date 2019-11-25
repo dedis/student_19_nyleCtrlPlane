@@ -55,6 +55,8 @@ type Service struct {
 	storage *storage
 	e       Epoch
 	Proof   *gpr.SignatureResponse
+	Cycle   Cycle
+	useTime bool
 
 	// All services maintain a list of the servers it heard of.
 	// Helps recreate the roster for each epoch
@@ -93,6 +95,13 @@ type storage struct {
 	sync.Mutex
 }
 
+// Start Clock will start the clock for one node
+func (s *Service) StartClock() {
+	s.useTime = true
+	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, SHARE_DUR, EPOCH_DUR}
+	s.Cycle.StartTime = time.Now()
+}
+
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
@@ -127,6 +136,7 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 		if e > len(s.storage.Signers) {
 			return errors.New("Epoch is too in the future")
 		}
+
 		s.storage.Lock()
 		if e == len(s.storage.Signers) {
 			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
@@ -440,6 +450,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		ServiceProcessor: onet.NewServiceProcessor(c),
 		Timeout:          protocolTimeout,
 		suite:            suite,
+		useTime:          false,
 	}
 
 	// configure the Gossiping protocol

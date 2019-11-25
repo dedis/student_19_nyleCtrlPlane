@@ -16,6 +16,9 @@ import (
 
 // SignatureRequest treats external request to this service.
 func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, error) {
+	if s.useTime && s.Cycle.GetCurrentPhase() != REGISTRATION {
+		return nil, errors.New("Registration was not made in time")
+	}
 	// generate the tree
 	nNodes := len(req.Roster.List)
 	rooted := req.Roster.NewRosterWithRoot(s.ServerIdentity())

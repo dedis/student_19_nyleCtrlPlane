@@ -259,6 +259,58 @@ func TestNewEpoch(t *testing.T) {
 
 }
 
+func TestClockEpoch(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+	nbrNodes := 10
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+
+	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
+
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(services))
+	for _, s := range services {
+		go func(serv *Service) {
+			serv.SetGenesisSigners(servers)
+			serv.StartClock()
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes/2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(1))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	time.Sleep(REGISTRATION_DUR)
+
+	for i := nbrNodes / 2; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.Error(t, services[idx].(*Service).CreateProofForEpoch(1))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+}
+
 func TestWholeSystemOverFewEpochs(t *testing.T) {
 	t.Skip("A lot of function are not implemented for now")
 
