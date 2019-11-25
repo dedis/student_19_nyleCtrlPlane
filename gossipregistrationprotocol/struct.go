@@ -37,6 +37,8 @@ type replyWrapper struct {
 
 // Announce is used by the gossip protocole
 type Announce struct {
+	Name   string
+	Server *network.ServerIdentity
 	Signer network.ServerIdentityID
 	Proof  *SignatureResponse
 	Epoch  int

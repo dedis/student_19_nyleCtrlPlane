@@ -73,4 +73,5 @@ type SignatureRequest struct {
 type State struct {
 	Signers   []network.ServerIdentityID
 	GraphTree map[string][]GraphTree
+	Epoch     Epoch
 }

@@ -2,9 +2,12 @@ package membershipchainservice
 
 import (
 	"math/rand"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"go.dedis.ch/onet/network"
 
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"github.com/stretchr/testify/assert"
@@ -28,10 +31,16 @@ func TestSetGenesisSigners(t *testing.T) {
 	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
 
-	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
-		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
 	for _, s := range services {
@@ -40,10 +49,10 @@ func TestSetGenesisSigners(t *testing.T) {
 		reply := service.GetSigners(0)
 		assert.Equal(t, len(reply.Set), 0)
 
-		service.SetGenesisSigners(signers)
+		service.SetGenesisSigners(servers)
 
 		reply = service.GetSigners(0)
-		assert.Equal(t, reply.Set, signers)
+		assert.Equal(t, reply.Set, compareSet)
 
 		reply = service.GetSigners(1)
 		assert.Equal(t, len(reply.Set), 0)
@@ -56,27 +65,33 @@ func TestRegisterNewSigners(t *testing.T) {
 
 	// Generate 10 nodes, the first 2 are the first signers
 	nbrNodes := 10
-	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
 
-	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
-		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
 	for _, s := range services {
-		s.(*Service).SetGenesisSigners(signers)
+		s.(*Service).SetGenesisSigners(servers)
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).Registrate(roster, 1))
-		err := services[i].(*Service).Registrate(roster, 2)
+		assert.NoError(t, services[i].(*Service).Registrate(1))
+		err := services[i].(*Service).Registrate(2)
 		assert.NotNil(t, err)
-		err = services[i].(*Service).Registrate(roster, 0)
+		err = services[i].(*Service).Registrate(0)
 		assert.NotNil(t, err)
 
-		for _, s := range services {
+		for _, s := range services[:2] {
 			service := s.(*Service)
 			reply := service.GetSigners(1)
 
@@ -84,9 +99,14 @@ func TestRegisterNewSigners(t *testing.T) {
 
 			// Does not change the signers of Epoch 0
 			reply = service.GetSigners(0)
-			assert.Equal(t, reply.Set, signers)
+			assert.Equal(t, reply.Set, compareSet)
 
 		}
+	}
+
+	for i := 0; i < nbrNodes; i++ {
+		s := services[i].(*Service)
+		log.LLvl1(s.Name, " : ----------- ", s.Servers, "\n\n")
 	}
 }
 
@@ -97,19 +117,23 @@ func TestAgreeOn(t *testing.T) {
 	defer local.CloseAll()
 
 	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
 
-	emptySR := gpr.SignatureResponse{Signature: []byte("test"), Hash: []byte("test2")}
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
 
-	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: emptySR,
-		hosts[1].ServerIdentity.ID: emptySR,
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 	// Set same state
 	var wg sync.WaitGroup
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			serv.SetGenesisSigners(signers)
+			serv.SetGenesisSigners(servers)
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -125,7 +149,6 @@ func TestAgreeOn(t *testing.T) {
 	wg.Wait()
 
 	// Set different State
-	signers = SignersSet{}
 	for _, s := range services[0:5] {
 		wg.Add(1)
 		go func(serv *Service) {
@@ -150,21 +173,27 @@ func TestAgreeOn(t *testing.T) {
 func TestNewEpoch(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 	nbrNodes := 10
-	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 
 	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
 
-	signers := SignersSet{
-		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
-		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
 	var wg sync.WaitGroup
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			serv.SetGenesisSigners(signers)
+			serv.SetGenesisSigners(servers)
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -173,7 +202,7 @@ func TestNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			services[idx].(*Service).Registrate(roster, 1)
+			services[idx].(*Service).Registrate(1)
 			wg.Done()
 		}(i)
 	}
@@ -182,7 +211,7 @@ func TestNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).StartNewEpoch(roster))
+			assert.NoError(t, services[idx].(*Service).StartNewEpoch())
 			wg.Done()
 		}(i)
 
@@ -210,26 +239,38 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 
 	local := onet.NewTCPTest(tSuite)
 
-	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
-
-	signers := SignersSet{}
-
-	for i := 0; i < joiningPerEpoch; i++ {
-		signers[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
 	}
+
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+	}
+
+	var wg sync.WaitGroup
 
 	for _, s := range services {
-		s.(*Service).SetGenesisSigners(signers)
+		wg.Add(1)
+		go func(serv *Service) {
+			serv.SetGenesisSigners(servers)
+			wg.Done()
+		}(s.(*Service))
 	}
+	wg.Wait()
 
 	for e := Epoch(1); e < nbrEpoch; e++ {
 		log.LLvl1("Start of Epoch ", e)
 
 		// Registration
-		for i := joiningPerEpoch * int(e); i < joiningPerEpoch*(int(e)+1); i++ {
-			err = services[i].(*Service).Registrate(roster, e)
+		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+			err = services[i].(*Service).Registrate(e)
 			if err != nil {
 				return err
 			}
@@ -238,15 +279,15 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 		// Participating
 		s0 := services[0].(*Service)
 		cs := s0.GetSigners(e)
-		SIs, err := s0.getServerIdentityFromSignersSet(cs.Set, roster)
-		if err != nil {
-			return err
-		}
-		roForEpoch := onet.NewRoster(SIs)
 
-		for i := 0; i < nbrNodes; i++ {
-			// THIS MIGHT FAIL FOR NOW - SEEK WHAT WILL BE THE PROBLEM OF STARTING EPOCH WITHOUT ALL THE NODES
-			err = services[i].(*Service).StartNewEpoch(roForEpoch)
+		s1 := services[1].(*Service)
+		cs1 := s1.GetSigners(e)
+
+		log.LLvl1("Signers 0 : ", cs)
+		log.LLvl1("Signers 1 : ", cs1)
+
+		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+			err = services[i].(*Service).StartNewEpoch()
 			if err != nil {
 				return err
 			}

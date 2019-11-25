@@ -78,7 +78,7 @@ func (s *Service) AgreeStateSubProtocol(n *onet.TreeNodeInstance) (onet.Protocol
 		if err != nil {
 			panic(err)
 		}
-		return reflect.DeepEqual(getKeys(s.storage.Signers[s.e]), st.Signers) && reflect.DeepEqual(s.GraphTree, st.GraphTree)
+		return reflect.DeepEqual(getKeys(s.GetSigners(st.Epoch).Set), st.Signers) && reflect.DeepEqual(s.GraphTree, st.GraphTree)
 	}
 	return protocol.NewSubBlsCosi(n, vf, pairing.NewSuiteBn256())
 }

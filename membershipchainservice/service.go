@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -55,6 +54,12 @@ type Service struct {
 	storage *storage
 	e       Epoch
 
+	// All services maintain a list of the servers it heard of.
+	// Helps recreate the roster for each epoch
+	Name                 string
+	Servers              []*network.ServerIdentity
+	ServerIdentityToName map[network.ServerIdentityID]string
+
 	// From BlsCoSi
 	Threshold int
 	NSubtrees int
@@ -87,15 +92,25 @@ type storage struct {
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
-func (s *Service) SetGenesisSigners(p SignersSet) {
+func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
+	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
+	signers := make(SignersSet)
+	for si, name := range servers {
+		s.Servers = append(s.Servers, si)
+		s.ServerIdentityToName[si.ID] = name
+		signers[si.ID] = gpr.SignatureResponse{}
+	}
+
 	s.e = 0
 	s.storage.Lock()
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
-	s.storage.Signers[0] = p
+	s.storage.Signers[0] = signers
 	s.storage.Unlock()
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
+	s.Servers = append(s.Servers, ann.Server)
+	s.ServerIdentityToName[ann.Signer] = ann.Name
 	return s.addSigner(ann.Signer, ann.Proof, ann.Epoch)
 }
 
@@ -144,9 +159,10 @@ func getKeys(m SignersSet) []network.ServerIdentityID {
 	return keys
 }
 
-func (s *Service) getServerIdentityFromSignersSet(m SignersSet, ro *onet.Roster) ([]*network.ServerIdentity, error) {
+func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.ServerIdentity, error) {
 	mbrsIDs := getKeys(m)
 	var mbrs []*network.ServerIdentity
+	ro := onet.NewRoster(s.Servers)
 	for _, mID := range mbrsIDs {
 		_, si := ro.Search(mID)
 		if si == nil {
@@ -160,7 +176,7 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet, ro *onet.Roster)
 
 // Registrate will get signatures from Signers,
 // then propagate the signed block to all the nodes it is aware of to be registred as new Signers
-func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
+func (s *Service) Registrate(e Epoch) error {
 	if s.e != e-1 {
 		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
 	}
@@ -168,18 +184,18 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
-	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[e-1], roster)
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
 	if err != nil {
 		return err
+	}
+	if len(mbrs) == 0 {
+		return fmt.Errorf("No signers for epoch %d", e)
 	}
 	if _, ok := s.storage.Signers[e-1][s.ServerIdentity().ID]; !ok {
 		mbrs = append(mbrs, s.ServerIdentity())
 	}
 	s.storage.Unlock()
 
-	if len(mbrs) == 1 {
-		return fmt.Errorf("No signers for epoch %d", e)
-	}
 	ro := onet.NewRoster(mbrs)
 
 	buf, err := s.SignatureRequest(&SignatureRequest{Message: msg, Roster: ro})
@@ -187,8 +203,8 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 		return err
 	}
 
-	nbrNodes := len(roster.List) - 1
-	tree := roster.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
+	nbrNodes := len(ro.List) - 1
+	tree := ro.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
@@ -198,6 +214,8 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 
 	p := pi.(*gpr.GossipRegistationProtocol)
 	p.Msg = gpr.Announce{
+		Name:   s.Name,
+		Server: s.ServerIdentity(),
 		Signer: s.ServerIdentity().ID,
 		Proof:  signResp,
 		Epoch:  int(e),
@@ -213,10 +231,10 @@ func (s *Service) Registrate(roster *onet.Roster, e Epoch) error {
 }
 
 // StartNewEpoch stop the registration for nodes and run CRUX
-func (s *Service) StartNewEpoch(roster *onet.Roster) error {
+func (s *Service) StartNewEpoch() error {
 	s.e++
 	s.storage.Lock()
-	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e], roster)
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
 	if err != nil {
 		defer s.storage.Unlock()
 		return err
@@ -227,6 +245,8 @@ func (s *Service) StartNewEpoch(roster *onet.Roster) error {
 	}
 	s.storage.Unlock()
 
+	log.LLvl1("LEN MEMBERS : ", len(mbrs))
+
 	ro := onet.NewRoster(mbrs)
 	err = s.AgreeOnState(ro)
 	if err != nil {
@@ -234,8 +254,8 @@ func (s *Service) StartNewEpoch(roster *onet.Roster) error {
 	}
 
 	si2name := make(map[*network.ServerIdentity]string)
-	for i, s := range roster.List {
-		si2name[s] = "node_" + strconv.Itoa(i)
+	for _, serv := range ro.List {
+		si2name[serv] = s.ServerIdentityToName[serv.ID]
 	}
 
 	s.Setup(&InitRequest{
@@ -256,8 +276,6 @@ func (s *Service) ChangeLatencies(ic float64) {
 func (s *Service) AgreeOnState(roster *onet.Roster) error {
 
 	msg := []byte("Do we Agree on state ?")
-
-	//log.LLvl1(msg)
 
 	// generate the tree
 	nNodes := len(roster.List)
@@ -281,8 +299,9 @@ func (s *Service) AgreeOnState(roster *onet.Roster) error {
 	p.Msg = msg
 
 	st := State{
-		Signers:   getKeys(s.storage.Signers[s.e]),
+		Signers:   getKeys(s.GetSigners(s.e).Set),
 		GraphTree: s.GraphTree,
+		Epoch:     s.e,
 	}
 
 	p.Data, err = protobuf.Encode(&st)
