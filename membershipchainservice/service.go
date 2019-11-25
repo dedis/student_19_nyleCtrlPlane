@@ -83,6 +83,8 @@ type Service struct {
 	PingMapMtx        sync.Mutex
 	PingAnswerMtx     sync.Mutex
 	NrPingAnswers     int
+
+	PrefixForReadingFile string
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -297,6 +299,15 @@ func (s *Service) ShareProof() error {
 
 // StartNewEpoch stop the registration for nodes and run CRUX
 func (s *Service) StartNewEpoch() error {
+	if s.useTime {
+		if s.Cycle.GetCurrentPhase() != EPOCH {
+			return errors.New("It's not the time for one Epoch")
+		}
+		if s.e != s.Cycle.GetEpoch() {
+			return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e+1, s.Cycle.GetEpoch())
+		}
+	}
+
 	s.e++
 	s.storage.Lock()
 	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
@@ -320,7 +331,7 @@ func (s *Service) StartNewEpoch() error {
 	for _, serv := range ro.List {
 		si2name[serv] = s.ServerIdentityToName[serv.ID]
 	}
-
+	log.LLvl1(s.ServerIdentity(), "Passing the Agree with these names : ", si2name)
 	s.Setup(&InitRequest{
 		ServerIdentityToName: si2name,
 	})
@@ -451,10 +462,11 @@ func (s *Service) getServers() map[string]*network.ServerIdentity {
 // be stored in memory for tests and simulations, and on disk for real deployments.
 func newService(c *onet.Context) (onet.Service, error) {
 	s := &Service{
-		ServiceProcessor: onet.NewServiceProcessor(c),
-		Timeout:          protocolTimeout,
-		suite:            suite,
-		useTime:          false,
+		ServiceProcessor:     onet.NewServiceProcessor(c),
+		Timeout:              protocolTimeout,
+		suite:                suite,
+		useTime:              false,
+		PrefixForReadingFile: "..",
 	}
 
 	// configure the Gossiping protocol

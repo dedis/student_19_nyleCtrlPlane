@@ -184,9 +184,17 @@ func (s *Service) getPings(readFromFile bool) {
 			file8.Close()
 		}
 	} else {
+
+		if len(s.Nodes.All) > 50 {
+			panic("This file was not generated")
+		}
+		log.LLvl1(len(s.Nodes.All))
 		// read from file lines of fomrm "ping node_19 node_7 = 32.317"
-		readLine, _ := ReadFileLineByLine("../utils/pings.txt")
+		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + "/utils/PingsFiles/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
 		//readLine,_ := ReadFileLineByLine("shortest.txt")
+		if err != nil {
+			panic("Cannot read file for ping")
+		}
 
 		for true {
 			line := readLine()
@@ -212,7 +220,6 @@ func (s *Service) getPings(readFromFile bool) {
 			}
 
 			s.PingDistances[src][dst] = math.Round(pingTime*100) / 100
-			log.Lvl1("PASSING PINGS.")
 			s.PingMapMtx.Unlock()
 		}
 	}

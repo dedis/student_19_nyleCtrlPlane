@@ -584,7 +584,7 @@ func approxDistance(all LocalityNodes, nodeU *LocalityNode, nodeV *LocalityNode)
 	for {
 		found := false
 
-		log.Lvl1("w=", w.Name, "i=", i)
+		//log.Lvl1("w=", w.Name, "i=", i)
 
 		if nodeV.Bunch[w.Name] {
 			found = true

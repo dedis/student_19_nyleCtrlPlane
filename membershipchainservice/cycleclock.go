@@ -9,8 +9,8 @@ const (
 	REGISTRATION = iota
 	SHARE
 	EPOCH
-	REGISTRATION_DUR = 3 * time.Second
-	SHARE_DUR        = 3 * time.Second
+	REGISTRATION_DUR = 1 * time.Second
+	SHARE_DUR        = 1 * time.Second
 	EPOCH_DUR        = 10 * time.Second
 )
 

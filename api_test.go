@@ -30,6 +30,7 @@ func TestFewEpochs(t *testing.T) {
 	services := local.GetServices(hosts, mbrSer.MembershipID)
 	for i, s := range services {
 		s.(*mbrSer.Service).Name = "node_" + strconv.Itoa(i)
+		s.(*mbrSer.Service).PrefixForReadingFile = "."
 	}
 
 	servers := make(map[*network.ServerIdentity]string)
