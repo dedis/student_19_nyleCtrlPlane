@@ -259,7 +259,7 @@ func TestNewEpoch(t *testing.T) {
 
 }
 
-func TestClockEpoch(t *testing.T) {
+func TestClockRegistrateShare(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 	nbrNodes := 10
 	hosts, _, _ := local.GenTree(nbrNodes, true)
@@ -298,12 +298,41 @@ func TestClockEpoch(t *testing.T) {
 	}
 	wg.Wait()
 
+	for i := 0; i < nbrNodes/2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*Service).ShareProof())
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
 	time.Sleep(REGISTRATION_DUR)
 
 	for i := nbrNodes / 2; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			assert.Error(t, services[idx].(*Service).CreateProofForEpoch(1))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes/2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*Service).ShareProof())
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	time.Sleep(SHARE_DUR)
+
+	for i := 0; i < nbrNodes/2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.Error(t, services[idx].(*Service).ShareProof())
 			wg.Done()
 		}(i)
 	}

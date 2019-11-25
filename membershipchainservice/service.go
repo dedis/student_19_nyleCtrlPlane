@@ -253,14 +253,18 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	s.Proof = buf.(*gpr.SignatureResponse)
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
-	s.ShareProof()
-	return nil
+	err = s.ShareProof()
+	return err
 
 }
 
 // ShareProof will send the proof created in CreateProofForEpoch to all the nodes it is aware of
 // It starts by getting informations about the other servers
 func (s *Service) ShareProof() error {
+	if s.useTime && s.Cycle.GetCurrentPhase() == EPOCH {
+		return errors.New("Sharing was not made in time")
+	}
+
 	// Get info about all the servers in the system
 	s.GetGlobalServers()
 	roForPropa := s.getGlobalRoster()
