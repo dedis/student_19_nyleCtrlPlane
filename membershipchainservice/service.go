@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -271,6 +272,8 @@ func (s *Service) ShareProof() error {
 	s.GetGlobalServers()
 	roForPropa := s.getGlobalRoster()
 
+	log.LLvl1("Roster for Propagation : ", roForPropa)
+
 	// Send them the proof
 	nbrNodes := len(roForPropa.List) - 1
 	tree := roForPropa.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
@@ -461,19 +464,24 @@ func (s *Service) getServers() map[string]*network.ServerIdentity {
 // running on. Saving and loading can be done using the context. The data will
 // be stored in memory for tests and simulations, and on disk for real deployments.
 func newService(c *onet.Context) (onet.Service, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Service{
 		ServiceProcessor:     onet.NewServiceProcessor(c),
 		Timeout:              protocolTimeout,
 		suite:                suite,
 		useTime:              false,
-		PrefixForReadingFile: "..",
+		PrefixForReadingFile: dir + "/..",
 	}
 
 	// configure the Gossiping protocol
 	s.RegisterProcessorFunc(execReqPingsMsgID, s.ExecReqPings)
 	s.RegisterProcessorFunc(execReplyPingsMsgID, s.ExecReplyPings)
 
-	_, err := s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSignerFromMessage))
+	_, err = s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSignerFromMessage))
 	if err != nil {
 		return nil, err
 	}

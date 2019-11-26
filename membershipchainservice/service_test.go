@@ -1,13 +1,10 @@
 package membershipchainservice
 
 import (
-	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
-
-	"go.dedis.ch/onet/network"
 
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +12,7 @@ import (
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/network"
 )
 
 var tSuite = suites.MustFind("bn256.adapter")
@@ -24,6 +22,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestSetGenesisSigners(t *testing.T) {
+
 	local := onet.NewTCPTest(tSuite)
 
 	// Generate 10 nodes, the first 2 are the first signers
@@ -379,13 +378,12 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 	epochRateInHours := 2.0
 	interNodeLatencyChange := 0.2
 
-	err := runSystemWithParameters(churnRate, epochRateInHours, interNodeLatencyChange, 10, 10)
+	err := runSystemWithParameters(t, churnRate, epochRateInHours, interNodeLatencyChange, 40, 10)
 	require.Nil(t, err)
 
 }
 
-func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) error {
-	var err error
+func runSystemWithParameters(t *testing.T, cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) error {
 	joiningPerEpoch := int(0.1 * float64(nbrNodes))
 
 	local := onet.NewTCPTest(tSuite)
@@ -398,11 +396,10 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 	}
 
 	servers := make(map[*network.ServerIdentity]string)
-	compareSet := make(SignersSet)
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 4; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		log.LLvl1("Signers 0 : ", hosts[i].ServerIdentity)
 	}
 
 	var wg sync.WaitGroup
@@ -411,64 +408,86 @@ func runSystemWithParameters(cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) e
 		wg.Add(1)
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
+			serv.StartClock()
 			wg.Done()
 		}(s.(*Service))
 	}
 	wg.Wait()
 
 	for e := Epoch(1); e < nbrEpoch; e++ {
-		log.LLvl1("Start of Epoch ", e)
+		log.LLvl1("\033[48;5;42mStart of Epoch ", e, " \033[0m ")
 
+		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+			log.LLvl1("Service : ", services[i].(*Service).ServerIdentity())
+
+		}
+
+		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes \033[0m ")
 		// Registration
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			err = services[i].(*Service).CreateProofForEpoch(e)
-			if err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func(idx int) {
+				assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(e))
+				wg.Done()
+			}(i)
 		}
+		wg.Wait()
 
-		// Registration
+		time.Sleep(REGISTRATION_DUR)
+		log.LLvl1("\033[48;5;44mSharing : ", e, " \033[0m ")
+		// Sharing
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			err = services[i].(*Service).ShareProof()
-			if err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func(idx int) {
+				assert.NoError(t, services[i].(*Service).ShareProof())
+				wg.Done()
+			}(i)
 		}
+		wg.Wait()
+
+		time.Sleep(SHARE_DUR)
+		log.LLvl1("\033[48;5;45mStarting : ", e, " \033[0m ")
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			err = services[i].(*Service).StartNewEpoch()
-			if err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func(idx int) {
+				assert.NoError(t, services[i].(*Service).StartNewEpoch())
+				wg.Done()
+			}(i)
 		}
+		wg.Wait()
 
 		// WHAT TO DO DURING THE EPOCH ?
-		time.Sleep(time.Duration(eR) * time.Second)
+		time.Sleep(EPOCH_DUR)
 
-		// CHURN - With Deregistration
-		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			// NOT IMPLEMENTED
-			if rand.Float64() < cR/2 {
-				err = services[i].(*Service).Deregistrate()
-				if err != nil {
-					return err
+		/*
+
+			// CHURN - With Deregistration
+			for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+				// NOT IMPLEMENTED
+				if rand.Float64() < cR/2 {
+					err = services[i].(*Service).Deregistrate()
+					if err != nil {
+						return err
+					}
+				}
+
+			}
+
+			// CHRUN - Without Deregistration
+			for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+				if rand.Float64() < cR/2 {
+					hosts[i].Router.Pause()
 				}
 			}
 
-		}
-
-		// CHRUN - Without Deregistration
-		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			if rand.Float64() < cR/2 {
-				hosts[i].Router.Pause()
+			// CHANGE IN LATENCIES
+			for i := 0; i < nbrNodes; i++ {
+				// NOT IMPLEMENTED
+				services[i].(*Service).ChangeLatencies(ic)
 			}
-		}
 
-		// CHANGE IN LATENCIES
-		for i := 0; i < nbrNodes; i++ {
-			// NOT IMPLEMENTED
-			services[i].(*Service).ChangeLatencies(ic)
-		}
+		*/
 
 	}
 	return nil
