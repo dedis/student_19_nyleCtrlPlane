@@ -59,7 +59,10 @@ func (p *GossipRegistationProtocol) Dispatch() error {
 	nConf := 1
 
 	ann := <-p.announceChan
-	p.addSigners(ann.Announce)
+	err := p.addSigners(ann.Announce)
+	if err != nil {
+		return err
+	}
 
 	if p.IsLeaf() {
 		return p.SendToParent(&Reply{nConf})

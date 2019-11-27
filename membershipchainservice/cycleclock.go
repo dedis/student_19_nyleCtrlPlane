@@ -11,7 +11,7 @@ const (
 	EPOCH
 	REGISTRATION_DUR = 1 * time.Second
 	SHARE_DUR        = 1 * time.Second
-	EPOCH_DUR        = 10 * time.Second
+	EPOCH_DUR        = 2 * time.Second
 )
 
 // Cycle describes a sequence of repeating phases starting at a given start time
