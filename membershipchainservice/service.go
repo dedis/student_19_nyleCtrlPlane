@@ -38,6 +38,9 @@ var MembershipID onet.ServiceID
 // ServiceName is used for registration on the onet.
 const ServiceName = "MemberchainService"
 
+var execReqHistoryMsgID network.MessageTypeID
+var execReplyHistoryMsgID network.MessageTypeID
+
 func init() {
 	var err error
 	MembershipID, err = onet.RegisterNewServiceWithSuite(ServiceName, suite, newService)
@@ -45,6 +48,8 @@ func init() {
 	network.RegisterMessages(&storage{}, &gpr.Announce{})
 	execReqPingsMsgID = network.RegisterMessage(&ReqPings{})
 	execReplyPingsMsgID = network.RegisterMessage(&ReplyPings{})
+	execReqHistoryMsgID = network.RegisterMessage(&ReqHistory{})
+	execReplyHistoryMsgID = network.RegisterMessage(&ReplyHistory{})
 
 }
 
@@ -86,6 +91,7 @@ type Service struct {
 	NrPingAnswers     int
 
 	PrefixForReadingFile string
+	DoneUpdate           bool
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -132,15 +138,17 @@ func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
 
 // addSigner will add one signer to the storage if the proof is convincing
 func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.SignatureResponse, e int) error {
-	if proof.Signature != nil {
+	if proof != nil {
 		if e < 0 {
 			return errors.New("Epoch cannot be negative")
 		}
+		s.storage.Lock()
+
 		if e > len(s.storage.Signers) {
+			log.LLvl1(" Error in add signer ? ")
 			return errors.New("Epoch is too in the future")
 		}
 
-		s.storage.Lock()
 		if e == len(s.storage.Signers) {
 			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 		}
@@ -227,14 +235,21 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
 func (s *Service) CreateProofForEpoch(e Epoch) error {
+	log.LLvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
-		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
+		log.LLvl1(s.ServerIdentity(), "is having an error")
+		return errors.New("Error ? ")
+		//return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
 	}
 
 	// Get proof from the signer of epoch e-1
 	msg := []byte("Register me !")
 
 	s.storage.Lock()
+	if len(s.storage.Signers) <= int(e-1) {
+		return fmt.Errorf("Storage not up-to-date, No signers for epoch %d", e)
+	}
+
 	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[e-1])
 	if err != nil {
 		return err
@@ -272,7 +287,7 @@ func (s *Service) ShareProof() error {
 	s.GetGlobalServers()
 	roForPropa := s.getGlobalRoster()
 
-	log.LLvl1("Roster for Propagation : ", roForPropa)
+	log.LLvl1("Roster for Propagation : len : ", len(roForPropa.List), " Values : ", roForPropa.List)
 
 	// Send them the proof
 	nbrNodes := len(roForPropa.List) - 1
@@ -460,6 +475,96 @@ func (s *Service) getServers() map[string]*network.ServerIdentity {
 	return s.Servers
 }
 
+// UpdateHistoryWith will send an ReqHistory to the service in parameter
+func (s *Service) UpdateHistoryWith(name string) error {
+	si, ok := s.Servers[name]
+	if !ok {
+		return fmt.Errorf("%s is not aware of server named %s", s.ServerIdentity(), name)
+	}
+	s.DoneUpdate = false
+
+	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
+
+	for !s.DoneUpdate {
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	return err
+
+}
+
+// ExecReqHistory will send back the node's version of history
+func (s *Service) ExecReqHistory(env *network.Envelope) error {
+	req, ok := env.Msg.(*ReqHistory)
+	if !ok {
+		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
+		return errors.New("failed to cast to ReqHistory")
+	}
+
+	s.storage.Lock()
+
+	// Sending directely a []SignerSet is not working,
+	// This solution flatten the data and reconstruct it afterwards
+	// If protobuf.Encode is corrected it might not be needed anymore
+	var signersKey []network.ServerIdentityID
+	var signersValue []gpr.SignatureResponse
+	var signersIndex []int
+
+	for idx, signerMap := range s.storage.Signers {
+		for k, v := range signerMap {
+			signersIndex = append(signersIndex, idx)
+			signersKey = append(signersKey, k)
+			signersValue = append(signersValue, v)
+		}
+	}
+
+	e := s.SendRaw(req.SenderIdentity, &ReplyHistory{
+		SenderName:           s.Name,
+		Servers:              s.Servers,
+		ServerIdentityToName: s.ServerIdentityToName,
+		SignersKey:           signersKey,
+		SignersValue:         signersValue,
+		SignersIndex:         signersIndex,
+	})
+	s.storage.Unlock()
+	if e != nil {
+		panic(e)
+	}
+	return e
+}
+
+// ExecReplyHistory will update the node's version of history based on the answer
+// Assume nodes will not use that for malicious reasons
+// No check for now
+func (s *Service) ExecReplyHistory(env *network.Envelope) error {
+	req, ok := env.Msg.(*ReplyHistory)
+	if !ok {
+		log.Error(s.ServerIdentity(), "failed to cast to ReplyHistory")
+		return errors.New("failed to cast to ReplyHistory")
+	}
+
+	s.Servers = req.Servers
+	s.ServerIdentityToName = req.ServerIdentityToName
+
+	// Reconstruction []SignerSet see ExecReqHistory
+	signers := make([]SignersSet, req.SignersIndex[len(req.SignersIndex)-1]+1)
+
+	for i := 0; i < len(req.SignersIndex); i++ {
+		if len(signers[req.SignersIndex[i]]) == 0 {
+			signers[req.SignersIndex[i]] = make(SignersSet)
+		}
+		signers[req.SignersIndex[i]][req.SignersKey[i]] = req.SignersValue[i]
+	}
+
+	s.storage.Lock()
+	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
+	s.storage.Signers = signers
+	s.storage.Unlock()
+
+	s.DoneUpdate = true
+	return nil
+}
+
 // newService receives the context that holds information about the node it's
 // running on. Saving and loading can be done using the context. The data will
 // be stored in memory for tests and simulations, and on disk for real deployments.
@@ -477,10 +582,13 @@ func newService(c *onet.Context) (onet.Service, error) {
 		PrefixForReadingFile: dir + "/..",
 	}
 
-	// configure the Gossiping protocol
+	// Register function from one service to another
+	s.RegisterProcessorFunc(execReqHistoryMsgID, s.ExecReqHistory)
+	s.RegisterProcessorFunc(execReplyHistoryMsgID, s.ExecReplyHistory)
 	s.RegisterProcessorFunc(execReqPingsMsgID, s.ExecReqPings)
 	s.RegisterProcessorFunc(execReplyPingsMsgID, s.ExecReplyPings)
 
+	// Register protocol (exec on tree)
 	_, err = s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSignerFromMessage))
 	if err != nil {
 		return nil, err

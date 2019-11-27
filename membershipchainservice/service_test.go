@@ -8,7 +8,6 @@ import (
 
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
@@ -136,6 +135,42 @@ func TestGetServer(t *testing.T) {
 			assert.Contains(t, retServ, serv.(*Service).Name)
 		}
 	}
+
+}
+
+func TestExecHistoryRequestAndReply(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+	nbrNodes := 2
+
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
+
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{Hash: []uint8{}, Signature: []uint8{}}
+	}
+	s0 := services[0].(*Service)
+	s1 := services[1].(*Service)
+
+	s0.SetGenesisSigners(servers)
+
+	assert.NotEqual(t, s0.Servers, s1.Servers)
+	assert.NotEqual(t, s0.ServerIdentityToName, s1.ServerIdentityToName)
+
+	s1.Servers = make(map[string]*network.ServerIdentity)
+	s1.Servers[s0.Name] = s0.ServerIdentity()
+	assert.NoError(t, s1.UpdateHistoryWith(s0.Name))
+	reply := s1.GetSigners(0)
+	assert.Equal(t, compareSet, reply.Set)
+
+	assert.Equal(t, s0.ServerIdentityToName, s1.ServerIdentityToName)
 
 }
 
@@ -372,18 +407,9 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 
 func TestWholeSystemOverFewEpochs(t *testing.T) {
 	t.Skip("A lot of function are not implemented for now")
+	nbrNodes := 20
+	nbrEpoch := Epoch(10)
 
-	// Can be changed to slices to test the system in different cases.
-	churnRate := 0.2
-	epochRateInHours := 2.0
-	interNodeLatencyChange := 0.2
-
-	err := runSystemWithParameters(t, churnRate, epochRateInHours, interNodeLatencyChange, 40, 10)
-	require.Nil(t, err)
-
-}
-
-func runSystemWithParameters(t *testing.T, cR, eR, ic float64, nbrNodes int, nbrEpoch Epoch) error {
 	joiningPerEpoch := int(0.1 * float64(nbrNodes))
 
 	local := onet.NewTCPTest(tSuite)
@@ -415,14 +441,14 @@ func runSystemWithParameters(t *testing.T, cR, eR, ic float64, nbrNodes int, nbr
 	wg.Wait()
 
 	for e := Epoch(1); e < nbrEpoch; e++ {
-		log.LLvl1("\033[48;5;42mStart of Epoch ", e, " \033[0m ")
+		log.LLvl1("\033[48;5;42mStart of Epoch ", e, "\033[0m ")
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			log.LLvl1("Service : ", services[i].(*Service).ServerIdentity())
 
 		}
 
-		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes \033[0m ")
+		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes\033[0m ")
 		// Registration
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
@@ -434,24 +460,24 @@ func runSystemWithParameters(t *testing.T, cR, eR, ic float64, nbrNodes int, nbr
 		wg.Wait()
 
 		time.Sleep(REGISTRATION_DUR)
-		log.LLvl1("\033[48;5;44mSharing : ", e, " \033[0m ")
+		log.LLvl1("\033[48;5;44mSharing :", e, "\033[0m ")
 		// Sharing
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
 			go func(idx int) {
-				assert.NoError(t, services[i].(*Service).ShareProof())
+				assert.NoError(t, services[idx].(*Service).ShareProof())
 				wg.Done()
 			}(i)
 		}
 		wg.Wait()
 
 		time.Sleep(SHARE_DUR)
-		log.LLvl1("\033[48;5;45mStarting : ", e, " \033[0m ")
+		log.LLvl1("\033[48;5;45mStarting :", e, "\033[0m ")
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
 			go func(idx int) {
-				assert.NoError(t, services[i].(*Service).StartNewEpoch())
+				assert.NoError(t, services[idx].(*Service).StartNewEpoch())
 				wg.Done()
 			}(i)
 		}
@@ -490,5 +516,4 @@ func runSystemWithParameters(t *testing.T, cR, eR, ic float64, nbrNodes int, nbr
 		*/
 
 	}
-	return nil
 }

@@ -63,6 +63,21 @@ type ReplyPings struct {
 	SenderName string
 }
 
+// ReqHistory is use to request info about the current version
+type ReqHistory struct {
+	SenderIdentity *network.ServerIdentity
+}
+
+// ReplyHistory hold the reply to the history request
+type ReplyHistory struct {
+	SenderName           string
+	Servers              map[string]*network.ServerIdentity
+	ServerIdentityToName map[network.ServerIdentityID]string
+	SignersKey           []network.ServerIdentityID
+	SignersValue         []gpr.SignatureResponse
+	SignersIndex         []int
+}
+
 // SignatureRequest is what the Cosi service is expected to receive from clients.
 type SignatureRequest struct {
 	Message []byte

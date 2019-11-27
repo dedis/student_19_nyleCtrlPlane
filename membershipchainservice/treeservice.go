@@ -409,7 +409,6 @@ func (s *Service) measureOwnPings() {
 }
 
 func (s *Service) ExecReqPings(env *network.Envelope) error {
-	log.LLvl1("EXEC REQ : ")
 	// Parse message
 	req, ok := env.Msg.(*ReqPings)
 	if !ok {
@@ -432,8 +431,6 @@ func (s *Service) ExecReqPings(env *network.Envelope) error {
 		reply += myName + " " + peerName + " " + fmt.Sprintf("%f", pingTime) + "\n"
 		//}
 	}
-
-	log.LLvl3("\033[941  SENDING", reply, "\033[39m ")
 	requesterIdentity := s.Nodes.GetByName(req.SenderName).ServerIdentity
 
 	e := s.SendRaw(requesterIdentity, &ReplyPings{Pings: reply, SenderName: myName})
@@ -444,7 +441,6 @@ func (s *Service) ExecReqPings(env *network.Envelope) error {
 }
 
 func (s *Service) ExecReplyPings(env *network.Envelope) error {
-	log.LLvl1("\033[94m REPLY ?????????????????? :  \033[39m ")
 
 	// Parse message
 	req, ok := env.Msg.(*ReplyPings)
