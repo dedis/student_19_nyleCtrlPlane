@@ -120,7 +120,7 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	for si, name := range servers {
 		s.Servers[name] = si
 		s.ServerIdentityToName[si.ID] = name
-		signers[si.ID] = gpr.SignatureResponse{}
+		signers[si.ID] = gpr.SignatureResponse{Hash: []uint8{}, Signature: []uint8{}}
 	}
 
 	s.e = 0
@@ -156,7 +156,7 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 		s.storage.Unlock()
 		return nil
 	}
-	return errors.New("No signature")
+	return fmt.Errorf("Addsigner cannot be completed for %v as %v did not send a signature", s.Name, signer)
 
 }
 
@@ -340,7 +340,8 @@ func (s *Service) StartNewEpoch() error {
 	s.storage.Unlock()
 
 	ro := onet.NewRoster(mbrs)
-	err = s.AgreeOnState(ro)
+	// Agree on Signers
+	err = s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
 		return err
 	}
@@ -354,6 +355,12 @@ func (s *Service) StartNewEpoch() error {
 		ServerIdentityToName: si2name,
 	})
 
+	err = s.AgreeOnState(ro, PINGSMSG)
+	if err != nil {
+		log.LLvl1(" \033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
+		return err
+	}
+	log.LLvl1(" \033[45;5;1m", s.Name, " Finished its Epochs Successfully.\033[0m")
 	return err
 }
 
@@ -365,10 +372,7 @@ func (s *Service) ChangeLatencies(ic float64) {
 }
 
 // AgreeOnState checks that the members of the roster have the same signers + same maps
-func (s *Service) AgreeOnState(roster *onet.Roster) error {
-
-	msg := []byte("Do we Agree on state ?")
-
+func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 	// generate the tree
 	nNodes := len(roster.List)
 	rooted := roster.NewRosterWithRoot(s.ServerIdentity())
@@ -392,7 +396,7 @@ func (s *Service) AgreeOnState(roster *onet.Roster) error {
 
 	st := State{
 		Signers:   getKeys(s.GetSigners(s.e).Set),
-		GraphTree: s.GraphTree,
+		HashPings: s.getHashPings(),
 		Epoch:     s.e,
 	}
 
@@ -423,6 +427,10 @@ func (s *Service) AgreeOnState(roster *onet.Roster) error {
 	}
 	// wait for reply. This will always eventually return.
 	sig := <-p.FinalSignature
+
+	if sig == nil {
+		return errors.New("Protocol output an empty signature")
+	}
 
 	res := protocol.BlsSignature(sig)
 	publics := rooted.ServicePublics(ServiceName)
@@ -580,6 +588,8 @@ func newService(c *onet.Context) (onet.Service, error) {
 		suite:                suite,
 		useTime:              false,
 		PrefixForReadingFile: dir + "/..",
+		Servers:              make(map[string]*network.ServerIdentity),
+		ServerIdentityToName: make(map[network.ServerIdentityID]string),
 	}
 
 	// Register function from one service to another

@@ -87,6 +87,6 @@ type SignatureRequest struct {
 // State describes the state of one node
 type State struct {
 	Signers   []network.ServerIdentityID
-	GraphTree map[string][]GraphTree
+	HashPings []byte
 	Epoch     Epoch
 }

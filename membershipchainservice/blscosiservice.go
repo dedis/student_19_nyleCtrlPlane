@@ -1,8 +1,11 @@
 package membershipchainservice
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"reflect"
+	"sort"
 
 	"go.dedis.ch/protobuf"
 
@@ -12,6 +15,11 @@ import (
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
+)
+
+var (
+	PINGSMSG   = []byte("Do we agree on Pings ?")
+	SIGNERSMSG = []byte("Do we agree on Signers ?")
 )
 
 // SignatureRequest treats external request to this service.
@@ -74,6 +82,38 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 const agreeProtocolName = "AgreeProtocol"
 const agreeSubProtocolName = "AgreeSubProtocol"
 
+func (s *Service) getHashPings() []byte {
+	h := s.suite.Hash()
+	str := "map["
+	// As Ping Distance is a map, one have to print in a sorted way, to have the same Hash.
+	keys := []string{}
+	for k := range s.PingDistances {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		str += k + ":["
+		subkeys := []string{}
+		for k := range s.PingDistances[k] {
+			subkeys = append(subkeys, k)
+		}
+		sort.Strings(subkeys)
+
+		for _, sk := range subkeys {
+			str += " " + sk + "-"
+			str += fmt.Sprintf("%.2f", s.PingDistances[k][sk]) + ", "
+		}
+		str += "]"
+	}
+
+	str += "]"
+	log.LLvl1(s.Name, "-PINGS: ", str)
+	buf := []byte(str)
+	h.Write(buf)
+	return h.Sum(nil)
+}
+
 // AgreeStateSubProtocol will get a signed message if the states of the nodes are the same
 func (s *Service) AgreeStateSubProtocol(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	vf := func(a, b []byte) bool {
@@ -82,7 +122,20 @@ func (s *Service) AgreeStateSubProtocol(n *onet.TreeNodeInstance) (onet.Protocol
 		if err != nil {
 			panic(err)
 		}
-		return reflect.DeepEqual(getKeys(s.GetSigners(st.Epoch).Set), st.Signers) && reflect.DeepEqual(s.GraphTree, st.GraphTree)
+
+		if bytes.Equal(a, SIGNERSMSG) {
+			if !reflect.DeepEqual(getKeys(s.GetSigners(st.Epoch).Set), st.Signers) {
+				log.LLvl1(" \033[38;5;1m", s.Name, " recieved different Signers\033[0m")
+			}
+			return reflect.DeepEqual(getKeys(s.GetSigners(st.Epoch).Set), st.Signers)
+		}
+
+		if !bytes.Equal(st.HashPings, s.getHashPings()) {
+			log.LLvl1(" \033[38;5;1m", s.Name, " recieved different Pings \n", s.getHashPings(), "\n", st.HashPings, " \033[0m")
+		}
+
+		return bytes.Equal(st.HashPings, s.getHashPings())
+
 	}
 	return protocol.NewSubBlsCosi(n, vf, pairing.NewSuiteBn256())
 }

@@ -20,6 +20,8 @@ func TestMain(m *testing.M) {
 	log.MainTest(m)
 }
 
+var emptySign = gpr.SignatureResponse{Hash: []uint8{}, Signature: []uint8{}}
+
 func TestSetGenesisSigners(t *testing.T) {
 
 	local := onet.NewTCPTest(tSuite)
@@ -38,7 +40,7 @@ func TestSetGenesisSigners(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
 	}
 
 	for _, s := range services {
@@ -75,7 +77,7 @@ func TestRegisterNewSigners(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
 	}
 
 	for _, s := range services {
@@ -86,6 +88,8 @@ func TestRegisterNewSigners(t *testing.T) {
 		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
 		err := services[i].(*Service).CreateProofForEpoch(2)
 		assert.NotNil(t, err)
+		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
+
 		err = services[i].(*Service).CreateProofForEpoch(0)
 		assert.NotNil(t, err)
 	}
@@ -125,7 +129,7 @@ func TestGetServer(t *testing.T) {
 	// Gives everybody different genesis set and try to reconstruct the whole system
 	for i := 0; i < nbrNodes; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
 		services[nbrNodes-i-1].(*Service).SetGenesisSigners(servers)
 	}
 
@@ -154,7 +158,7 @@ func TestExecHistoryRequestAndReply(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{Hash: []uint8{}, Signature: []uint8{}}
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
 	}
 	s0 := services[0].(*Service)
 	s1 := services[1].(*Service)
@@ -206,7 +210,8 @@ func TestAgreeOn(t *testing.T) {
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			assert.NoError(t, serv.AgreeOnState(roster))
+			assert.NoError(t, serv.AgreeOnState(roster, SIGNERSMSG))
+			assert.NoError(t, serv.AgreeOnState(roster, PINGSMSG))
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -226,7 +231,8 @@ func TestAgreeOn(t *testing.T) {
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			assert.Error(t, serv.AgreeOnState(roster))
+			assert.Error(t, serv.AgreeOnState(roster, SIGNERSMSG))
+			assert.Error(t, serv.AgreeOnState(roster, PINGSMSG))
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -250,7 +256,7 @@ func TestNewEpoch(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
 	}
 
 	var wg sync.WaitGroup
@@ -291,6 +297,18 @@ func TestNewEpoch(t *testing.T) {
 	}
 	wg.Wait()
 
+	log.LLvl1("\033[48;5;20mPassing new epoch but can we agree on GraphTree ?\033[0m")
+	// Should work if all have the same state
+	for _, s := range services {
+		wg.Add(1)
+		go func(serv *Service) {
+			assert.NoError(t, serv.AgreeOnState(roster, SIGNERSMSG))
+			assert.NoError(t, serv.AgreeOnState(roster, PINGSMSG))
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
 }
 
 func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
@@ -309,7 +327,7 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
 	}
 
 	var wg sync.WaitGroup
