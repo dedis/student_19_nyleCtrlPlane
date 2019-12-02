@@ -497,3 +497,73 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 
 	}
 }
+
+func TestFailingProtobufEncode(t *testing.T) {
+
+	local := onet.NewTCPTest(tSuite)
+	nbrNodes := 10
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+
+	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
+
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(services))
+	for _, s := range services {
+		go func(serv *Service) {
+			serv.SetGenesisSigners(servers)
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
+	// Error for empty map
+	_, err := protobuf.Encode(&services[0].(*Service).PingDistances)
+	log.LLvl1("An error is expected for Protobuf encode, here is its value : ", err)
+	assert.NotNil(t, err)
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*Service).CreateProofForEpoch(1)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*Service).ShareProof()
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*Service).StartNewEpoch())
+			wg.Done()
+		}(i)
+
+	}
+	wg.Wait()
+
+	// Error for map of map
+	_, err = protobuf.Encode(&services[0].(*Service).PingDistances)
+	log.LLvl1("An error is expected for Protobuf encode, here is its value : ", err)
+	assert.NotNil(t, err)
+
+}
