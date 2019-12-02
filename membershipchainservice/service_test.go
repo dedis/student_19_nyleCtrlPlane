@@ -344,16 +344,6 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes/2; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			assert.Error(t, services[idx].(*Service).StartNewEpoch())
-			wg.Done()
-		}(i)
-
-	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
 			assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(1))
 			wg.Done()
 		}(i)
@@ -371,15 +361,6 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 
 	time.Sleep(REGISTRATION_DUR)
 
-	for i := nbrNodes / 2; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.Error(t, services[idx].(*Service).CreateProofForEpoch(1))
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
 	for i := 0; i < nbrNodes/2; i++ {
 		wg.Add(1)
 		go func(idx int) {
@@ -389,27 +370,8 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 	}
 	wg.Wait()
 
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.Error(t, services[idx].(*Service).StartNewEpoch())
-			wg.Done()
-		}(i)
-
-	}
-	wg.Wait()
-
 	time.Sleep(SHARE_DUR)
 	log.LLvl1("Start of Epoch 1")
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.Error(t, services[idx].(*Service).ShareProof())
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
 
 	for i := 0; i < nbrNodes/2; i++ {
 		wg.Add(1)
