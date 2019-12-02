@@ -12,6 +12,7 @@ node will only use the `Handle`-methods, and not call `Start` again.
 
 import (
 	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
 )
 
 // AddSignersCallback is a callback function that is called in the protocol
@@ -47,6 +48,7 @@ func NewGossipProtocol(addSigners AddSignersCallback) func(n *onet.TreeNodeInsta
 
 // Start sends the Announce-message to all children
 func (p *GossipRegistationProtocol) Start() error {
+	log.LLvl1("Starting : ", p.Host().ServerIdentity)
 	return p.SendTo(p.TreeNode(), &p.Msg)
 }
 
@@ -54,7 +56,7 @@ func (p *GossipRegistationProtocol) Start() error {
 // called once. The protocol is considered finished when Dispatch returns and
 // Done is called.
 func (p *GossipRegistationProtocol) Dispatch() error {
-
+	log.LLvl1("Dispatching : ", p.Host().ServerIdentity)
 	defer p.Done()
 	nConf := 1
 

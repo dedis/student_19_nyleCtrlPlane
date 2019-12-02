@@ -62,3 +62,42 @@ func TestGossip(t *testing.T) {
 		local.CloseAll()
 	}
 }
+
+func TestWithFlatTree(t *testing.T) {
+	addSigner := func(Announce) error {
+		time.Sleep(1 * time.Second)
+		return nil
+	}
+	_, err := onet.GlobalProtocolRegister(Name, NewGossipProtocol(addSigner))
+	if err != nil {
+		panic(err)
+	}
+	for i := 5; i < 50; i += 5 {
+		local := onet.NewLocalTest(tSuite)
+		hosts, roster, _ := local.GenTree(i, true)
+		ann := Announce{
+			Signer: hosts[0].ServerIdentity.ID,
+			Proof:  &SignatureResponse{},
+			Epoch:  2,
+		}
+
+		tree := roster.GenerateNaryTree(i)
+		pi, err := local.CreateProtocol(Name, tree)
+		require.Nil(t, err)
+
+		protocol := pi.(*GossipRegistationProtocol)
+		protocol.Msg = ann
+		require.NoError(t, protocol.Start())
+
+		timeout := network.WaitRetry * time.Duration(network.MaxRetryConnect*i*2) * time.Millisecond
+		select {
+		case sum := <-protocol.ConfirmationsChan:
+			require.Equal(t, i, sum, "The number of confirmations is not the number of nodes")
+
+		case <-time.After(timeout):
+			t.Fatal("Didn't finish in time")
+		}
+		local.CloseAll()
+	}
+
+}
