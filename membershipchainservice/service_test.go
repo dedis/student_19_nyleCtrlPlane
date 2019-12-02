@@ -232,7 +232,7 @@ func TestAgreeOn(t *testing.T) {
 		wg.Add(1)
 		go func(serv *Service) {
 			assert.Error(t, serv.AgreeOnState(roster, SIGNERSMSG))
-			assert.Error(t, serv.AgreeOnState(roster, PINGSMSG))
+			assert.NoError(t, serv.AgreeOnState(roster, PINGSMSG))
 			wg.Done()
 		}(s.(*Service))
 	}
