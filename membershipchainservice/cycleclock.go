@@ -42,6 +42,19 @@ func (c Cycle) GetCurrentPhase() Phase {
 	}
 }
 
+// GetTimeTillNextCycle will gives the time till the next cycle
+func (c Cycle) GetTimeTillNextCycle() time.Duration {
+	return c.TotalCycleTime() - (time.Now().Sub(c.StartTime) % c.TotalCycleTime())
+}
+
+// GetTimeTillNextEpoch will gives the time till the next epoch
+func (c Cycle) GetTimeTillNextEpoch() time.Duration {
+	if c.GetCurrentPhase() == EPOCH {
+		return time.Duration(0)
+	}
+	return c.GetTimeTillNextCycle() - EPOCH_DUR
+}
+
 // GetEpoch will give the current epoch based on the clock cycle
 func (c Cycle) GetEpoch() Epoch {
 	return Epoch(time.Now().Sub(c.StartTime) / c.TotalCycleTime())

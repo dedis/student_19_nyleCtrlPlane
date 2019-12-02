@@ -235,6 +235,11 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
 func (s *Service) CreateProofForEpoch(e Epoch) error {
+	if s.useTime && s.Cycle.GetCurrentPhase() != REGISTRATION {
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
+		time.Sleep(s.Cycle.GetTimeTillNextCycle())
+	}
+
 	log.LLvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
 		log.LLvl1(s.ServerIdentity(), "is having an error")
@@ -280,7 +285,8 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 // It starts by getting informations about the other servers
 func (s *Service) ShareProof() error {
 	if s.useTime && s.Cycle.GetCurrentPhase() == EPOCH {
-		return errors.New("Sharing was not made in time")
+		log.LLvl1(s.Name, " is waiting for the end of Epoch :", s.Cycle.GetEpoch())
+		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
 
 	// Get info about all the servers in the system
@@ -319,7 +325,8 @@ func (s *Service) ShareProof() error {
 func (s *Service) StartNewEpoch() error {
 	if s.useTime {
 		if s.Cycle.GetCurrentPhase() != EPOCH {
-			return errors.New("It's not the time for one Epoch")
+			log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
+			time.Sleep(s.Cycle.GetTimeTillNextEpoch())
 		}
 		if s.e != s.Cycle.GetEpoch() {
 			return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e+1, s.Cycle.GetEpoch())
