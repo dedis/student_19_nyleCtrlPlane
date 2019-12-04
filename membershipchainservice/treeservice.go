@@ -64,7 +64,9 @@ func (s *Service) Setup(req *InitRequest) {
 	s.GraphTree = make(map[string][]GraphTree)
 	s.BinaryTree = make(map[string][]*onet.Tree)
 	s.OwnPings = make(map[string]float64)
+	s.PingMapMtx.Lock()
 	s.PingDistances = make(map[string]map[string]float64)
+	s.PingMapMtx.Unlock()
 
 	// allocate distances
 	for _, node := range s.Nodes.All {
@@ -188,7 +190,6 @@ func (s *Service) getPings(readFromFile bool) {
 		if len(s.Nodes.All) > 50 {
 			panic("This file was not generated")
 		}
-		log.LLvl1(len(s.Nodes.All))
 		// read from file lines of fomrm "ping node_19 node_7 = 32.317"
 		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + "/utils/PingsFiles/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
 		//readLine,_ := ReadFileLineByLine("shortest.txt")

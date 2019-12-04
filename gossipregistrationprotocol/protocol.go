@@ -12,7 +12,6 @@ node will only use the `Handle`-methods, and not call `Start` again.
 
 import (
 	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
 )
 
 // AddSignersCallback is a callback function that is called in the protocol
@@ -36,7 +35,7 @@ func NewGossipProtocol(addSigners AddSignersCallback) func(n *onet.TreeNodeInsta
 	return func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 		t := &GossipRegistationProtocol{
 			TreeNodeInstance:  n,
-			ConfirmationsChan: make(chan int),
+			ConfirmationsChan: make(chan int, 100),
 			addSigners:        addSigners,
 		}
 		if err := n.RegisterChannels(&t.announceChan, &t.repliesChan); err != nil {
@@ -48,7 +47,6 @@ func NewGossipProtocol(addSigners AddSignersCallback) func(n *onet.TreeNodeInsta
 
 // Start sends the Announce-message to all children
 func (p *GossipRegistationProtocol) Start() error {
-	log.LLvl1("Starting : ", p.Host().ServerIdentity)
 	return p.SendTo(p.TreeNode(), &p.Msg)
 }
 
@@ -56,7 +54,6 @@ func (p *GossipRegistationProtocol) Start() error {
 // called once. The protocol is considered finished when Dispatch returns and
 // Done is called.
 func (p *GossipRegistationProtocol) Dispatch() error {
-	log.LLvl1("Dispatching : ", p.Host().ServerIdentity)
 	defer p.Done()
 	nConf := 1
 
@@ -80,5 +77,11 @@ func (p *GossipRegistationProtocol) Dispatch() error {
 		return p.SendToParent(&Reply{nConf})
 	}
 	p.ConfirmationsChan <- nConf
+	return nil
+}
+
+// Shutdown close the cahan at the end of the protocol
+func (p *GossipRegistationProtocol) Shutdown() error {
+	close(p.ConfirmationsChan)
 	return nil
 }

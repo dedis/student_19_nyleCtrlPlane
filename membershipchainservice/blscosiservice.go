@@ -29,6 +29,9 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	}
 	// generate the tree
 	nNodes := len(req.Roster.List)
+	//s.Threshold = nNodes / 4
+	//s.NSubtrees = 2
+
 	rooted := req.Roster.NewRosterWithRoot(s.ServerIdentity())
 	if rooted == nil {
 		return nil, errors.New("we're not in the roster")
@@ -85,6 +88,7 @@ const agreeSubProtocolName = "AgreeSubProtocol"
 func (s *Service) getHashPings() []byte {
 	h := s.suite.Hash()
 	str := "map["
+	s.PingMapMtx.Lock()
 	// As Ping Distance is a map, one have to print in a sorted way, to have the same Hash.
 	keys := []string{}
 	for k := range s.PingDistances {
@@ -108,7 +112,7 @@ func (s *Service) getHashPings() []byte {
 	}
 
 	str += "]"
-	log.LLvl1(s.Name, "-PINGS: ", str)
+	s.PingMapMtx.Unlock()
 	buf := []byte(str)
 	h.Write(buf)
 	return h.Sum(nil)
@@ -131,7 +135,20 @@ func (s *Service) AgreeStateSubProtocol(n *onet.TreeNodeInstance) (onet.Protocol
 		}
 
 		if !bytes.Equal(st.HashPings, s.getHashPings()) {
-			log.LLvl1(" \033[38;5;1m", s.Name, " recieved different Pings \n", s.getHashPings(), "\n", st.HashPings, " \033[0m")
+
+			h := s.suite.Hash()
+			buf := []byte("map[]")
+			h.Write(buf)
+			emptyHash := h.Sum(nil)
+
+			if bytes.Equal(st.HashPings, emptyHash) {
+				log.LLvl1(" \033[38;5;1m", s.Name, " recieved empty Pings \n", emptyHash, "\n", st.HashPings, " \033[0m")
+			}
+			if bytes.Equal(s.getHashPings(), emptyHash) {
+				log.LLvl1(" \033[38;5;1m", s.Name, " has an empty Pings \n", emptyHash, "\n", s.getHashPings(), " \033[0m")
+			}
+			log.LLvl1(" \033[38;5;1m", s.Name, " recieved different Pings : 1 own. 2 recieved \n", s.getHashPings(), "\n", st.HashPings, "\033[0m")
+			log.LLvl1(s.Name, s.PingDistances, s.getHashPings())
 		}
 
 		return bytes.Equal(st.HashPings, s.getHashPings())

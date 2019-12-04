@@ -14,8 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"go.dedis.ch/protobuf"
-
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	"github.com/dedis/student_19_nyleCtrlPlane/getserversprotocol"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
@@ -25,6 +23,7 @@ import (
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
+	"go.dedis.ch/protobuf"
 )
 
 // For Blscosi
@@ -67,6 +66,7 @@ type Service struct {
 	// All services maintain a list of the servers it heard of.
 	// Helps recreate the roster for each epoch
 	Name                 string
+	ServersMtx           sync.Mutex
 	Servers              map[string]*network.ServerIdentity
 	ServerIdentityToName map[network.ServerIdentityID]string
 
@@ -114,6 +114,7 @@ func (s *Service) StartClock() {
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
+	s.ServersMtx.Lock()
 	s.Servers = make(map[string]*network.ServerIdentity)
 	s.Servers[s.Name] = s.ServerIdentity()
 	signers := make(SignersSet)
@@ -122,6 +123,7 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 		s.ServerIdentityToName[si.ID] = name
 		signers[si.ID] = gpr.SignatureResponse{Hash: []uint8{}, Signature: []uint8{}}
 	}
+	s.ServersMtx.Unlock()
 
 	s.e = 0
 	s.storage.Lock()
@@ -131,8 +133,10 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
+	s.ServersMtx.Lock()
 	s.Servers[ann.Name] = ann.Server
 	s.ServerIdentityToName[ann.Signer] = ann.Name
+	s.ServersMtx.Unlock()
 	return s.addSigner(ann.Signer, ann.Proof, ann.Epoch)
 }
 
@@ -160,9 +164,13 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 
 }
 
+// GetEpoch returns the current epoch
+func (s *Service) GetEpoch() Epoch {
+	return s.e
+}
+
 // GetGlobalServers gossips on existing info to get info about all the Servers
 func (s *Service) GetGlobalServers() map[string]*network.ServerIdentity {
-
 	ro := s.getGlobalRoster()
 
 	nbrNodes := len(ro.List) - 1
@@ -175,24 +183,24 @@ func (s *Service) GetGlobalServers() map[string]*network.ServerIdentity {
 	p := pi.(*getserversprotocol.GetServersProtocol)
 	p.Start()
 
-	select {
-	case r := <-p.ConfirmationsChan:
-		for name, si := range r.Servers {
-			s.Servers[name] = si
-		}
-
-		return s.Servers
+	r := <-p.ConfirmationsChan
+	s.ServersMtx.Lock()
+	for name, si := range r.Servers {
+		s.Servers[name] = si
 	}
+	s.ServersMtx.Unlock()
+
+	return s.Servers
 
 }
 
 // GetSigners gives the registrations that are stored on this node
 func (s *Service) GetSigners(e Epoch) *SignersReply {
+	s.storage.Lock()
+	defer s.storage.Unlock()
 	if e < 0 || e >= Epoch(len(s.storage.Signers)) {
 		return &SignersReply{Set: nil}
 	}
-	s.storage.Lock()
-	defer s.storage.Unlock()
 	return &SignersReply{Set: s.storage.Signers[e]}
 
 }
@@ -211,9 +219,11 @@ func getKeys(m SignersSet) []network.ServerIdentityID {
 }
 func (s *Service) getGlobalRoster() *onet.Roster {
 	sis := []*network.ServerIdentity{}
+	s.ServersMtx.Lock()
 	for _, v := range s.Servers {
 		sis = append(sis, v)
 	}
+	s.ServersMtx.Unlock()
 
 	return onet.NewRoster(sis)
 }
@@ -240,11 +250,10 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
 
-	log.LLvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
+	log.Lvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
 		log.LLvl1(s.ServerIdentity(), "is having an error")
-		return errors.New("Error ? ")
-		//return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
+		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
 	}
 
 	// Get proof from the signer of epoch e-1
@@ -275,6 +284,11 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	}
 
 	s.Proof = buf.(*gpr.SignatureResponse)
+	if s.Proof == nil {
+		log.LLvl1(s.Name, " :cannot share proof as it did not manage to get one")
+		return fmt.Errorf("%v cannot share proof as it did not manage to get one", s.Name)
+	}
+
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
 	err = s.ShareProof()
 	return err
@@ -291,13 +305,12 @@ func (s *Service) ShareProof() error {
 
 	// Get info about all the servers in the system
 	s.GetGlobalServers()
-	roForPropa := s.getGlobalRoster()
+	roForPropa := s.getGlobalRoster().NewRosterWithRoot(s.ServerIdentity())
 
-	log.LLvl1("Roster for Propagation : len : ", len(roForPropa.List), " Values : ", roForPropa.List)
+	log.Lvl1("Roster for Propagation : len : ", len(roForPropa.List), " Values : ", roForPropa.List)
 
 	// Send them the proof
-	nbrNodes := len(roForPropa.List) - 1
-	tree := roForPropa.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
+	tree := roForPropa.GenerateBinaryTree()
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
@@ -314,10 +327,8 @@ func (s *Service) ShareProof() error {
 
 	p.Start()
 
-	select {
-	case <-p.ConfirmationsChan:
-		return nil
-	}
+	<-p.ConfirmationsChan
+	return nil
 
 }
 
@@ -350,6 +361,7 @@ func (s *Service) StartNewEpoch() error {
 	// Agree on Signers
 	err = s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
+		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
 		return err
 	}
 
@@ -357,17 +369,16 @@ func (s *Service) StartNewEpoch() error {
 	for _, serv := range ro.List {
 		si2name[serv] = s.ServerIdentityToName[serv.ID]
 	}
-	log.LLvl1(s.ServerIdentity(), "Passing the Agree with these names : ", si2name)
 	s.Setup(&InitRequest{
 		ServerIdentityToName: si2name,
 	})
 
 	err = s.AgreeOnState(ro, PINGSMSG)
 	if err != nil {
-		log.LLvl1(" \033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
+		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
 		return err
 	}
-	log.LLvl1(" \033[45;5;1m", s.Name, " Finished its Epochs Successfully.\033[0m")
+	log.Lvl1("\033[45;5;1m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
 	return err
 }
 
@@ -408,7 +419,6 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 	}
 
 	p.Data, err = protobuf.Encode(&st)
-
 	if err != nil {
 		return err
 	}
@@ -436,6 +446,7 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 	sig := <-p.FinalSignature
 
 	if sig == nil {
+		log.LLvl1(s.Name, s.PingDistances, s.getHashPings())
 		return errors.New("Protocol output an empty signature")
 	}
 
@@ -487,19 +498,31 @@ func (s *Service) tryLoad() error {
 }
 
 func (s *Service) getServers() map[string]*network.ServerIdentity {
-	return s.Servers
+	s.ServersMtx.Lock()
+	dst := make(map[string]*network.ServerIdentity, len(s.Servers))
+
+	for k, v := range s.Servers {
+		dst[k] = v
+	}
+	s.ServersMtx.Unlock()
+	return dst
 }
 
 // UpdateHistoryWith will send an ReqHistory to the service in parameter
 func (s *Service) UpdateHistoryWith(name string) error {
+	log.Lvl1("Updating ", s.Name, "with ", name)
+	s.ServersMtx.Lock()
 	si, ok := s.Servers[name]
 	if !ok {
 		return fmt.Errorf("%s is not aware of server named %s", s.ServerIdentity(), name)
 	}
+	s.ServersMtx.Unlock()
 	s.DoneUpdate = false
 
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
 
+	// TODO : Fix race condition using Channel :
+	// https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/concurrency
 	for !s.DoneUpdate {
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -558,8 +581,14 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 		return errors.New("failed to cast to ReplyHistory")
 	}
 
-	s.Servers = req.Servers
-	s.ServerIdentityToName = req.ServerIdentityToName
+	for k, v := range req.Servers {
+		s.ServersMtx.Lock()
+		s.Servers[k] = v
+		s.ServersMtx.Unlock()
+	}
+	for k, v := range req.ServerIdentityToName {
+		s.ServerIdentityToName[k] = v
+	}
 
 	// Reconstruction []SignerSet see ExecReqHistory
 	signers := make([]SignersSet, req.SignersIndex[len(req.SignersIndex)-1]+1)
@@ -572,9 +601,15 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	}
 
 	s.storage.Lock()
-	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	s.storage.Signers = signers
+	l := len(s.storage.Signers)
 	s.storage.Unlock()
+
+	log.Lvl1(s.Name, "is now at Epoch", l-1)
+	// Catching up on Epochs
+	if s.e < Epoch(l-1) {
+		s.e = Epoch(l - 1)
+	}
 
 	s.DoneUpdate = true
 	return nil

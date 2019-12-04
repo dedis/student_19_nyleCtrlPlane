@@ -12,6 +12,7 @@ import (
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
+	"go.dedis.ch/protobuf"
 )
 
 var tSuite = suites.MustFind("bn256.adapter")
@@ -85,7 +86,6 @@ func TestRegisterNewSigners(t *testing.T) {
 	}
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
 		err := services[i].(*Service).CreateProofForEpoch(2)
 		assert.NotNil(t, err)
 		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
@@ -243,7 +243,7 @@ func TestAgreeOn(t *testing.T) {
 func TestNewEpoch(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 	nbrNodes := 10
-	hosts, _, _ := local.GenTree(nbrNodes, true)
+	hosts, roster, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 
 	services := local.GetServices(hosts, MembershipID)
@@ -371,7 +371,6 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 	wg.Wait()
 
 	time.Sleep(SHARE_DUR)
-	log.LLvl1("Start of Epoch 1")
 
 	for i := 0; i < nbrNodes/2; i++ {
 		wg.Add(1)
@@ -386,7 +385,7 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 }
 
 func TestWholeSystemOverFewEpochs(t *testing.T) {
-	t.Skip("A lot of function are not implemented for now")
+	//t.Skip("A lot of function are not implemented for now")
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
 
@@ -424,11 +423,23 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		log.LLvl1("\033[48;5;42mStart of Epoch ", e, "\033[0m ")
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			log.LLvl1("Service : ", services[i].(*Service).ServerIdentity())
-
+			log.LLvl1("Service : ", services[i].(*Service).Name, " : ", services[i].(*Service).ServerIdentity())
 		}
 
 		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes\033[0m ")
+		// Update for new nodes.
+
+		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+			wg.Add(1)
+			go func(idx int) {
+				if services[idx].(*Service).GetEpoch() != e-1 {
+					assert.NoError(t, services[idx].(*Service).UpdateHistoryWith("node_0"))
+				}
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+
 		// Registration
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
@@ -439,19 +450,18 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		}
 		wg.Wait()
 
-		time.Sleep(REGISTRATION_DUR)
 		log.LLvl1("\033[48;5;44mSharing :", e, "\033[0m ")
 		// Sharing
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
 			go func(idx int) {
+				log.LLvl2("\033[48;5;44m-Server : ", services[idx].(*Service).Name, " is sharing\033[0m ")
 				assert.NoError(t, services[idx].(*Service).ShareProof())
 				wg.Done()
 			}(i)
 		}
 		wg.Wait()
 
-		time.Sleep(SHARE_DUR)
 		log.LLvl1("\033[48;5;45mStarting :", e, "\033[0m ")
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
@@ -462,10 +472,6 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 			}(i)
 		}
 		wg.Wait()
-
-		// WHAT TO DO DURING THE EPOCH ?
-		time.Sleep(EPOCH_DUR)
-
 		/*
 
 			// CHURN - With Deregistration
@@ -496,6 +502,56 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		*/
 
 	}
+}
+
+func TestFailingBLSCOSI(t *testing.T) {
+
+	local := onet.NewTCPTest(tSuite)
+
+	nbrNodes := 20
+
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
+
+	servers := make(map[*network.ServerIdentity]string)
+
+	for i := 0; i < 5; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		log.LLvl1("Signers 0 : ", hosts[i].ServerIdentity)
+	}
+
+	var wg sync.WaitGroup
+
+	for _, s := range services {
+		wg.Add(1)
+		go func(serv *Service) {
+			serv.SetGenesisSigners(servers)
+			//serv.StartClock()
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
+	// Sequential Registration
+	for i := 0; i < nbrNodes; i++ {
+		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
+	}
+
+	// Registration
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(1))
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
 }
 
 func TestFailingProtobufEncode(t *testing.T) {
