@@ -335,7 +335,6 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 	for _, s := range services {
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
-			serv.StartClock()
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -402,7 +401,6 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		wg.Add(1)
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
-			serv.StartClock()
 			wg.Done()
 		}(s.(*Service))
 	}

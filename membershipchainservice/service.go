@@ -61,7 +61,6 @@ type Service struct {
 	e       Epoch
 	Proof   *gpr.SignatureResponse
 	Cycle   Cycle
-	useTime bool
 
 	// All services maintain a list of the servers it heard of.
 	// Helps recreate the roster for each epoch
@@ -104,15 +103,11 @@ type storage struct {
 	sync.Mutex
 }
 
-// Start Clock will start the clock for one node
-func (s *Service) StartClock() {
-	s.useTime = true
-	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
-	s.Cycle.StartTime = time.Now()
-}
-
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
+	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
+	s.Cycle.StartTime = time.Now()
+
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 	s.ServersMtx.Lock()
 	s.Servers = make(map[string]*network.ServerIdentity)
@@ -245,7 +240,7 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
 func (s *Service) CreateProofForEpoch(e Epoch) error {
-	if s.useTime && s.Cycle.GetCurrentPhase() != REGISTRATION {
+	if s.Cycle.GetCurrentPhase() != REGISTRATION {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
@@ -298,7 +293,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 // ShareProof will send the proof created in CreateProofForEpoch to all the nodes it is aware of
 // It starts by getting informations about the other servers
 func (s *Service) ShareProof() error {
-	if s.useTime && s.Cycle.GetCurrentPhase() == EPOCH {
+	if s.Cycle.GetCurrentPhase() == EPOCH {
 		log.LLvl1(s.Name, " is waiting for the end of Epoch :", s.Cycle.GetEpoch())
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
@@ -334,14 +329,12 @@ func (s *Service) ShareProof() error {
 
 // StartNewEpoch stop the registration for nodes and run CRUX
 func (s *Service) StartNewEpoch() error {
-	if s.useTime {
-		if s.Cycle.GetCurrentPhase() != EPOCH {
-			log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
-			time.Sleep(s.Cycle.GetTimeTillNextEpoch())
-		}
-		if s.e != s.Cycle.GetEpoch() {
-			return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e+1, s.Cycle.GetEpoch())
-		}
+	if s.Cycle.GetCurrentPhase() != EPOCH {
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
+	}
+	if s.e != s.Cycle.GetEpoch() {
+		return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e+1, s.Cycle.GetEpoch())
 	}
 
 	s.e++
@@ -628,7 +621,6 @@ func newService(c *onet.Context) (onet.Service, error) {
 		ServiceProcessor:     onet.NewServiceProcessor(c),
 		Timeout:              protocolTimeout,
 		suite:                suite,
-		useTime:              false,
 		PrefixForReadingFile: dir + "/..",
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
