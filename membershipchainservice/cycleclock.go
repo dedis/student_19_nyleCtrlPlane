@@ -1,6 +1,10 @@
 package membershipchainservice
 
-import "time"
+import (
+	"time"
+
+	"go.dedis.ch/onet/v3/log"
+)
 
 type Phase int
 
@@ -14,8 +18,10 @@ const (
 
 // Cycle describes a sequence of repeating phases starting at a given start time
 type Cycle struct {
-	Sequence  []time.Duration
-	StartTime time.Time
+	Sequence         []time.Duration
+	StartTime        time.Time
+	RegistrationTick *time.Ticker
+	EpochTick        *time.Ticker
 }
 
 // TotalCycleTime return the total time of a Cycle
@@ -54,4 +60,25 @@ func (c Cycle) GetTimeTillNextEpoch() time.Duration {
 // GetEpoch will give the current epoch based on the clock cycle
 func (c Cycle) GetEpoch() Epoch {
 	return Epoch(time.Now().Sub(c.StartTime) / c.TotalCycleTime())
+}
+
+// StartTicking instanciate the tickers
+func (c Cycle) StartTicking() {
+	go func() {
+		log.LLvl1("Set Registration Tick")
+		time.Sleep(c.GetTimeTillNextCycle())
+		c.RegistrationTick = time.NewTicker(c.TotalCycleTime())
+	}()
+	go func() {
+		log.LLvl1("Set Epoch Tick")
+		time.Sleep(c.GetTimeTillNextEpoch())
+		c.EpochTick = time.NewTicker(c.TotalCycleTime())
+	}()
+
+}
+
+// StopTicking stops the tickers
+func (c Cycle) StopTicking() {
+	c.RegistrationTick.Stop()
+	c.EpochTick.Stop()
 }
