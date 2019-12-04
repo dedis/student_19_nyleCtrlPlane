@@ -107,7 +107,7 @@ type storage struct {
 // Start Clock will start the clock for one node
 func (s *Service) StartClock() {
 	s.useTime = true
-	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, SHARE_DUR, EPOCH_DUR}
+	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
 	s.Cycle.StartTime = time.Now()
 }
 

@@ -364,17 +364,6 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes/2; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).ShareProof())
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	time.Sleep(SHARE_DUR)
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
 			assert.NoError(t, services[idx].(*Service).StartNewEpoch())
 			wg.Done()
 		}(i)
