@@ -1,0 +1,4 @@
+ping node_0 node_0 = 0
+ping node_0 node_1 = 14.8316823689 
+ping node_1 node_0 = 14.8316823689
+ping node_1 node_1 = 0

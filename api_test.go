@@ -1,15 +1,17 @@
 package nylechain
 
 import (
+	"strconv"
+	"sync"
 	"testing"
 
-	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/network"
 )
 
 var testSuite = pairing.NewSuiteBn256()
@@ -22,32 +24,59 @@ func TestFewEpochs(t *testing.T) {
 	local := onet.NewTCPTest(testSuite)
 
 	nbrNodes := 10
-	hosts, roster, _ := local.GenTree(nbrNodes, true)
+	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 
 	services := local.GetServices(hosts, mbrSer.MembershipID)
-
-	signers := mbrSer.SignersSet{
-		hosts[0].ServerIdentity.ID: gpr.SignatureResponse{},
-		hosts[1].ServerIdentity.ID: gpr.SignatureResponse{},
+	for i, s := range services {
+		s.(*mbrSer.Service).Name = "node_" + strconv.Itoa(i)
+		s.(*mbrSer.Service).PrefixForReadingFile = "."
 	}
 
-	var listServices []*mbrSer.Service
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(mbrSer.SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*mbrSer.Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(services))
 	for _, s := range services {
-		service := s.(*mbrSer.Service)
-		listServices = append(listServices, s.(*mbrSer.Service))
-		service.SetGenesisSigners(signers)
+		go func(serv *mbrSer.Service) {
+			serv.SetGenesisSigners(servers)
+			wg.Done()
+		}(s.(*mbrSer.Service))
 	}
+	wg.Wait()
 
 	for i := 0; i < nbrNodes; i++ {
-		services[i].(*mbrSer.Service).Registrate(roster, 1)
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*mbrSer.Service).CreateProofForEpoch(1)
+			wg.Done()
+		}(i)
 	}
-
-	lc := gentree.LocalityContext{}
-	lc.Setup(roster, "gentree/nodes_small.txt")
+	wg.Wait()
 
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*mbrSer.Service).StartNewEpoch(roster, lc.Nodes.All))
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*mbrSer.Service).ShareProof()
+			wg.Done()
+		}(i)
 	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			assert.NoError(t, services[idx].(*mbrSer.Service).StartNewEpoch())
+			wg.Done()
+		}(i)
+
+	}
+	wg.Wait()
 
 }
