@@ -94,8 +94,10 @@ func TestRegisterNewSigners(t *testing.T) {
 		assert.NotNil(t, err)
 	}
 
+	// At some point, Old committee should transmit new signers to participants of Epoch 1
+	time.Sleep(REGISTRATION_DUR)
+
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).ShareProof())
 		for _, s := range services[:i] {
 			service := s.(*Service)
 			reply := service.GetSigners(1)
@@ -281,15 +283,6 @@ func TestNewEpoch(t *testing.T) {
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
 		go func(idx int) {
-			services[idx].(*Service).ShareProof()
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
 			assert.NoError(t, services[idx].(*Service).StartNewEpoch())
 			wg.Done()
 		}(i)
@@ -344,15 +337,6 @@ func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(1))
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).ShareProof())
 			wg.Done()
 		}(i)
 	}
@@ -432,18 +416,6 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 			wg.Add(1)
 			go func(idx int) {
 				assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(e))
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-
-		log.LLvl1("\033[48;5;44mSharing :", e, "\033[0m ")
-		// Sharing
-		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			wg.Add(1)
-			go func(idx int) {
-				log.LLvl2("\033[48;5;44m-Server : ", services[idx].(*Service).Name, " is sharing\033[0m ")
-				assert.NoError(t, services[idx].(*Service).ShareProof())
 				wg.Done()
 			}(i)
 		}
@@ -580,15 +552,6 @@ func TestFailingProtobufEncode(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			services[idx].(*Service).CreateProofForEpoch(1)
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			services[idx].(*Service).ShareProof()
 			wg.Done()
 		}(i)
 	}

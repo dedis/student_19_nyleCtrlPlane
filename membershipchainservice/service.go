@@ -285,27 +285,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	}
 
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
-	err = s.ShareProof()
-	return err
-
-}
-
-// ShareProof will send the proof created in CreateProofForEpoch to all the nodes it is aware of
-// It starts by getting informations about the other servers
-func (s *Service) ShareProof() error {
-	if s.Cycle.GetCurrentPhase() == EPOCH {
-		log.LLvl1(s.Name, " is waiting for the end of Epoch :", s.Cycle.GetEpoch())
-		time.Sleep(s.Cycle.GetTimeTillNextCycle())
-	}
-
-	// Get info about all the servers in the system
-	s.GetGlobalServers()
-	roForPropa := s.getGlobalRoster().NewRosterWithRoot(s.ServerIdentity())
-
-	log.Lvl1("Roster for Propagation : len : ", len(roForPropa.List), " Values : ", roForPropa.List)
-
-	// Send them the proof
-	tree := roForPropa.GenerateBinaryTree()
+	tree := ro.GenerateBinaryTree()
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
