@@ -223,6 +223,23 @@ func (s *Service) getGlobalRoster() *onet.Roster {
 	return onet.NewRoster(sis)
 }
 
+func (s *Service) getRosterForEpoch(e Epoch) (*onet.Roster, error) {
+	s.storage.Lock()
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
+	if err != nil {
+		defer s.storage.Unlock()
+		return nil, err
+	}
+	if _, ok := s.storage.Signers[s.e][s.ServerIdentity().ID]; !ok {
+		defer s.storage.Unlock()
+		return nil, errors.New("One node cannot start a new Epoch if it didn't registrate")
+	}
+	s.storage.Unlock()
+
+	return onet.NewRoster(mbrs), nil
+
+}
+
 func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.ServerIdentity, error) {
 	mbrsIDs := getKeys(m)
 	var mbrs []*network.ServerIdentity
@@ -284,6 +301,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		return fmt.Errorf("%v cannot share proof as it did not manage to get one", s.Name)
 	}
 
+	ro = ro.NewRosterWithRoot(s.ServerIdentity())
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
 	tree := ro.GenerateBinaryTree()
 	pi, err := s.CreateProtocol(gpr.Name, tree)
@@ -307,34 +325,47 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 }
 
-// StartNewEpoch stop the registration for nodes and run CRUX
+// GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
+func (s *Service) GetConsencusOnNewSigners() error {
+	ro, err := s.getRosterForEpoch(s.e)
+	if err != nil {
+		return err
+	}
+	// Agree on Signers
+	sign, err := s.AgreeOnState(ro, SIGNERSMSG)
+	if err != nil {
+		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
+		return err
+	}
+
+	log.LLvl1("Send Signature", sign)
+	newSigners := s.GetSigners(s.e + 1)
+
+	for sID := range newSigners.Set {
+		s.ServersMtx.Lock()
+		name := s.ServerIdentityToName[sID]
+		si := s.Servers[name]
+		s.ServersMtx.Unlock()
+		err := s.SendHistory(si)
+		if err != nil {
+			log.LLvl1(s.Name, " got an error while sending historiy to ", name)
+		}
+	}
+
+	return nil
+}
+
+// StartNewEpoch stops the registration for nodes and run CRUX
 func (s *Service) StartNewEpoch() error {
 	if s.Cycle.GetCurrentPhase() != EPOCH {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
 	}
-	if s.e != s.Cycle.GetEpoch() {
-		return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e+1, s.Cycle.GetEpoch())
+	if s.e != s.Cycle.GetEpoch()+1 {
+		return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e, s.Cycle.GetEpoch()+1)
 	}
-
-	s.e++
-	s.storage.Lock()
-	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
+	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
-		defer s.storage.Unlock()
-		return err
-	}
-	if _, ok := s.storage.Signers[s.e][s.ServerIdentity().ID]; !ok {
-		defer s.storage.Unlock()
-		return errors.New("One node cannot start a new Epoch if it didn't registrate")
-	}
-	s.storage.Unlock()
-
-	ro := onet.NewRoster(mbrs)
-	// Agree on Signers
-	err = s.AgreeOnState(ro, SIGNERSMSG)
-	if err != nil {
-		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
 		return err
 	}
 
@@ -346,7 +377,7 @@ func (s *Service) StartNewEpoch() error {
 		ServerIdentityToName: si2name,
 	})
 
-	err = s.AgreeOnState(ro, PINGSMSG)
+	_, err = s.AgreeOnState(ro, PINGSMSG)
 	if err != nil {
 		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
 		return err
@@ -363,22 +394,22 @@ func (s *Service) ChangeLatencies(ic float64) {
 }
 
 // AgreeOnState checks that the members of the roster have the same signers + same maps
-func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
+func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSignature, error) {
 	// generate the tree
 	nNodes := len(roster.List)
 	rooted := roster.NewRosterWithRoot(s.ServerIdentity())
 	if rooted == nil {
-		return errors.New("we're not in the roster")
+		return nil, errors.New("we're not in the roster")
 	}
 	tree := rooted.GenerateNaryTree(nNodes)
 	if tree == nil {
-		return errors.New("failed to generate tree")
+		return nil, errors.New("failed to generate tree")
 	}
 
 	// configure the BlsCosi protocol
 	pi, err := s.CreateProtocol(agreeProtocolName, tree)
 	if err != nil {
-		return errors.New("Couldn't make new protocol: " + err.Error())
+		return nil, errors.New("Couldn't make new protocol: " + err.Error())
 	}
 	p := pi.(*protocol.BlsCosi)
 	p.CreateProtocol = s.CreateProtocol
@@ -393,7 +424,7 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 
 	p.Data, err = protobuf.Encode(&st)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Threshold before the subtrees so that we can optimize situation
@@ -406,27 +437,27 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 		err = p.SetNbrSubTree(s.NSubtrees)
 		if err != nil {
 			p.Done()
-			return err
+			return nil, err
 		}
 	}
 
 	// start the protocol
 	log.Lvl3("Cosi Service starting up root protocol")
 	if err = p.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	// wait for reply. This will always eventually return.
 	sig := <-p.FinalSignature
 
 	if sig == nil {
 		log.LLvl1(s.Name, s.PingDistances, s.getHashPings())
-		return errors.New("Protocol output an empty signature")
+		return nil, errors.New("Protocol output an empty signature")
 	}
 
 	res := protocol.BlsSignature(sig)
 	publics := rooted.ServicePublics(ServiceName)
 
-	return res.Verify(suite, msg, publics)
+	return res, res.Verify(suite, msg, publics)
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
@@ -504,16 +535,9 @@ func (s *Service) UpdateHistoryWith(name string) error {
 
 }
 
-// ExecReqHistory will send back the node's version of history
-func (s *Service) ExecReqHistory(env *network.Envelope) error {
-	req, ok := env.Msg.(*ReqHistory)
-	if !ok {
-		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
-		return errors.New("failed to cast to ReqHistory")
-	}
-
+// SendHistory send my version of History to the given SI
+func (s *Service) SendHistory(si *network.ServerIdentity) error {
 	s.storage.Lock()
-
 	// Sending directely a []SignerSet is not working,
 	// This solution flatten the data and reconstruct it afterwards
 	// If protobuf.Encode is corrected it might not be needed anymore
@@ -529,7 +553,7 @@ func (s *Service) ExecReqHistory(env *network.Envelope) error {
 		}
 	}
 
-	e := s.SendRaw(req.SenderIdentity, &ReplyHistory{
+	e := s.SendRaw(si, &ReplyHistory{
 		SenderName:           s.Name,
 		Servers:              s.Servers,
 		ServerIdentityToName: s.ServerIdentityToName,
@@ -542,6 +566,17 @@ func (s *Service) ExecReqHistory(env *network.Envelope) error {
 		panic(e)
 	}
 	return e
+
+}
+
+// ExecReqHistory will send back the node's version of history
+func (s *Service) ExecReqHistory(env *network.Envelope) error {
+	req, ok := env.Msg.(*ReqHistory)
+	if !ok {
+		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
+		return errors.New("failed to cast to ReqHistory")
+	}
+	return s.SendHistory(req.SenderIdentity)
 }
 
 // ExecReplyHistory will update the node's version of history based on the answer

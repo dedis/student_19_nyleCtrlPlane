@@ -1,6 +1,7 @@
 package nylechain
 
 import (
+	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
@@ -60,14 +61,9 @@ func TestFewEpochs(t *testing.T) {
 	}
 	wg.Wait()
 
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			services[idx].(*mbrSer.Service).ShareProof()
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
+	// Running consensus - pick a random leader in the previous committee
+	leaderID := rand.Intn(2)
+	assert.NoError(t, services[leaderID].(*mbrSer.Service).GetConsencusOnNewSigners())
 
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
