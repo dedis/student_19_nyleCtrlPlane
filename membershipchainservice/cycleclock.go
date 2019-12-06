@@ -22,6 +22,7 @@ type Cycle struct {
 	StartTime        time.Time
 	RegistrationTick *time.Ticker
 	EpochTick        *time.Ticker
+	Done             chan bool
 }
 
 // TotalCycleTime return the total time of a Cycle
@@ -63,22 +64,43 @@ func (c Cycle) GetEpoch() Epoch {
 }
 
 // StartTicking instanciate the tickers
-func (c Cycle) StartTicking() {
+func (c Cycle) StartTicking(registrationFn, epochFn, callback func()) {
+	c.Done = make(chan bool)
+	log.LLvl1("Set Registration Tick")
+	c.StartTime = time.Now()
+	c.RegistrationTick = time.NewTicker(c.TotalCycleTime())
+	time.Sleep(c.GetTimeTillNextEpoch())
+	log.LLvl1("Set Epoch Tick")
+	c.EpochTick = time.NewTicker(c.TotalCycleTime())
+
 	go func() {
-		log.LLvl1("Set Registration Tick")
-		time.Sleep(c.GetTimeTillNextCycle())
-		c.RegistrationTick = time.NewTicker(c.TotalCycleTime())
-	}()
-	go func() {
-		log.LLvl1("Set Epoch Tick")
-		time.Sleep(c.GetTimeTillNextEpoch())
-		c.EpochTick = time.NewTicker(c.TotalCycleTime())
+		for {
+			select {
+			case <-c.RegistrationTick.C:
+				registrationFn()
+			case <-c.EpochTick.C:
+				epochFn()
+			case <-c.Done:
+				log.LLvl1("Ticking done.")
+				return
+			}
+		}
 	}()
 
+	callback()
 }
 
 // StopTicking stops the tickers
 func (c Cycle) StopTicking() {
-	c.RegistrationTick.Stop()
-	c.EpochTick.Stop()
+	log.LLvl1(c)
+	if c.RegistrationTick != nil {
+		c.RegistrationTick.Stop()
+	}
+	if c.EpochTick != nil {
+		c.EpochTick.Stop()
+	}
+	log.LLvl1("Stop Ticking")
+	c.Done <- true
+	close(c.Done)
+
 }

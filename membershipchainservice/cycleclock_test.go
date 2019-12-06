@@ -1,6 +1,7 @@
 package membershipchainservice
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -16,36 +17,23 @@ func TestTotalCycleTime(t *testing.T) {
 }
 
 func TestStartTicking(t *testing.T) {
-	nbCycle := time.Duration(2)
+	nbCycle := time.Duration(10)
 	var c Cycle
 	c.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
 	c.StartTime = time.Now()
 
-	done := make(chan bool)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	c.StartTicking(
+		func() { log.LLvl1("Registrate") },
+		func() { log.LLvl1("Epoch") },
+		func() {
+			time.Sleep(nbCycle * time.Second)
+			c.StopTicking()
+			wg.Done()
+		})
+	wg.Wait()
 
-	log.LLvl1("Set Registration Tick")
-	time.Sleep(c.GetTimeTillNextCycle())
-	c.RegistrationTick = time.NewTicker(c.TotalCycleTime())
-	log.LLvl1("Set Epoch Tick")
-	time.Sleep(c.GetTimeTillNextEpoch())
-	c.EpochTick = time.NewTicker(c.TotalCycleTime())
+	time.Sleep(time.Second)
 
-	go func(test *testing.T, cy Cycle) {
-		for {
-			select {
-			case tt := <-cy.EpochTick.C:
-				log.LLvl1("Epoch Tick", tt)
-				assert.Equal(test, Phase(EPOCH), c.GetCurrentPhase())
-			case tt := <-cy.RegistrationTick.C:
-				log.LLvl1("Registration Tick", tt)
-				assert.Equal(test, Phase(REGISTRATION), c.GetCurrentPhase())
-			case <-done:
-				return
-			}
-		}
-	}(t, c)
-
-	time.Sleep(nbCycle * c.TotalCycleTime())
-	c.StopTicking()
-	done <- true
 }
