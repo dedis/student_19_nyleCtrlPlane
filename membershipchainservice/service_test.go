@@ -366,6 +366,7 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 	//t.Skip("A lot of function are not implemented for now")
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
+	nbFirstSigners := 4
 
 	joiningPerEpoch := int(0.1 * float64(nbrNodes))
 
@@ -380,7 +381,7 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 
 	servers := make(map[*network.ServerIdentity]string)
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < nbFirstSigners; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
 		log.LLvl1("Signers 0 : ", hosts[i].ServerIdentity)
 	}
@@ -404,13 +405,14 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		}
 
 		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes\033[0m ")
-		// Update for new nodes.
 
+		// Update for new nodes.
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
 			go func(idx int) {
 				if services[idx].(*Service).GetEpoch() != e-1 {
-					assert.NoError(t, services[idx].(*Service).UpdateHistoryWith("node_0"))
+					updateID := rand.Intn(nbFirstSigners)
+					assert.NoError(t, services[idx].(*Service).UpdateHistoryWith("node_"+strconv.Itoa(updateID)))
 				}
 				wg.Done()
 			}(i)
@@ -474,21 +476,22 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 }
 
 func TestFailingBLSCOSI(t *testing.T) {
-
 	local := onet.NewTCPTest(tSuite)
 
-	nbrNodes := 20
+	// nbrNodes := 200 is failing
+	nbrNodes := 100
 
 	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
 	for i, s := range services {
 		s.(*Service).Name = "node_" + strconv.Itoa(i)
+		s.(*Service).Cycle.Sequence = []time.Duration{1 * time.Minute, 1 * time.Minute}
 	}
 
 	servers := make(map[*network.ServerIdentity]string)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < nbrNodes/2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
 		log.LLvl1("Signers 0 : ", hosts[i].ServerIdentity)
 	}
@@ -499,16 +502,12 @@ func TestFailingBLSCOSI(t *testing.T) {
 		wg.Add(1)
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
-			//serv.StartClock()
+			serv.Cycle.Sequence = []time.Duration{2 * time.Minute, 5 * time.Minute}
+			serv.Cycle.StartTime = time.Now()
 			wg.Done()
 		}(s.(*Service))
 	}
 	wg.Wait()
-
-	// Sequential Registration
-	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
-	}
 
 	// Registration
 	for i := 0; i < nbrNodes; i++ {

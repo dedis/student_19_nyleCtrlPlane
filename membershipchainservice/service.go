@@ -27,7 +27,7 @@ import (
 )
 
 // For Blscosi
-const protocolTimeout = 20 * time.Second
+const protocolTimeout = 20 * time.Hour
 
 var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
@@ -382,7 +382,7 @@ func (s *Service) StartNewEpoch() error {
 		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
 		return err
 	}
-	log.Lvl1("\033[45;5;1m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
+	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
 	return err
 }
 
