@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"sort"
 	"sync"
@@ -106,7 +107,15 @@ func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetG
 
 //ExecEpochRequest handles requests for the function
 func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, error) {
-	err := s.CreateProofForEpoch(req.Epoch)
+	var err error
+	if s.e != req.Epoch-1 {
+		err = s.UpdateHistoryWith(s.getRandomName())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = s.CreateProofForEpoch(req.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +131,7 @@ func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, erro
 	if err != nil {
 		return nil, err
 	}
+	log.LLvl1("PASSS: ", s.Name, "is ending epoch", s.e)
 
 	return &ExecEpochReply{}, nil
 }
@@ -289,7 +299,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	log.Lvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
 		log.LLvl1(s.ServerIdentity(), "is having an error")
-		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
+		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch %d", e-1, s.e)
 	}
 
 	// Get proof from the signer of epoch e-1
@@ -645,6 +655,19 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 
 	s.DoneUpdate = true
 	return nil
+}
+
+func (s *Service) getRandomName() string {
+	var names []string
+	s.ServersMtx.Lock()
+	for name := range s.Servers {
+		if name != s.Name {
+			names = append(names, name)
+		}
+	}
+	s.ServersMtx.Unlock()
+	index := rand.Intn(len(names))
+	return names[index]
 }
 
 // newService receives the context that holds information about the node it's

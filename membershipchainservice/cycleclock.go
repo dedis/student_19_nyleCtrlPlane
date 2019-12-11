@@ -9,7 +9,7 @@ const (
 	REGISTRATION = iota
 	EPOCH
 	REGISTRATION_DUR = 5 * time.Second
-	EPOCH_DUR        = 5 * time.Second
+	EPOCH_DUR        = 2 * time.Second
 )
 
 // Cycle describes a sequence of repeating phases starting at a given start time

@@ -2,9 +2,11 @@ package main
 
 import (
 	"strconv"
+	"sync"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
+	nylechain "github.com/dedis/student_19_nyleCtrlPlane"
+	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
@@ -54,8 +56,9 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 	name := GetServerIdentityToName(config.Server.ServerIdentity, config.Roster)
 	log.LLvl3("Initializing node-index", name)
 
-	myservice := config.GetService(membershipchainservice.ServiceName).(*membershipchainservice.Service)
+	myservice := config.GetService(mbrSer.ServiceName).(*mbrSer.Service)
 	myservice.Name = name
+	myservice.PrefixForReadingFile = "../../"
 
 	return s.SimulationBFTree.Node(config)
 
@@ -64,21 +67,46 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	size := config.Tree.Size()
-
+	size := len(config.Roster.List)
 	nbrFirstSigners := 4
 
-	servers := make(map[*network.ServerIdentity]string)
+	listServers := config.Roster.List
 
+	var clients []*nylechain.Client
+	for i := 0; i < size; i++ {
+		clients = append(clients, nylechain.NewClient())
+	}
+
+	servers := make(map[*network.ServerIdentity]string)
 	for i := 0; i < nbrFirstSigners; i++ {
 		si := config.Roster.List[i]
 		servers[si] = GetServerIdentityToName(si, config.Roster)
 		log.LLvl1("Signers 0 : ", si)
 	}
 
-	myservice := config.GetService(membershipchainservice.ServiceName).(*membershipchainservice.Service)
-	log.Lvl2("Size is:", size, "my name", myservice.Name)
-	myservice.SetGenesisSigners(servers)
+	for i := 0; i < size; i++ {
+		clients[i].SetGenesisSignersRequest(listServers[i], servers)
+	}
+
+	nbrEpoch := mbrSer.Epoch(10)
+	joiningPerEpoch := int(1 / float64(nbrEpoch) * float64(size))
+
+	var wg sync.WaitGroup
+
+	for e := mbrSer.Epoch(1); e < nbrEpoch; e++ {
+		log.LLvl1("\033[48;5;42mStart of Epoch ", e, "\033[0m ")
+
+		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
+			log.LLvl1("Nodes : node_", i, " : ", listServers[i])
+			wg.Add(1)
+			go func(idx int, ee mbrSer.Epoch) {
+				clients[idx].ExecEpochRequest(listServers[idx], ee)
+				wg.Done()
+			}(i, e)
+		}
+		wg.Wait()
+
+	}
 
 	return nil
 }
