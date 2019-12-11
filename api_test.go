@@ -1,14 +1,13 @@
 package nylechain
 
 import (
-	"math/rand"
 	"strconv"
-	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	mbrSer "github.com/dedis/student_19_nyleCtrlPlane/membershipchainservice"
-	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
@@ -21,7 +20,7 @@ func TestMain(m *testing.M) {
 	log.MainTest(m)
 }
 func TestFewEpochs(t *testing.T) {
-	_ = NewClient()
+	c := NewClient()
 	local := onet.NewTCPTest(testSuite)
 
 	nbrNodes := 10
@@ -42,37 +41,8 @@ func TestFewEpochs(t *testing.T) {
 		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(services))
-	for _, s := range services {
-		go func(serv *mbrSer.Service) {
-			serv.SetGenesisSigners(servers)
-			wg.Done()
-		}(s.(*mbrSer.Service))
+	for _, h := range hosts {
+		_, err := c.SetGenesisSignersRequest(h.ServerIdentity, servers)
+		assert.Nil(t, err)
 	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			services[idx].(*mbrSer.Service).CreateProofForEpoch(1)
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	// Running consensus - pick a random leader in the previous committee
-	leaderID := rand.Intn(2)
-	assert.NoError(t, services[leaderID].(*mbrSer.Service).GetConsencusOnNewSigners())
-
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.NoError(t, services[idx].(*mbrSer.Service).StartNewEpoch())
-			wg.Done()
-		}(i)
-
-	}
-	wg.Wait()
-
 }

@@ -1,10 +1,5 @@
 package membershipchainservice
 
-/*
-The service.go defines what to do for each API-call. This part of the service
-runs on the node.
-*/
-
 import (
 	"bytes"
 	"errors"
@@ -31,7 +26,7 @@ const protocolTimeout = 20 * time.Hour
 
 var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
-// Used for tests
+// MembershipID is used for tests
 var MembershipID onet.ServiceID
 
 // ServiceName is used for registration on the onet.
@@ -101,6 +96,12 @@ var storageID = []byte("main")
 type storage struct {
 	Signers []SignersSet
 	sync.Mutex
+}
+
+// SetGenesisSignersRequest handles requests for the function
+func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetGenesisSignersReply, error) {
+	s.SetGenesisSigners(req.Servers)
+	return &SetGenesisSignersReply{}, nil
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
@@ -640,6 +641,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
 	}
+	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest))
 
 	// Register function from one service to another
 	s.RegisterProcessorFunc(execReqHistoryMsgID, s.ExecReqHistory)
