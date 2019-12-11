@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"os"
@@ -1056,4 +1057,94 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 	}
 
 	return Trees, Lists, Parents, TreeRadiuses
+}
+
+func ReadNodesFromFile(filename string) []*LocalityNode {
+	ret := make([]*LocalityNode, 0)
+
+	readLine, _ := readFileLineByLine(filename)
+	lineNr := 0
+
+	for {
+		line := readLine()
+		if line == "" {
+			break
+		}
+
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		tokens := strings.Split(line, " ")
+		coords := strings.Split(tokens[1], ",")
+		x, y := coords[0], coords[1]
+		name, level_str := tokens[0], tokens[2]
+
+		level, err := strconv.Atoi(level_str)
+		if err != nil {
+			log.Lvl1("Error", err)
+		}
+		xFloat, err := strconv.ParseFloat(x, 64)
+		if err != nil {
+			log.Fatal("Problem when parsing pings")
+		}
+		yFloat, err := strconv.ParseFloat(y, 64)
+		if err != nil {
+			log.Fatal("Problem when parsing pings")
+		}
+
+		myNode := createNode(name, xFloat, yFloat, level)
+		ret = append(ret, myNode)
+		log.LLvl3("Read node", *myNode)
+
+		lineNr++
+	}
+
+	log.LLvl3("Read nodes", ret)
+	return ret
+}
+
+func createNode(Name string, x float64, y float64, level int) *LocalityNode {
+	var myNode LocalityNode
+
+	myNode.X = x
+	myNode.Y = y
+	myNode.Name = Name
+	myNode.Level = level
+	myNode.ADist = make([]float64, 0)
+	myNode.PDist = make([]string, 0)
+	myNode.Cluster = make(map[string]bool)
+	myNode.Bunch = make(map[string]bool)
+	myNode.Rings = make([]string, 0)
+
+	return &myNode
+}
+
+func readFileLineByLine(configFilePath string) (func() string, error) {
+	f, err := os.Open(configFilePath)
+	//defer close(f)
+
+	if err != nil {
+		return func() string { return "" }, err
+	}
+	checkErr(err)
+	reader := bufio.NewReader(f)
+	//defer close(reader)
+	var line string
+	return func() string {
+		if err == io.EOF {
+			return ""
+		}
+		line, err = reader.ReadString('\n')
+		checkErr(err)
+		line = strings.Split(line, "\n")[0]
+		return line
+	}, nil
+}
+
+func checkErr(e error) {
+	if e != nil && e != io.EOF {
+		fmt.Print(e)
+		panic(e)
+	}
 }
