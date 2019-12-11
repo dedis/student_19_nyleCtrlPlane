@@ -2,6 +2,7 @@ package nylechain
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,8 +42,24 @@ func TestFewEpochs(t *testing.T) {
 		compareSet[hosts[i].ServerIdentity.ID] = gpr.SignatureResponse{}
 	}
 
+	var wg sync.WaitGroup
 	for _, h := range hosts {
+		wg.Add(1)
 		_, err := c.SetGenesisSignersRequest(h.ServerIdentity, servers)
 		assert.Nil(t, err)
+		wg.Done()
+	}
+	wg.Wait()
+
+	for e := mbrSer.Epoch(1); e < mbrSer.Epoch(6); e++ {
+		for _, h := range hosts {
+			wg.Add(1)
+			go func(si *network.ServerIdentity, ee mbrSer.Epoch) {
+				_, err := c.ExecEpochRequest(si, ee)
+				assert.Nil(t, err)
+				wg.Done()
+			}(h.ServerIdentity, e)
+		}
+		wg.Wait()
 	}
 }

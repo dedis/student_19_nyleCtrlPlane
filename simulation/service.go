@@ -80,22 +80,6 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	log.Lvl2("Size is:", size, "my name", myservice.Name)
 	myservice.SetGenesisSigners(servers)
 
-	err := myservice.CreateProofForEpoch(1)
-	if err != nil {
-		return err
-	}
-
-	if myservice.Name == "node_0" {
-		err = myservice.GetConsencusOnNewSigners()
-		if err != nil {
-			return err
-		}
-	}
-	err = myservice.StartNewEpoch()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

@@ -104,6 +104,28 @@ func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetG
 	return &SetGenesisSignersReply{}, nil
 }
 
+//ExecEpochRequest handles requests for the function
+func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, error) {
+	err := s.CreateProofForEpoch(req.Epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO change with a random leader
+	if s.Name == "node_0" {
+		err = s.GetConsencusOnNewSigners()
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = s.StartNewEpoch()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ExecEpochReply{}, nil
+}
+
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
 	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
@@ -126,6 +148,7 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	s.storage.Signers[0] = signers
 	s.storage.Unlock()
+	log.LLvl1(s.Name, "is set ..")
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
@@ -641,7 +664,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
 	}
-	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest))
+	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
 
 	// Register function from one service to another
 	s.RegisterProcessorFunc(execReqHistoryMsgID, s.ExecReqHistory)

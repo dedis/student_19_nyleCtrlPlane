@@ -9,3 +9,11 @@ type SetGenesisSignersRequest struct {
 
 //SetGenesisSignersReply is the reply from the service to the api
 type SetGenesisSignersReply struct{}
+
+// ExecEpochRequest is used to send a request from api to a service
+type ExecEpochRequest struct {
+	Epoch Epoch
+}
+
+//ExecEpochReply is the reply from the service to the api
+type ExecEpochReply struct{}
