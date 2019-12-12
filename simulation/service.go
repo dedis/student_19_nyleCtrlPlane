@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -58,7 +60,16 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 
 	myservice := config.GetService(mbrSer.ServiceName).(*mbrSer.Service)
 	myservice.Name = name
-	myservice.PrefixForReadingFile = "../../"
+
+	dir, _ := os.Getwd()
+	log.LLvl1("Dir from Node : ", dir)
+
+	if strings.HasSuffix(dir, "/simulation/build") {
+		myservice.PrefixForReadingFile = "../../"
+	}
+	if strings.HasSuffix(dir, "/remote") {
+		myservice.PrefixForReadingFile = "./"
+	}
 
 	return s.SimulationBFTree.Node(config)
 
