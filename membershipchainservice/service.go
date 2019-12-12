@@ -296,7 +296,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
 
-	log.Lvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
+	log.Lvl1(s.Name, " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
 		log.LLvl1(s.ServerIdentity(), "is having an error")
 		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch %d", e-1, s.e)
@@ -361,6 +361,10 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 // GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
 func (s *Service) GetConsencusOnNewSigners() error {
+	if s.Cycle.GetCurrentPhase() != EPOCH {
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-1*time.Second, "s to Get the Consencus")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 1*time.Second)
+	}
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
 		return err
@@ -374,7 +378,6 @@ func (s *Service) GetConsencusOnNewSigners() error {
 
 	log.LLvl1("Send Signature", sign)
 	newSigners := s.GetSigners(s.e + 1)
-
 	for sID := range newSigners.Set {
 		s.ServersMtx.Lock()
 		name := s.ServerIdentityToName[sID]
@@ -382,7 +385,7 @@ func (s *Service) GetConsencusOnNewSigners() error {
 		s.ServersMtx.Unlock()
 		err := s.SendHistory(si)
 		if err != nil {
-			log.LLvl1(s.Name, " got an error while sending historiy to ", name)
+			log.LLvl1(s.Name, " got an error while sending history to ", name)
 		}
 	}
 
@@ -396,7 +399,7 @@ func (s *Service) StartNewEpoch() error {
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
 	}
 	if s.e != s.Cycle.GetEpoch()+1 {
-		return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e, s.Cycle.GetEpoch()+1)
+		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch()+1)
 	}
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
