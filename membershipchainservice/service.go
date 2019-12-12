@@ -1,14 +1,10 @@
 package membershipchainservice
 
-/*
-The service.go defines what to do for each API-call. This part of the service
-runs on the node.
-*/
-
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"sort"
 	"sync"
@@ -27,11 +23,11 @@ import (
 )
 
 // For Blscosi
-const protocolTimeout = 20 * time.Second
+const protocolTimeout = 20 * time.Hour
 
 var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
-// Used for tests
+// MembershipID is used for tests
 var MembershipID onet.ServiceID
 
 // ServiceName is used for registration on the onet.
@@ -61,7 +57,6 @@ type Service struct {
 	e       Epoch
 	Proof   *gpr.SignatureResponse
 	Cycle   Cycle
-	useTime bool
 
 	// All services maintain a list of the servers it heard of.
 	// Helps recreate the roster for each epoch
@@ -104,15 +99,48 @@ type storage struct {
 	sync.Mutex
 }
 
-// Start Clock will start the clock for one node
-func (s *Service) StartClock() {
-	s.useTime = true
-	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, SHARE_DUR, EPOCH_DUR}
-	s.Cycle.StartTime = time.Now()
+// SetGenesisSignersRequest handles requests for the function
+func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetGenesisSignersReply, error) {
+	s.SetGenesisSigners(req.Servers)
+	return &SetGenesisSignersReply{}, nil
+}
+
+//ExecEpochRequest handles requests for the function
+func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, error) {
+	var err error
+	if s.e != req.Epoch-1 {
+		err = s.UpdateHistoryWith(s.getRandomName())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = s.CreateProofForEpoch(req.Epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO change with a random leader
+	if s.Name == "node_0" {
+		err = s.GetConsencusOnNewSigners()
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = s.StartNewEpoch()
+	if err != nil {
+		return nil, err
+	}
+	log.LLvl1("PASSS: ", s.Name, "is ending epoch", s.e)
+
+	return &ExecEpochReply{}, nil
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
+	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
+	s.Cycle.StartTime = time.Now()
+
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 	s.ServersMtx.Lock()
 	s.Servers = make(map[string]*network.ServerIdentity)
@@ -130,6 +158,7 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	s.storage.Signers[0] = signers
 	s.storage.Unlock()
+	log.LLvl1(s.Name, "is set ..")
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
@@ -228,6 +257,23 @@ func (s *Service) getGlobalRoster() *onet.Roster {
 	return onet.NewRoster(sis)
 }
 
+func (s *Service) getRosterForEpoch(e Epoch) (*onet.Roster, error) {
+	s.storage.Lock()
+	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
+	if err != nil {
+		defer s.storage.Unlock()
+		return nil, err
+	}
+	if _, ok := s.storage.Signers[s.e][s.ServerIdentity().ID]; !ok {
+		defer s.storage.Unlock()
+		return nil, errors.New("One node cannot start a new Epoch if it didn't registrate")
+	}
+	s.storage.Unlock()
+
+	return onet.NewRoster(mbrs), nil
+
+}
+
 func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.ServerIdentity, error) {
 	mbrsIDs := getKeys(m)
 	var mbrs []*network.ServerIdentity
@@ -245,15 +291,15 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
 func (s *Service) CreateProofForEpoch(e Epoch) error {
-	if s.useTime && s.Cycle.GetCurrentPhase() != REGISTRATION {
+	if s.Cycle.GetCurrentPhase() != REGISTRATION {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
 
-	log.Lvl1(s.ServerIdentity(), " is creating proof for Epoch : ", e)
+	log.Lvl1(s.Name, " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
 		log.LLvl1(s.ServerIdentity(), "is having an error")
-		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch", s.e)
+		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch %d", e-1, s.e)
 	}
 
 	// Get proof from the signer of epoch e-1
@@ -289,28 +335,9 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		return fmt.Errorf("%v cannot share proof as it did not manage to get one", s.Name)
 	}
 
+	ro = ro.NewRosterWithRoot(s.ServerIdentity())
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
-	err = s.ShareProof()
-	return err
-
-}
-
-// ShareProof will send the proof created in CreateProofForEpoch to all the nodes it is aware of
-// It starts by getting informations about the other servers
-func (s *Service) ShareProof() error {
-	if s.useTime && s.Cycle.GetCurrentPhase() == EPOCH {
-		log.LLvl1(s.Name, " is waiting for the end of Epoch :", s.Cycle.GetEpoch())
-		time.Sleep(s.Cycle.GetTimeTillNextCycle())
-	}
-
-	// Get info about all the servers in the system
-	s.GetGlobalServers()
-	roForPropa := s.getGlobalRoster().NewRosterWithRoot(s.ServerIdentity())
-
-	log.Lvl1("Roster for Propagation : len : ", len(roForPropa.List), " Values : ", roForPropa.List)
-
-	// Send them the proof
-	tree := roForPropa.GenerateBinaryTree()
+	tree := ro.GenerateBinaryTree()
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
@@ -332,36 +359,50 @@ func (s *Service) ShareProof() error {
 
 }
 
-// StartNewEpoch stop the registration for nodes and run CRUX
-func (s *Service) StartNewEpoch() error {
-	if s.useTime {
-		if s.Cycle.GetCurrentPhase() != EPOCH {
-			log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
-			time.Sleep(s.Cycle.GetTimeTillNextEpoch())
-		}
-		if s.e != s.Cycle.GetEpoch() {
-			return fmt.Errorf("Its not the time for epoch %d. The clock says its %d", s.e+1, s.Cycle.GetEpoch())
-		}
+// GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
+func (s *Service) GetConsencusOnNewSigners() error {
+	if s.Cycle.GetCurrentPhase() != EPOCH {
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-1*time.Second, "s to Get the Consencus")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 1*time.Second)
 	}
-
-	s.e++
-	s.storage.Lock()
-	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
+	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
-		defer s.storage.Unlock()
 		return err
 	}
-	if _, ok := s.storage.Signers[s.e][s.ServerIdentity().ID]; !ok {
-		defer s.storage.Unlock()
-		return errors.New("One node cannot start a new Epoch if it didn't registrate")
-	}
-	s.storage.Unlock()
-
-	ro := onet.NewRoster(mbrs)
 	// Agree on Signers
-	err = s.AgreeOnState(ro, SIGNERSMSG)
+	sign, err := s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
 		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
+		return err
+	}
+
+	log.LLvl1("Send Signature", sign)
+	newSigners := s.GetSigners(s.e + 1)
+	for sID := range newSigners.Set {
+		s.ServersMtx.Lock()
+		name := s.ServerIdentityToName[sID]
+		si := s.Servers[name]
+		s.ServersMtx.Unlock()
+		err := s.SendHistory(si)
+		if err != nil {
+			log.LLvl1(s.Name, " got an error while sending history to ", name)
+		}
+	}
+
+	return nil
+}
+
+// StartNewEpoch stops the registration for nodes and run CRUX
+func (s *Service) StartNewEpoch() error {
+	if s.Cycle.GetCurrentPhase() != EPOCH {
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
+	}
+	if s.e != s.Cycle.GetEpoch()+1 {
+		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch()+1)
+	}
+	ro, err := s.getRosterForEpoch(s.e)
+	if err != nil {
 		return err
 	}
 
@@ -373,12 +414,12 @@ func (s *Service) StartNewEpoch() error {
 		ServerIdentityToName: si2name,
 	})
 
-	err = s.AgreeOnState(ro, PINGSMSG)
+	_, err = s.AgreeOnState(ro, PINGSMSG)
 	if err != nil {
 		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
 		return err
 	}
-	log.Lvl1("\033[45;5;1m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
+	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
 	return err
 }
 
@@ -390,22 +431,22 @@ func (s *Service) ChangeLatencies(ic float64) {
 }
 
 // AgreeOnState checks that the members of the roster have the same signers + same maps
-func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
+func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSignature, error) {
 	// generate the tree
 	nNodes := len(roster.List)
 	rooted := roster.NewRosterWithRoot(s.ServerIdentity())
 	if rooted == nil {
-		return errors.New("we're not in the roster")
+		return nil, errors.New("we're not in the roster")
 	}
 	tree := rooted.GenerateNaryTree(nNodes)
 	if tree == nil {
-		return errors.New("failed to generate tree")
+		return nil, errors.New("failed to generate tree")
 	}
 
 	// configure the BlsCosi protocol
 	pi, err := s.CreateProtocol(agreeProtocolName, tree)
 	if err != nil {
-		return errors.New("Couldn't make new protocol: " + err.Error())
+		return nil, errors.New("Couldn't make new protocol: " + err.Error())
 	}
 	p := pi.(*protocol.BlsCosi)
 	p.CreateProtocol = s.CreateProtocol
@@ -420,7 +461,7 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 
 	p.Data, err = protobuf.Encode(&st)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Threshold before the subtrees so that we can optimize situation
@@ -433,27 +474,27 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) error {
 		err = p.SetNbrSubTree(s.NSubtrees)
 		if err != nil {
 			p.Done()
-			return err
+			return nil, err
 		}
 	}
 
 	// start the protocol
 	log.Lvl3("Cosi Service starting up root protocol")
 	if err = p.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	// wait for reply. This will always eventually return.
 	sig := <-p.FinalSignature
 
 	if sig == nil {
 		log.LLvl1(s.Name, s.PingDistances, s.getHashPings())
-		return errors.New("Protocol output an empty signature")
+		return nil, errors.New("Protocol output an empty signature")
 	}
 
 	res := protocol.BlsSignature(sig)
 	publics := rooted.ServicePublics(ServiceName)
 
-	return res.Verify(suite, msg, publics)
+	return res, res.Verify(suite, msg, publics)
 }
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
@@ -531,16 +572,9 @@ func (s *Service) UpdateHistoryWith(name string) error {
 
 }
 
-// ExecReqHistory will send back the node's version of history
-func (s *Service) ExecReqHistory(env *network.Envelope) error {
-	req, ok := env.Msg.(*ReqHistory)
-	if !ok {
-		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
-		return errors.New("failed to cast to ReqHistory")
-	}
-
+// SendHistory send my version of History to the given SI
+func (s *Service) SendHistory(si *network.ServerIdentity) error {
 	s.storage.Lock()
-
 	// Sending directely a []SignerSet is not working,
 	// This solution flatten the data and reconstruct it afterwards
 	// If protobuf.Encode is corrected it might not be needed anymore
@@ -556,7 +590,7 @@ func (s *Service) ExecReqHistory(env *network.Envelope) error {
 		}
 	}
 
-	e := s.SendRaw(req.SenderIdentity, &ReplyHistory{
+	e := s.SendRaw(si, &ReplyHistory{
 		SenderName:           s.Name,
 		Servers:              s.Servers,
 		ServerIdentityToName: s.ServerIdentityToName,
@@ -569,6 +603,17 @@ func (s *Service) ExecReqHistory(env *network.Envelope) error {
 		panic(e)
 	}
 	return e
+
+}
+
+// ExecReqHistory will send back the node's version of history
+func (s *Service) ExecReqHistory(env *network.Envelope) error {
+	req, ok := env.Msg.(*ReqHistory)
+	if !ok {
+		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
+		return errors.New("failed to cast to ReqHistory")
+	}
+	return s.SendHistory(req.SenderIdentity)
 }
 
 // ExecReplyHistory will update the node's version of history based on the answer
@@ -615,6 +660,19 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	return nil
 }
 
+func (s *Service) getRandomName() string {
+	var names []string
+	s.ServersMtx.Lock()
+	for name := range s.Servers {
+		if name != s.Name {
+			names = append(names, name)
+		}
+	}
+	s.ServersMtx.Unlock()
+	index := rand.Intn(len(names))
+	return names[index]
+}
+
 // newService receives the context that holds information about the node it's
 // running on. Saving and loading can be done using the context. The data will
 // be stored in memory for tests and simulations, and on disk for real deployments.
@@ -628,11 +686,11 @@ func newService(c *onet.Context) (onet.Service, error) {
 		ServiceProcessor:     onet.NewServiceProcessor(c),
 		Timeout:              protocolTimeout,
 		suite:                suite,
-		useTime:              false,
 		PrefixForReadingFile: dir + "/..",
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
 	}
+	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
 
 	// Register function from one service to another
 	s.RegisterProcessorFunc(execReqHistoryMsgID, s.ExecReqHistory)

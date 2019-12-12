@@ -1,6 +1,7 @@
 package membershipchainservice
 
 import (
+	rand "math/rand"
 	"strconv"
 	"sync"
 	"testing"
@@ -94,8 +95,12 @@ func TestRegisterNewSigners(t *testing.T) {
 		assert.NotNil(t, err)
 	}
 
+	// Running consensus - pick a random leader in the previous committee
+	leaderID := rand.Intn(2)
+	assert.NoError(t, services[leaderID].(*Service).GetConsencusOnNewSigners())
+
+	time.Sleep(500 * time.Millisecond)
 	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).ShareProof())
 		for _, s := range services[:i] {
 			service := s.(*Service)
 			reply := service.GetSigners(1)
@@ -210,8 +215,10 @@ func TestAgreeOn(t *testing.T) {
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			assert.NoError(t, serv.AgreeOnState(roster, SIGNERSMSG))
-			assert.NoError(t, serv.AgreeOnState(roster, PINGSMSG))
+			_, err := serv.AgreeOnState(roster, SIGNERSMSG)
+			assert.NoError(t, err)
+			_, err = serv.AgreeOnState(roster, PINGSMSG)
+			assert.NoError(t, err)
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -231,12 +238,60 @@ func TestAgreeOn(t *testing.T) {
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			assert.Error(t, serv.AgreeOnState(roster, SIGNERSMSG))
-			assert.NoError(t, serv.AgreeOnState(roster, PINGSMSG))
+			_, err := serv.AgreeOnState(roster, SIGNERSMSG)
+			assert.Error(t, err)
+			_, err = serv.AgreeOnState(roster, PINGSMSG)
+			assert.NoError(t, err)
 			wg.Done()
 		}(s.(*Service))
 	}
 	wg.Wait()
+
+}
+
+func TestGetConsensusOnNewSigners(t *testing.T) {
+	local := onet.NewTCPTest(tSuite)
+	nbrNodes := 10
+	hosts, _, _ := local.GenTree(nbrNodes, true)
+	defer local.CloseAll()
+
+	services := local.GetServices(hosts, MembershipID)
+	for i, s := range services {
+		s.(*Service).Name = "node_" + strconv.Itoa(i)
+	}
+
+	servers := make(map[*network.ServerIdentity]string)
+	compareSet := make(SignersSet)
+
+	for i := 0; i < 2; i++ {
+		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
+		compareSet[hosts[i].ServerIdentity.ID] = emptySign
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(services))
+	for _, s := range services {
+		go func(serv *Service) {
+			serv.SetGenesisSigners(servers)
+			wg.Done()
+		}(s.(*Service))
+	}
+	wg.Wait()
+
+	for i := 0; i < nbrNodes; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			services[idx].(*Service).CreateProofForEpoch(1)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	log.LLvl1("________---------- CONSENCUS ----------_________")
+	// Each node of the previous committee should be able to get consensus
+	for i := 0; i < 2; i++ {
+		assert.NoError(t, services[i].(*Service).GetConsencusOnNewSigners())
+	}
 
 }
 
@@ -278,14 +333,9 @@ func TestNewEpoch(t *testing.T) {
 	}
 	wg.Wait()
 
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			services[idx].(*Service).ShareProof()
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
+	// Running consensus - pick a random leader in the previous committee
+	leaderID := rand.Intn(2)
+	assert.NoError(t, services[leaderID].(*Service).GetConsencusOnNewSigners())
 
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)
@@ -302,92 +352,21 @@ func TestNewEpoch(t *testing.T) {
 	for _, s := range services {
 		wg.Add(1)
 		go func(serv *Service) {
-			assert.NoError(t, serv.AgreeOnState(roster, SIGNERSMSG))
-			assert.NoError(t, serv.AgreeOnState(roster, PINGSMSG))
+			_, err := serv.AgreeOnState(roster, SIGNERSMSG)
+			assert.NoError(t, err)
+			_, err = serv.AgreeOnState(roster, PINGSMSG)
+			assert.NoError(t, err)
 			wg.Done()
 		}(s.(*Service))
 	}
 	wg.Wait()
 
 }
-
-func TestClockRegistrateShareAndNewEpoch(t *testing.T) {
-	local := onet.NewTCPTest(tSuite)
-	nbrNodes := 10
-	hosts, _, _ := local.GenTree(nbrNodes, true)
-	defer local.CloseAll()
-
-	services := local.GetServices(hosts, MembershipID)
-	for i, s := range services {
-		s.(*Service).Name = "node_" + strconv.Itoa(i)
-	}
-
-	servers := make(map[*network.ServerIdentity]string)
-	compareSet := make(SignersSet)
-
-	for i := 0; i < 2; i++ {
-		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = emptySign
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(services))
-	for _, s := range services {
-		go func(serv *Service) {
-			serv.SetGenesisSigners(servers)
-			serv.StartClock()
-			wg.Done()
-		}(s.(*Service))
-	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(1))
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).ShareProof())
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	time.Sleep(REGISTRATION_DUR)
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).ShareProof())
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
-	time.Sleep(SHARE_DUR)
-
-	for i := 0; i < nbrNodes/2; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			assert.NoError(t, services[idx].(*Service).StartNewEpoch())
-			wg.Done()
-		}(i)
-
-	}
-	wg.Wait()
-
-}
-
 func TestWholeSystemOverFewEpochs(t *testing.T) {
 	//t.Skip("A lot of function are not implemented for now")
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
+	nbFirstSigners := 4
 
 	joiningPerEpoch := int(0.1 * float64(nbrNodes))
 
@@ -402,7 +381,7 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 
 	servers := make(map[*network.ServerIdentity]string)
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < nbFirstSigners; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
 		log.LLvl1("Signers 0 : ", hosts[i].ServerIdentity)
 	}
@@ -413,7 +392,6 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		wg.Add(1)
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
-			serv.StartClock()
 			wg.Done()
 		}(s.(*Service))
 	}
@@ -427,13 +405,14 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		}
 
 		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes\033[0m ")
-		// Update for new nodes.
 
+		// Update for new nodes.
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
 			go func(idx int) {
 				if services[idx].(*Service).GetEpoch() != e-1 {
-					assert.NoError(t, services[idx].(*Service).UpdateHistoryWith("node_0"))
+					updateID := rand.Intn(nbFirstSigners)
+					assert.NoError(t, services[idx].(*Service).UpdateHistoryWith("node_"+strconv.Itoa(updateID)))
 				}
 				wg.Done()
 			}(i)
@@ -450,19 +429,11 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		}
 		wg.Wait()
 
-		log.LLvl1("\033[48;5;44mSharing :", e, "\033[0m ")
-		// Sharing
-		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			wg.Add(1)
-			go func(idx int) {
-				log.LLvl2("\033[48;5;44m-Server : ", services[idx].(*Service).Name, " is sharing\033[0m ")
-				assert.NoError(t, services[idx].(*Service).ShareProof())
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-
 		log.LLvl1("\033[48;5;45mStarting :", e, "\033[0m ")
+
+		// Running consensus - pick a random leader in the previous committee
+		leaderID := rand.Intn(joiningPerEpoch * int(e))
+		assert.NoError(t, services[leaderID].(*Service).GetConsencusOnNewSigners())
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
@@ -505,21 +476,22 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 }
 
 func TestFailingBLSCOSI(t *testing.T) {
-
 	local := onet.NewTCPTest(tSuite)
 
-	nbrNodes := 20
+	// nbrNodes := 200 is failing
+	nbrNodes := 100
 
 	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
 	services := local.GetServices(hosts, MembershipID)
 	for i, s := range services {
 		s.(*Service).Name = "node_" + strconv.Itoa(i)
+		s.(*Service).Cycle.Sequence = []time.Duration{1 * time.Minute, 1 * time.Minute}
 	}
 
 	servers := make(map[*network.ServerIdentity]string)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < nbrNodes/2; i++ {
 		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
 		log.LLvl1("Signers 0 : ", hosts[i].ServerIdentity)
 	}
@@ -530,16 +502,12 @@ func TestFailingBLSCOSI(t *testing.T) {
 		wg.Add(1)
 		go func(serv *Service) {
 			serv.SetGenesisSigners(servers)
-			//serv.StartClock()
+			serv.Cycle.Sequence = []time.Duration{2 * time.Minute, 5 * time.Minute}
+			serv.Cycle.StartTime = time.Now()
 			wg.Done()
 		}(s.(*Service))
 	}
 	wg.Wait()
-
-	// Sequential Registration
-	for i := 0; i < nbrNodes; i++ {
-		assert.NoError(t, services[i].(*Service).CreateProofForEpoch(1))
-	}
 
 	// Registration
 	for i := 0; i < nbrNodes; i++ {
@@ -598,14 +566,9 @@ func TestFailingProtobufEncode(t *testing.T) {
 	}
 	wg.Wait()
 
-	for i := 0; i < nbrNodes; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			services[idx].(*Service).ShareProof()
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
+	// Running consensus - pick a random leader in the previous committee
+	leaderID := rand.Intn(2)
+	assert.NoError(t, services[leaderID].(*Service).GetConsencusOnNewSigners())
 
 	for i := 0; i < nbrNodes; i++ {
 		wg.Add(1)

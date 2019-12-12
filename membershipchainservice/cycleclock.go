@@ -7,10 +7,8 @@ type Phase int
 // Const needed
 const (
 	REGISTRATION = iota
-	SHARE
 	EPOCH
-	REGISTRATION_DUR = 1 * time.Second
-	SHARE_DUR        = 1 * time.Second
+	REGISTRATION_DUR = 5 * time.Second
 	EPOCH_DUR        = 2 * time.Second
 )
 
@@ -35,8 +33,6 @@ func (c Cycle) GetCurrentPhase() Phase {
 	rest := now.Sub(c.StartTime) % c.TotalCycleTime()
 	if rest < REGISTRATION_DUR {
 		return REGISTRATION
-	} else if rest < REGISTRATION_DUR+SHARE_DUR {
-		return SHARE
 	} else {
 		return EPOCH
 	}
