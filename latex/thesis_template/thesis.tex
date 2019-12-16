@@ -1,43 +1,31 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% EPFL report package, main thesis file
-% Goal: provide formatting for theses and project reports
-% Template's Author: Mathias Payer <mathias.payer@epfl.ch>
+% EPFL report package, main thesis file Goal: provide formatting for theses and
+% project reports Template's Author: Mathias Payer <mathias.payer@epfl.ch>
 % Thesis's Author : Arnaud Pannatier <arnaud.pannatier@epfl.ch>
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[a4paper,11pt,oneside]{report}
 % Options: MScThesis, BScThesis, MScProject, BScProject
-\usepackage[MScThesis]{EPFLreport}
-\usepackage{xspace}
+\usepackage[MScThesis]{EPFLreport} \usepackage{xspace}
 
 \title{A Control Plane in Time and Space for Locality-Preserving Blockchains}
-\author{Arnaud Pannatier}
-\supervisor{Cristina Basescu}
-\adviser{Prof. Bryan Ford}
+\author{Arnaud Pannatier} \supervisor{Cristina Basescu} \adviser{Prof. Bryan
+Ford}
 %\coadviser{Second Adviser}
 \expert{\color{red}The External Reviewer\color{black}}
 
 \newcommand{\sysname}{FooSystem\xspace}
 
-\begin{document}
-\maketitle
-\makededication
-\makeacks
+\begin{document} \maketitle \makededication \makeacks
 
-\begin{abstract}
-The \sysname tool enables lateral decomposition of a multi-dimensional
-flux compensator along the timing and space axes.
+\begin{abstract} The \sysname tool enables lateral decomposition of a
+    multi-dimensional flux compensator along the timing and space axes.
 
-The abstract serves as an executive summary of your project.
-Your abstract should cover at least the following topics, 1-2 sentences for
-each: what area you are in, the problem you focus on, why existing work is
-insufficient, what the high-level intuition of your work is, maybe a neat
+The abstract serves as an executive summary of your project.  Your abstract
+    should cover at least the following topics, 1-2 sentences for each: what
+    area you are in, the problem you focus on, why existing work is
+    insufficient, what the high-level intuition of your work is, maybe a neat
 design or implementation decision, and key results of your evaluation.
 \end{abstract}
-
-\begin{frenchabstract}
-For a doctoral thesis, you have to provide a French translation of the
-English abstract. For other projects this is optional.
-\end{frenchabstract}
 
 \maketoc
 
@@ -47,13 +35,12 @@ English abstract. For other projects this is optional.
 
 The introduction is a longer writeup that gently eases the reader into your
 thesis~\cite{dinesh20oakland}. Use the first paragraph to discuss the setting.
-In the second paragraph you can introduce the main challenge that you see.
-The third paragraph lists why related work is insufficient.
-The fourth and fifth paragraphs discuss your approach and why it is needed.
-The sixth paragraph will introduce your thesis statement. Think how you can
-distill the essence of your thesis into a single sentence.
-The seventh paragraph will highlight some of your results
-The eights paragraph discusses your core contribution.
+In the second paragraph you can introduce the main challenge that you see.  The
+third paragraph lists why related work is insufficient.  The fourth and fifth
+paragraphs discuss your approach and why it is needed.  The sixth paragraph
+will introduce your thesis statement. Think how you can distill the essence of
+your thesis into a single sentence.  The seventh paragraph will highlight some
+of your results The eights paragraph discusses your core contribution.
 
 This section is usually 3-5 pages.
 
@@ -61,22 +48,241 @@ This section is usually 3-5 pages.
 \chapter{Background}
 %%%%%%%%%%%%%%%%%%%%
 
-The background section introduces the necessary background to understand your
-work. This is not necessarily related work but technologies and dependencies
-that must be resolved to understand your design and implementation.
+%%%% Plan
+% - Crux (??)
+% - Nyle (7-8p) - General description - What is already implemented - Next
+%   steps
+% (motivation for the control plane)
+%%%%%%%%%%%%%%%%%%
 
-This section is usually 3-5 pages.
+This Master Thesis is part of a biggest structure that concerns
+locality-preserving systems. In particular, it builds upon two different
+systems CRUX\cite{basescu2014crux} and is part of Nyle.This section describes
+the two different projects. 
 
+\section{CRUX}
+
+%%%% General Presentation
+% - Solution to partition
+% - General idea
+% - Small Overhead
+% - Generality 
+% - CAP Theorem
+%%%%%%%%%%%%%%%%%%
+\subsection{General Presentation} CRUX introduces a smart way of dealing with
+partitions in decentralized systems. The purpose is the following : partitions
+occur in decentralized system. But one can maybe try to find a solution to
+reduce their effects on the global system. For example, if a partition occurs,
+there is no reason that nodes that are functioning in the same side of the
+partition should stop working because of the partition. 
+
+The general idea is that a system can be replicated at different scales, from
+very local to global.  With the additional property than each replicated system
+will continue to work correctly if no partition splits it. If a global
+partition occur, then the global region might not work, but all the replicated
+system in local regions will still work. Which is solving the mentioned problem
+: nodes working on the same of the partition will continue to work.
+
+This solution comes with an overhead, as the system should be replicated in all
+the regions. But there are some ways of reducing this overhead, in a way that
+it stays reasonable and that the resistance to partition is maintained. To
+reduce this overhead, CRUX algorithm for regions creation presented below
+ensure that the proper number of regions is created, in a manner that the
+overhead stays reasonable and that the partition resistance stays efficient. If
+CRUX is used for a particular, known system, overhead can be even more reduced.
+As the systems are replicated in every region, most of the data is replicated
+along the regions. So one might actually deep inside the specification of one
+system and manages not to store twice the same data. But this overpass a bit
+the goal of CRUX, which wants to be the more general possible. 
+
+Indeed, the principal force of CRUX is that it is applicable to any distributed
+system, as no particular hypothesis on the system is made. It only starts from
+one simple idea : one system can be replicated at smaller scale to ensure
+partition resistance. 
+
+% TODO : do more research on that.
+A note should be made about the CAP-theorem. Recall that this theorem states
+that no system can be consistent, available and partition-resistant at the same
+time. It seems that this solution is adding partition tolerance to available
+and consistent system. Thus leading to the violation of the theorem. But it is
+not exactly the case, as the created system only ensure that nodes can still
+work in the same side of a partition. But the region split by the partition is
+not working anymore. Even if the system can still work on the same side of a
+partition, it's not partition resistant.
+
+%%%% Common Tools
+% - Approximation distance oracle
+% - Bunch
+% - Cluster
+% - ARA 
+%%%%%%%%%%%%%%%%%%
+\subsection{Common Tools :  ARAs} This section describes how to create the
+regions that are used to replicate the system. These regions are used by Nyle
+as well therefore we will describe it in detail. 
+
+These regions are called \textit{Available Responsive Areas}, in each region a
+copy of the replicated system is deployed. 
+
+To create these regions each node will participate first at a lottery. Each
+node starts at level 0. Then each node go to the next level with probability
+$p$. This procedure repeats at each level, and stop when no nodes are promoted
+to the next level. This first empty level is called $k$. 
+
+\begin{table}[] \begin{tabular}{rrrrr} & 100 & 200 & 500 & 1000 \\ \hline
+    \multicolumn{1}{r|}{0} & 90  & 180 & 450 & 900  \\ \multicolumn{1}{r|}{1} &
+    9   & 18  & 45  & 90   \\ \multicolumn{1}{r|}{2} & 1   & 2   & 5   & 9
+    \\ \multicolumn{1}{r|}{3} & 0   & 0   & 0   & 1   \end{tabular}
+    \caption{Example of lottery with $P = 0.1$ where $k= 3$ for $N=
+    100,200,500$ and $4$ for $N = 1000$} \end{table}
+
+Then each node can compute two quantities that will be necessary to create
+\textit{ARAs}. Their bunch and their cluster. 
+
+\paragraph{Bunch} A node can compute its bunch in the following manner. It
+looks at every other nodes by order of distances in ascending order and
+includes it in its bunch if its level is not smaller than the one it encounters
+so far, including its own level. 
+% TODO include image of Bunch
+
+
+\paragraph{Cluster} A cluster is a complementary concept. The cluster of node
+$A$ is defined as the set of other nodes that have $A$ in their bunch. 
+% TODO include image of Cluster.
+
+The smallest region radius $R_{min}$ is defined for the whole system. Each node
+will construct ARA's around itself starting at $R_{min}$ and doubling the
+radius at each time. It stops at the first ARA's that is covering its entire
+cluster. 
+
+By the lottery, most nodes will be level-zero nodes. Therefore their cluster
+supposed to be small, conducting to the creation of a small number of ARA's.
+The small number of nodes that are at level $k-1$ will have every other nodes
+in their cluster by construction. This means that there will be at least one
+ARA that covers the whole system. 
+
+%%%% Nyle
+%  - Problems it solves
+%  - Link with CRUX
+%  - Environment
+%  - Type of Blockchain 
+% - What is already implemented 
+% - Next steps. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Nyle}
+
+
+
+Nyle is a new system for a cryptocurrency, that answer some classical problems
+of a blockchain system by using the idea of locality. Two main problems are
+addressed: WW3 scenarios and approval time for a transaction.
+ 
+ \paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have at least a
+long-lasting partition that will split the system in two. This is a problem for
+classical cryptocurrencies, because for a block to be approved, the users are
+supposed to wait to have a global consensus. This consensus will not be reached
+with a long-lasting partition and therefore it will create problems for
+classical cryptocurrencies. Nyle solve this issue by design using locality.
+
+\paragraph{Approval Time for a Transaction} \label{approve_time} Another issue
+with waiting global consensus is that it usually takes a long time. If we want
+to use a cryptocurrency in a daily life, we want to solve that problem to be
+able to validate (at least partially) a transaction relatively fast. The
+solution provided by Nyle use locality again: with Nyle a transaction is
+validated at different levels, and it is up to the user to wait a local, or
+global validation for a transaction.
+
+\subsection{Locality : From CRUX to Nyle}
+
+In order to have the locality properties, Nyle uses a similar design than CRUX
+but applies it in the specific case of a cryptocurrency. It assumes the same
+Network model as in CRUX (set of nodes that are connected through an
+Internet-like network,...). It uses the landmark technique from
+approximate-distance oracles and creates ARAs, with the same strategies. So it
+will provide the same properties for the network (and bunches, clusters,...)
+and the ARAs.
+
+So the ARA is the representation of the region. In each of these regions there
+will be a copy of the same system, in the case of Nyle the system is a
+blockchain. So each region will have its own blockchain and validate all the
+transactions between the nodes that are included in it. Some nodes can be
+included in different regions, and they will send their transactions to all the
+regions they are part of. Which ensure that each blockchain will be updated
+each time there is a transaction that concerns one of its nodes.
+
+\subsection{Stable environment vs Byzantine evolving system}
+
+The big difference between CRUX and NYLE is that the purpose of CRUX is to work
+in environments where machines are relatively "stable" which means that they are
+not supposed to churn or to crash often, and more, where the machines are not
+supposed to move. This is not the case for Nyle : if we have a cryptocurrency,
+we can expect to have malicious, deficient and/or moving users. This will add
+some difficulties that will be managed by the protocol.
+
+\subsection{Blockchain System} \label{blockchain_subsection}
+
+Each region will have its own blockchain, in Nyle the choice for the blockchain
+will be chosen between Omniledger or ByzCoin. But it can be generalized to any
+kind of blockchain.
+
+\subsection{What is already implemented for Nyle} 
+\subsubsection{Transaction validation} 
+We already have a protocol that validates a transaction.
+
+\subsubsection{Block storage on node} As each node will participate in different
+regions (from very local to world-wide), it will need to store the blockchains
+for all of these region. We have a method that reduces the redundancy, by only
+storing the hash of a block instead of the full block at each level. 
+
+\subsubsection{Proof-of-Location} We already have a protocol for controlling the
+distance from a new node to the rest of the nodes. And that assures no one
+cheats by giving false distances. 
+
+
+\subsection{Next Steps}
+Here is the structure of Nyle :
+
+\begin{itemize}
+ \item Based on the proof-of-location, build a CRUX-like network 
+ \item In each of the region of the regions build a Blockchain (see \ref{blockchain_subsection})
+ \item Use the transaction validation to give info on the validated region (see \ref{approve_time} (Approval time for a transaction))
+ \item Dealing with moving actors.
+ \item Dealing with double-spending issues (if a node spend the same coin in different regions) (see \ref{WW3} WW3 Scenarios)
+ \item (Investigate if this design is open to other errors)
+\end{itemize}
+
+%%%%% Motivation
+% - Already have a system working for non-byzantine no-churn system 
+% - Dealing with these problems can be done by dealing nodes insertion, deletion and moving.
+% - If we solve that then we can return to the previous system and everything should be working
+%%%%%%%%%%%%%%%
+
+\subsection{Purpose of this project : motivation for a control plane}
+CRUX propose a system that is working in stable system (with low-churn) and where nodes does not move too much. As this situation corresponds to some systems like wide-area database, ... It is definitely not the case of a crypto-money. For these kind of system, one can expect to have at least some churn, some moving nodes and some adversarial nodes. 
+If the system have a precise protocol for dealing with nodes entering, leaving and moving in the system, then the problem of the evolution of the system is solved. Indeed the churn phenomenon can be describes as some nodes leaving the system and optionally reentering later. 
+
+Therefore the purpose of the control plane will be to deal with the evolution of the regions that follows the evolution of the nodes in the system. Once that problem is solved, the blockchain can be replicated in the evolving region and the strategy will be the same as in CRUX. 
+
+Thus this project introduce a control plane, that is in charge of the evolution of the nodes in the system. In particular, it will be in charge of dealing with the nodes joining, leaving and moving in the global system. If the blockchains is replicated in all the regions, the control plane will be global. 
 
 %%%%%%%%%%%%%%%%
-\chapter{Design}
+\chapter{Control Plane : Design}
 %%%%%%%%%%%%%%%%
 
-Introduce and discuss the design decisions that you made during this project.
-Highlight why individual decisions are important and/or necessary. Discuss
-how the design fits together.
+%%%%%%%%% 
+%  - Problem definition (Hypothesis, Goals, ...) (2-3p)
+%      - Hypothesis on the threat model 
+%  - First version: Simple Control Plane (15-20p ?)
+%      - Graphs: Control flow, Protocol flow trough time
+%      - Tools: Description of each subprotocols (consensus via Blscosi, gossips protocols, ...).
+%      - Discussion
+%      	- Advantages, prove that it fulfils the goal 
+%      	- Graph of difference between system without control plane and with.
+%      	- Drawback (evaluation of computational, memory and communication costs)
+%     	 	- With graphs
+%      - Security Analysis 
+%      - 2-3 scenarios illustrating malicious behaviours (written and/or with implementation)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This section is usually 5-10 pages.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -107,10 +313,10 @@ This section is usually 5-10 pages.
 
 The related work section covers closely related work. Here you can highlight
 the related work, how it solved the problem, and why it solved a different
-problem. Do not play down the importance of related work, all of these
-systems have been published and evaluated! Say what is different and how
-you overcome some of the weaknesses of related work by discussing the 
-trade-offs. Stay positive!
+problem.  Do not play down the importance of related work, all of these systems
+have been published and evaluated! Say what is different and how you overcome
+some of the weaknesses of related work by discussing the trade-offs. Stay
+positive!
 
 This section is usually 3-5 pages.
 
@@ -123,24 +329,15 @@ In the conclusion you repeat the main result and finalize the discussion of
 your project. Mention the core results and why as well as how your system
 advances the status quo.
 
-\cleardoublepage
-\phantomsection
-\addcontentsline{toc}{chapter}{Bibliography}
+\cleardoublepage \phantomsection \addcontentsline{toc}{chapter}{Bibliography}
 \printbibliography
 
-% Appendices are optional
-% \appendix
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \chapter{How to make a transmogrifier}
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Appendices are optional \appendix %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \chapter{How to make a transmogrifier} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % In case you ever need an (optional) appendix.
 %
-% You need the following items:
-% \begin{itemize}
-% \item A box
-% \item Crayons
-% \item A self-aware 5-year old
-% \end{itemize}
+% You need the following items: \begin{itemize} \item A box \item Crayons \item
+% A self-aware 5-year old \end{itemize}
 
 \end{document}
