@@ -619,6 +619,37 @@ movement in this model, with the churning node moving to infinity. If one
 moving node is leaving one region, this information can be propagated to the
 directly upper region containing the node. 
 
+\subsection{Information as bubbles in space time graphs}
+
+Imagine the following situation : there is a system of some nodes divided into
+regions. All nodes are fixed except one which is moving. While moving this node
+is interacting with other nodes (sending messages and executing query for the
+system). Other nodes detect its movement, and are capable of reacting to it.
+This movement triggers some action : joining regions and leaving others. If the
+node is moving slowly, the reaction stays local, as information only needs to
+be propagated in some upper region to be resolved. On the contrary, if the node
+moves fast, then it generates bigger bubbles, it goes to the biggest region to
+be resolved.  Structurally this view of the system is not really different from
+the one that we described before, but philosophically this view goes much
+deeper as it taking in account the interactions of the nodes in a space/time
+matter.
+
+Recall that nodes participate to all region that is bigger than its cluster. If
+nodes in one region detect that another is moving apart, they do not expect it
+to participate in this region anymore and they propagate the information in the
+directly upper region. This is done recursively till the node is again included
+in the more global region.  In the opposite, if a region detect that one node
+is approaching it expects it to participate in the region, and propagate the
+information in the directly upper region.
+
+If a node churns, then this information is propagated all the way to the
+biggest region, and the node is excluded from the system.  If a node joins the
+system, it starts to ping some nodes for information. It can ask for the list
+of participants and pings everybody. When it starts pinging some nodes that are
+close to it, these nodes detect that a new node wants to join the system and
+expect it to enter the system.  
+
+
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Conclusion}
