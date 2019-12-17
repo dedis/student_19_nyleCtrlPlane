@@ -44,6 +44,20 @@ of your results The eights paragraph discusses your core contribution.
 
 This section is usually 3-5 pages.
 
+%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Related Work}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The related work section covers closely related work. Here you can highlight
+the related work, how it solved the problem, and why it solved a different
+problem.  Do not play down the importance of related work, all of these systems
+have been published and evaluated! Say what is different and how you overcome
+some of the weaknesses of related work by discussing the trade-offs. Stay
+positive!
+
+This section is usually 3-5 pages.
+
+
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Background}
 %%%%%%%%%%%%%%%%%%%%
@@ -281,16 +295,21 @@ is replicated in all the regions, the control plane will be global.
 \chapter{Control Plane : Design}
 %%%%%%%%%%%%%%%%
 
+
 %%%%%%%%% 
-%  - Problem definition (Hypothesis, Goals, ...) (2-3p) - Hypothesis on the
-%  threat model - First version: Simple Control Plane (15-20p ?) - Graphs:
-%  Control flow, Protocol flow trough time - Tools: Description of each
-%  subprotocols (consensus via Blscosi, gossips protocols, ...).  - Discussion
-%  - Advantages, prove that it fulfils the goal - Graph of difference between
-%  system without control plane and with.  - Drawback (evaluation of
-%  computational, memory and communication costs) - With graphs - Security
-%  Analysis - 2-3 scenarios illustrating malicious behaviors (written and/or
-%  with implementation)
+%  - Problem definition (Hypothesis, Goals, ...) (2-3p) 
+%%  - Hypothesis on the threat model
+%  - First version: Simple Control Plane (15-20p ?) 
+%%  - Graphs: Control flow, Protocol flow trough time 
+%%  - Tools: Description of each subprotocols 
+% %%%(consensus via Blscosi, gossips protocols, ...). 
+%%   - Discussion
+%%%%  - Advantages, prove that it fulfils the goal
+%%%%%%  - Graph of difference between system without control plane and with. 
+%%%%  - Drawback (evaluation of computational, memory and communication costs)
+%%%%%%  - With graphs
+%%  - Security  Analysis 
+%%%%% - 2-3 scenarios illustrating malicious behaviors (written and/or with implementation)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 This part will describe the design of the Control Plane, which has the mission
 to solve the problem of node insertion, deletion and movement inside the
@@ -359,7 +378,7 @@ should be signed by the majority of the nodes of the previous epochs.
  
  \subsection{Region Component} This component is used to create and update
  regions. For the simple case, this part will be based on CRUX. At each epoch
- CRUX is run based on the new registration, and region are created.
+ CRUX is run based on the new registration, and regions are created.
  
  \subsection{Epoch Component} The epoch manager is linked to the membership
  system (we allow to change membership at the beginning of one epoch). New
@@ -480,6 +499,34 @@ nodes in the system.
 
 % TODO : think on what to do if the consensus is not manageable. 
 
+\section{Discussion}
+\subsection{Advantages}
+This simple version of the control plane is actually solving the problem of churn and nodes movement in the system. A comparison will be made with a fixed version only using CRUX for region management but without control plane. The system begins with a fixed number of nodes and create regions based on CRUX, then the system is replicated inside all regions. 
+
+\subsubsection{Nodes insertion}
+The version without control plane cannot add nodes to the system. Indeed a fixed number of nodes is required to create the regions. With this control plane, node insertion is possible at the beginning of every epoch.
+% TODO add image
+
+
+\subsubsection{Churn resistance}
+Nodes can churn. If the system is not supposed to change, crashing nodes can be still in the system. With this control plane, nodes that have crashed cannot register for the next epoch and therefore are removed from the system. 
+% TODO add image 
+
+
+\subsubsection{Adaptation to node movements}
+Nodes can move as well, if the regions are only drawn at the beginning of the system. Then it's possible that after a while a lot of nodes have migrated from where they were at the time that the regions were drawn. This might be a problem, indeed, the purpose of the replication was to ensure that in case of a partition, nodes participating in the same side of the partition should still be able to work. If most of the nodes have moved, but are still participating in the region of their first assignment, a partition could happen somewhere in the system leading to failing regions that should be on the same side of the partition. The control plane solves this problem as the region are redrawn at each epoch taking account of the movement of the nodes. Increasing the partition resistance, with the movement of nodes.
+% TODO add image
+
+\subsection{Drawbacks}
+This control plane is simple and reach its objective, but it requires a lot of resources. Some of the drawbacks of this approach are listed below. 
+
+\subsubsection{Control Plane is global}
+
+\subsubsection{Epoch transition requires resources}
+
+\subsubsection{Omniscience of the nodes}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Implementation}
@@ -501,20 +548,6 @@ Describe the evaluation setup, the designed experiments, and how the
 experiments showcase the individual points you want to prove.
 
 This section is usually 5-10 pages.
-
-
-%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Related Work}
-%%%%%%%%%%%%%%%%%%%%%%
-
-The related work section covers closely related work. Here you can highlight
-the related work, how it solved the problem, and why it solved a different
-problem.  Do not play down the importance of related work, all of these systems
-have been published and evaluated! Say what is different and how you overcome
-some of the weaknesses of related work by discussing the trade-offs. Stay
-positive!
-
-This section is usually 3-5 pages.
 
 
 %%%%%%%%%%%%%%%%%%%%
