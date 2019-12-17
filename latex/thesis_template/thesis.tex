@@ -129,11 +129,11 @@ $p$. This procedure repeats at each level, and stop when no nodes are promoted
 to the next level. This first empty level is called $k$. 
 
 \begin{table}[] \begin{tabular}{rrrrr} & 100 & 200 & 500 & 1000 \\ \hline
-    \multicolumn{1}{r|}{0} & 90  & 180 & 450 & 900  \\ \multicolumn{1}{r|}{1} &
-    9   & 18  & 45  & 90   \\ \multicolumn{1}{r|}{2} & 1   & 2   & 5   & 9
-    \\ \multicolumn{1}{r|}{3} & 0   & 0   & 0   & 1   \end{tabular}
-    \caption{Example of lottery with $P = 0.1$ where $k= 3$ for $N=
-    100,200,500$ and $4$ for $N = 1000$} \end{table}
+\multicolumn{1}{r|}{0} & 90  & 180 & 450 & 900  \\ \multicolumn{1}{r|}{1} & 9
+& 18  & 45  & 90   \\ \multicolumn{1}{r|}{2} & 1   & 2   & 5   & 9 \\
+\multicolumn{1}{r|}{3} & 0   & 0   & 0   & 1   \end{tabular} \caption{Example
+of lottery with $P = 0.1$ where $k= 3$ for $N= 100,200,500$ and $4$ for $N =
+1000$} \end{table}
 
 Then each node can compute two quantities that will be necessary to create
 \textit{ARAs}. Their bunch and their cluster. 
@@ -161,27 +161,23 @@ in their cluster by construction. This means that there will be at least one
 ARA that covers the whole system. 
 
 %%%% Nyle
-%  - Problems it solves
-%  - Link with CRUX
-%  - Environment
-%  - Type of Blockchain 
+%  - Problems it solves - Link with CRUX - Environment - Type of Blockchain 
 % - What is already implemented 
 % - Next steps. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Nyle}
 
-
-
-Nyle is a new system for a cryptocurrency, that answer some classical problems
-of a blockchain system by using the idea of locality. Two main problems are
-addressed: WW3 scenarios and approval time for a transaction.
+Nyle is cryptocurrency, that uses locality to answer some classical problems of
+a blockchain systems. Two main problems are addressed: WW3 scenarios and
+approval time for a transaction.
  
- \paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have at least a
-long-lasting partition that will split the system in two. This is a problem for
-classical cryptocurrencies, because for a block to be approved, the users are
-supposed to wait to have a global consensus. This consensus will not be reached
-with a long-lasting partition and therefore it will create problems for
-classical cryptocurrencies. Nyle solve this issue by design using locality.
+ \paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have
+ at least a long-lasting partition that will split the system in two. This is a
+ problem for classical cryptocurrencies, because for a block to be approved,
+ the users are supposed to wait to have a global consensus. This consensus will
+ not be reached with a long-lasting partition and therefore it will create
+ problems for classical cryptocurrencies. Nyle solve this issue by design using
+ locality.
 
 \paragraph{Approval Time for a Transaction} \label{approve_time} Another issue
 with waiting global consensus is that it usually takes a long time. If we want
@@ -212,11 +208,11 @@ each time there is a transaction that concerns one of its nodes.
 \subsection{Stable environment vs Byzantine evolving system}
 
 The big difference between CRUX and NYLE is that the purpose of CRUX is to work
-in environments where machines are relatively "stable" which means that they are
-not supposed to churn or to crash often, and more, where the machines are not
-supposed to move. This is not the case for Nyle : if we have a cryptocurrency,
-we can expect to have malicious, deficient and/or moving users. This will add
-some difficulties that will be managed by the protocol.
+in environments where machines are relatively "stable" which means that they
+are not supposed to churn or to crash often, and more, where the machines are
+not supposed to move. This is not the case for Nyle : if we have a
+cryptocurrency, we can expect to have malicious, deficient and/or moving users.
+This will add some difficulties that will be managed by the protocol.
 
 \subsection{Blockchain System} \label{blockchain_subsection}
 
@@ -224,64 +220,172 @@ Each region will have its own blockchain, in Nyle the choice for the blockchain
 will be chosen between Omniledger or ByzCoin. But it can be generalized to any
 kind of blockchain.
 
-\subsection{What is already implemented for Nyle} 
-\subsubsection{Transaction validation} 
-We already have a protocol that validates a transaction.
+\subsection{What is already implemented for Nyle} \subsubsection{Transaction
+validation} We already have a protocol that validates a transaction.
 
-\subsubsection{Block storage on node} As each node will participate in different
-regions (from very local to world-wide), it will need to store the blockchains
-for all of these region. We have a method that reduces the redundancy, by only
-storing the hash of a block instead of the full block at each level. 
+\subsubsection{Block storage on node} As each node will participate in
+different regions (from very local to world-wide), it will need to store the
+blockchains for all of these region. We have a method that reduces the
+redundancy, by only storing the hash of a block instead of the full block at
+each level. 
 
-\subsubsection{Proof-of-Location} We already have a protocol for controlling the
-distance from a new node to the rest of the nodes. And that assures no one
+\subsubsection{Proof-of-Location} We already have a protocol for controlling
+the distance from a new node to the rest of the nodes. And that assures no one
 cheats by giving false distances. 
 
 
-\subsection{Next Steps}
-Here is the structure of Nyle :
+\subsection{Next Steps} Here is the structure of Nyle :
 
-\begin{itemize}
- \item Based on the proof-of-location, build a CRUX-like network 
- \item In each of the region of the regions build a Blockchain (see \ref{blockchain_subsection})
- \item Use the transaction validation to give info on the validated region (see \ref{approve_time} (Approval time for a transaction))
- \item Dealing with moving actors.
- \item Dealing with double-spending issues (if a node spend the same coin in different regions) (see \ref{WW3} WW3 Scenarios)
- \item (Investigate if this design is open to other errors)
-\end{itemize}
+\begin{itemize} \item Based on the proof-of-location, build a CRUX-like network
+        \item In each of the region of the regions build a Blockchain (see
+        \ref{blockchain_subsection}) \item Use the transaction validation to
+            give info on the validated region (see \ref{approve_time} (Approval
+            time for a transaction)) \item Dealing with moving actors.  \item
+            Dealing with double-spending issues (if a node spend the same coin
+        in different regions) (see \ref{WW3} WW3 Scenarios) \item (Investigate
+            if this design is open to other errors) \end{itemize}
+
+
+%%%%% TODO : add general description 
+
 
 %%%%% Motivation
 % - Already have a system working for non-byzantine no-churn system 
-% - Dealing with these problems can be done by dealing nodes insertion, deletion and moving.
-% - If we solve that then we can return to the previous system and everything should be working
+% - Dealing with these problems can be done by dealing nodes insertion,
+            %   deletion and moving.
+% - If we solve that then we can return to the previous system and everything
+            %   should be working
 %%%%%%%%%%%%%%%
+\subsection{Purpose of this project : motivation for a control plane} CRUX
+propose a system that is working in stable system (with low-churn) and where
+nodes does not move too much. As this situation corresponds to some systems
+like wide-area database, ... It is definitely not the case of a crypto-money.
+For these kind of system, one can expect to have at least some churn, some
+moving nodes and some adversarial nodes.  If the system have a precise protocol
+for dealing with nodes entering, leaving and moving in the system, then the
+problem of the evolution of the system is solved. Indeed the churn phenomenon
+can be describes as some nodes leaving the system and optionally reentering
+later. 
 
-\subsection{Purpose of this project : motivation for a control plane}
-CRUX propose a system that is working in stable system (with low-churn) and where nodes does not move too much. As this situation corresponds to some systems like wide-area database, ... It is definitely not the case of a crypto-money. For these kind of system, one can expect to have at least some churn, some moving nodes and some adversarial nodes. 
-If the system have a precise protocol for dealing with nodes entering, leaving and moving in the system, then the problem of the evolution of the system is solved. Indeed the churn phenomenon can be describes as some nodes leaving the system and optionally reentering later. 
+Therefore the purpose of the control plane will be to deal with the evolution
+of the regions that follows the evolution of the nodes in the system. Once that
+problem is solved, the blockchain can be replicated in the evolving region and
+the strategy will be the same as in CRUX. 
 
-Therefore the purpose of the control plane will be to deal with the evolution of the regions that follows the evolution of the nodes in the system. Once that problem is solved, the blockchain can be replicated in the evolving region and the strategy will be the same as in CRUX. 
-
-Thus this project introduce a control plane, that is in charge of the evolution of the nodes in the system. In particular, it will be in charge of dealing with the nodes joining, leaving and moving in the global system. If the blockchains is replicated in all the regions, the control plane will be global. 
+Thus this project introduce a control plane, that is in charge of the evolution
+of the nodes in the system. In particular, it will be in charge of dealing with
+the nodes joining, leaving and moving in the global system. If the blockchains
+is replicated in all the regions, the control plane will be global. 
 
 %%%%%%%%%%%%%%%%
 \chapter{Control Plane : Design}
 %%%%%%%%%%%%%%%%
 
 %%%%%%%%% 
-%  - Problem definition (Hypothesis, Goals, ...) (2-3p)
-%      - Hypothesis on the threat model 
-%  - First version: Simple Control Plane (15-20p ?)
-%      - Graphs: Control flow, Protocol flow trough time
-%      - Tools: Description of each subprotocols (consensus via Blscosi, gossips protocols, ...).
-%      - Discussion
-%      	- Advantages, prove that it fulfils the goal 
-%      	- Graph of difference between system without control plane and with.
-%      	- Drawback (evaluation of computational, memory and communication costs)
-%     	 	- With graphs
-%      - Security Analysis 
-%      - 2-3 scenarios illustrating malicious behaviours (written and/or with implementation)
+%  - Problem definition (Hypothesis, Goals, ...) (2-3p) - Hypothesis on the
+%  threat model - First version: Simple Control Plane (15-20p ?) - Graphs:
+%  Control flow, Protocol flow trough time - Tools: Description of each
+%  subprotocols (consensus via Blscosi, gossips protocols, ...).  - Discussion
+%  - Advantages, prove that it fulfils the goal - Graph of difference between
+%  system without control plane and with.  - Drawback (evaluation of
+%  computational, memory and communication costs) - With graphs - Security
+%  Analysis - 2-3 scenarios illustrating malicious behaviors (written and/or
+%  with implementation)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+This part will describe the design of the Control Plane, which has the mission
+to solve the problem of node insertion, deletion and movement inside the
+system. Allowing to use a CRUX-like region creation algorithm in an environment
+with churn. 
+
+\section{Problem definition}
+%%%%%%%%%%%%%% Problem definition
+%% Hypothesis : 
+%%   - one-to-one communication
+%%   - synchrone network
+%%   - Correlation between pings and distances
+%%   - Nodes are malicious
+%%   - Adversary can delay communication
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Hypothesis} Three hypotheses are made on the network. First it
+assumes an internet-like network with one-to-one communication. Each node is
+able to contact any other nodes. The network is supposed to be synchrone. This
+means that every message sent by a node to another will arrive in order, and
+that a message that is sent will be received within a given window of time. The
+third hypothesis is made on the geometry of the network. It states that for
+small pings (under 100ms) the ping time is actually correlated with the
+distance between two nodes. This is a result from \cite{locality-result} on
+which we build the locality properties of the system. 
+
+\subsection{Threat model}
+%% Todo : when adversarial model is done, depending on results. 
+
+
+
+%%%% mostly copied from https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
+\section{General Presentation}
+
+The Control Plane is composed of five different components [FIG. \ref{fig:modules}], each
+necessary to solves different part of the problem. It needs a membership
+component, to define precisely which nodes are in the system at any time. It
+needs a locality component which gives the distance between two nodes in the
+system. Then it needs a region management component, which will draw the
+regions based on the membership and the locality. The time will be split into
+epochs, a component is in charge of dealing that aspect. And finally, the
+control plane is in charge of answering some requests linked to the location
+and presence of the nodes in the system. Each will be described in detail
+below. 
+
+
+\begin{figure}[!h] \centering
+\includegraphics[width=400pt]{figures/Nyle_components} \caption{List of modules
+of Nyle} \label{fig:modules} \end{figure}
+
+
+\subsection{Membership Component}
+
+At each epoch, a registry contract containing a summary of all participants is
+created. Registration use endorsement (for example solution to a proof-of-work
+problem).  This system will be global. Nodes can ask the participants of the
+system to know the identity of other nodes. To validate a new contract  it
+should be signed by the majority of the nodes of the previous epochs.
+
+\subsection{Locality Component}
+
+ The role of the locality component is to give all pairwise latencies between
+ nodes of the system. We assume it already exists (distance oracle), or it can
+ be computed by nodes. In the first model all pairwise latencies is computed
+ between each node and every node agree on them via consensus. 
+ 
+ \subsection{Region Component} This component is used to create and update
+ regions. For the simple case, this part will be based on CRUX. At each epoch
+ CRUX is run based on the new registration, and region are created.
+ 
+ \subsection{Epoch Component} The epoch manager is linked to the membership
+ system (we allow to change membership at the beginning of one epoch). New
+ nodes can join at the beginning of one epoch. If nodes have moved, the region
+ component will change or maintain their assignment at the beginning of one
+ epoch. 
+
+Epochs happen at a defined rhythm (e.g. one day). This frequency can be
+shortened to ensure that nodes that want to join do not wait too long, or made
+longer if one wants regions not to be redrawn too frequently. 
+
+\subsection{Request Handler} The control plane is the right part to get
+requests as it is aware of the nodes location and region assignment. It will be
+in charge of answering the request for nodes assignment and nodes location. 
+
+\begin{figure}[!h] \centering
+\includegraphics[width=400pt]{figures/Nyle_controlflow} \caption{General control Flow
+of Nyle} \label{fig:modules} \end{figure}
+
+\section{First version : Simple Control plane}
+This version presents the first version of the Control Plane. In which most of the work is done on the membership component. At each epoch nodes can join if they manage to get an approval from the member of the previous region. The locality component in this model is brute force : every node computes its pings to every other nodes and consencus is made on that information. The region component in this model is really simple : based on the registration, and the pings, CRUX is run at each epoch. Redrawing the map of the entire system. 
+
+
+
+
+\subsection{Membership Protocol}
 
 
 
