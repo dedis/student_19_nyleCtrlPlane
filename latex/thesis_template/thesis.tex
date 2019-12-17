@@ -15,47 +15,11 @@ Ford}
 
 \newcommand{\sysname}{FooSystem\xspace}
 
-\begin{document} \maketitle \makededication \makeacks
+\begin{document}
 
-\begin{abstract} The \sysname tool enables lateral decomposition of a
-    multi-dimensional flux compensator along the timing and space axes.
-
-The abstract serves as an executive summary of your project.  Your abstract
-    should cover at least the following topics, 1-2 sentences for each: what
-    area you are in, the problem you focus on, why existing work is
-    insufficient, what the high-level intuition of your work is, maybe a neat
-design or implementation decision, and key results of your evaluation.
-\end{abstract}
+\maketitle 
 
 \maketoc
-
-%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Introduction}
-%%%%%%%%%%%%%%%%%%%%%%
-
-The introduction is a longer writeup that gently eases the reader into your
-thesis~\cite{dinesh20oakland}. Use the first paragraph to discuss the setting.
-In the second paragraph you can introduce the main challenge that you see.  The
-third paragraph lists why related work is insufficient.  The fourth and fifth
-paragraphs discuss your approach and why it is needed.  The sixth paragraph
-will introduce your thesis statement. Think how you can distill the essence of
-your thesis into a single sentence.  The seventh paragraph will highlight some
-of your results The eights paragraph discusses your core contribution.
-
-This section is usually 3-5 pages.
-
-%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Related Work}
-%%%%%%%%%%%%%%%%%%%%%%
-
-The related work section covers closely related work. Here you can highlight
-the related work, how it solved the problem, and why it solved a different
-problem.  Do not play down the importance of related work, all of these systems
-have been published and evaluated! Say what is different and how you overcome
-some of the weaknesses of related work by discussing the trade-offs. Stay
-positive!
-
-This section is usually 3-5 pages.
 
 
 %%%%%%%%%%%%%%%%%%%%
@@ -250,19 +214,20 @@ cheats by giving false distances.
 
 \subsection{Next Steps} Here is the structure of Nyle :
 
-\begin{itemize} \item Based on the proof-of-location, build a CRUX-like network
-        \item In each of the region of the regions build a Blockchain (see
-        \ref{blockchain_subsection}) \item Use the transaction validation to
-            give info on the validated region (see \ref{approve_time} (Approval
-            time for a transaction)) \item Dealing with moving actors.  \item
-            Dealing with double-spending issues (if a node spend the same coin
-        in different regions) (see \ref{WW3} WW3 Scenarios) \item (Investigate
-            if this design is open to other errors) \end{itemize}
-
+\begin{itemize} 
+\item Based on the proof-of-location, build a CRUX-like network
+\item In each of the region of the regions build a Blockchain 
+(see \ref{blockchain_subsection})
+\item Use the transaction validation to  give info on the validated region
+(see \ref{approve_time} (Approval time for a transaction))
+\item Dealing with moving actors.
+\item Dealing with double-spending issues
+(if a node spend the same coin in different regions) 
+(see \ref{WW3} WW3 Scenarios) 
+\item (Investigate if this design is open to other errors)
+\end{itemize}
 
 %%%%% TODO : add general description 
-
-
 %%%%% Motivation
 % - Already have a system working for non-byzantine no-churn system 
 % - Dealing with these problems can be done by dealing nodes insertion,
@@ -501,53 +466,158 @@ nodes in the system.
 
 \section{Discussion}
 \subsection{Advantages}
-This simple version of the control plane is actually solving the problem of churn and nodes movement in the system. A comparison will be made with a fixed version only using CRUX for region management but without control plane. The system begins with a fixed number of nodes and create regions based on CRUX, then the system is replicated inside all regions. 
+This simple version of the control plane is actually solving the problem of
+churn and nodes movement in the system. A comparison will be made with a fixed
+version only using CRUX for region management but without control plane. The
+system begins with a fixed number of nodes and create regions based on CRUX,
+then the system is replicated inside all regions. 
 
 \subsubsection{Nodes insertion}
-The version without control plane cannot add nodes to the system. Indeed a fixed number of nodes is required to create the regions. With this control plane, node insertion is possible at the beginning of every epoch.
+The version without control plane cannot add nodes to the system. Indeed a
+fixed number of nodes is required to create the regions. With this control
+plane, node insertion is possible at the beginning of every epoch.
 % TODO add image
 
 
 \subsubsection{Churn resistance}
-Nodes can churn. If the system is not supposed to change, crashing nodes can be still in the system. With this control plane, nodes that have crashed cannot register for the next epoch and therefore are removed from the system. 
+Nodes can churn. If the system is not supposed to change, crashing nodes can be
+still in the system. With this control plane, nodes that have crashed cannot
+register for the next epoch and therefore are removed from the system. 
 % TODO add image 
 
 
 \subsubsection{Adaptation to node movements}
-Nodes can move as well, if the regions are only drawn at the beginning of the system. Then it's possible that after a while a lot of nodes have migrated from where they were at the time that the regions were drawn. This might be a problem, indeed, the purpose of the replication was to ensure that in case of a partition, nodes participating in the same side of the partition should still be able to work. If most of the nodes have moved, but are still participating in the region of their first assignment, a partition could happen somewhere in the system leading to failing regions that should be on the same side of the partition. The control plane solves this problem as the region are redrawn at each epoch taking account of the movement of the nodes. Increasing the partition resistance, with the movement of nodes.
+Nodes can move as well, if the regions are only drawn at the beginning of the
+system. Then it's possible that after a while a lot of nodes have migrated from
+where they were at the time that the regions were drawn. This might be a
+problem, indeed, the purpose of the replication was to ensure that in case of a
+partition, nodes participating in the same side of the partition should still
+be able to work. If most of the nodes have moved, but are still participating
+in the region of their first assignment, a partition could happen somewhere in
+the system leading to failing regions that should be on the same side of the
+partition. The control plane solves this problem as the region are redrawn at
+each epoch taking account of the movement of the nodes. Increasing the
+partition resistance, with the movement of nodes.
 % TODO add image
 
 \subsection{Drawbacks}
-This control plane is simple and reach its objective, but it requires a lot of resources. Some of the drawbacks of this approach are listed below. 
+This control plane is simple and reach its objective, but it requires a lot of
+resources. Some of the drawbacks of this approach are listed below. 
+These drawbacks are addressed in the section Improvements.  
 
 \subsubsection{Control Plane is global}
+If the system is replicated in all the regions, the control plane itself is
+global. Meaning it could be subject to a partition. In this case the replicated
+system would continue to work, but the control plane could only continue to
+work on the side of the majority. This is not a major drawback as the main
+purpose, the continuity of the subordinate system is guaranteed.
 
 \subsubsection{Epoch transition requires resources}
+Epoch transition requires a lot of resources, indeed first it needs a lot
+communication for the consensus and the registration as every nodes that were
+previously on the system should be contacted by every new nodes. If $N_i$ is
+the number of participants at epoch $i$. Then registration for epoch $i+1$
+requires $O(N_i * N_{i+1})$ messages. As every new nodes have to send a message
+to every member of the previous committee. This can be really inefficient. 
 
+Then when the registration is done, the protocole as it is will redraw most of
+the regions as the algorithm for region creation is reused. This can be
+inefficient as well, and it then for the transition to happen, a copy of the
+whole underlying system at epoch $i$ should be replicated in each new region of
+epoch $i+1$.
+ 
 \subsubsection{Omniscience of the nodes}
+Nodes are actually aware of a lot of information. By design they are aware of
+the list of every other nodes in the system, their levels, the pings between
+each pair of nodes in the system, all the region created and all the region
+assignment. The nodes needs to be aware of these information in order that
+every nodes will run the algorithm for region creation and arrives to the same
+regions. But this can be a lot of information to store.
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Implementation}
-%%%%%%%%%%%%%%%%%%%%%%%%
-
-The implementation covers some of the implementation details of your project.
-This is not intended to be a low level description of every line of code that
-you wrote but covers the implementation aspects of the projects.
-
-This section is usually 3-5 pages.
+\section{Security Analysis}
 
 
 %%%%%%%%%%%%%%%%%%%%
-\chapter{Evaluation}
+\chapter{Improvements}
 %%%%%%%%%%%%%%%%%%%%
+This section proposes improvement to the simple control plane approach. They
+are supposed to address drawbacks of this simple protocol, each improvement
+will be illustrated in a Strawman model. At the end of Strawman, an advanced
+version of the control plane that uses a region creation algorithm based on
+time/space graphs will be proposed. 
 
-In the evaluation you convince the reader that your design works as intended.
-Describe the evaluation setup, the designed experiments, and how the
-experiments showcase the individual points you want to prove.
+\section{Strawman 1 : Locarno Treaties}
 
-This section is usually 5-10 pages.
+Following the First World War, it was decided that the borders of Germany
+should remain fixed. The Locarno Treaties defined some of these borders. The
+idea of this Strawman model in not to let the borders of regions change more
+than defined. The rules for evolving from one epoch to another are defined. The
+idea is to use a deterministic set of rules, based on the ping, the
+registrations and the map of the previous epoch to draw the map of the current
+epoch using the less redrawing as possible. CRUX is run at the first epoch
+giving the first version of the system. Registration is still global and each
+node will have all the information about the memberships of every node.Then
+from one epoch to another, the purpose of the game is to keep as much region as
+possible without breaking the locality rules. (need to state what are those
+rules, based on CRUX). 
+
+In the space-time graph (the image), most of the regions remain the same and
+the modifications appear in small places.
+
+\section{Strawman 2 : Fog of the War}
+
+Each node of the system will have a different view of the world at a given time
+depending on its place in the system and its interactions. Again the idea is
+that one node should be aware of only the information it needs to perform its
+actions. 
+
+A correspondence can be made with the fog of war in some traditional real-time
+strategy video game. Where each player will have its own view of the system,
+based on where it is now (real-time evolution), where it was in the past but
+cannot see now (fog) and what it has not already seen (dark).
+
+Each player view will evolve through space and time accordingly. In the context
+of the game, the advantage of this view is that it hides the adversarial
+strategy. In the context of our system, this view will hide most of the
+information that is not relevant to one node but allow it to perform its
+operation without the storage and/or communication overhead. 
+
+The design of this Strawman will be the following. Each node declares a
+position during the registration, and other nodes computes their bunch and
+cluster according to this declared position. Each node will therefore be able
+to compute their bunch and cluster based on these declared position. To ensure
+the correctness of the system a random committee of checkers are elected after
+the registration process. These checkers will perform some tests (pinging other
+nodes of one region) and publish the results. 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=400pt]{figures/fog_of_war}
+\caption{Fog of war representation in a classic real-time strategy video game. }
+\label{fig:registrationprotocol}
+\end{figure}
+
+\section{Introducing the Space/Time metrics}
+
+Pings give a space/time insight of the evolution of the system.  This idea can
+be leveraged to create the Space/Time version of the control plane.In fact
+every message (send + reply - processing time) can be transformed to be used as
+a ping as well. Therefore each time a node interacts with other nodes it can
+use that additional information to get insight about the evolution of the
+system. 
+
+What type of information can be inferred from this additional method ? First
+nodes can track the evolution through time and space of other nodes in the
+system. And react to them. For example, if a new node manages to ping an
+existing node from inside one region, the already existing nodes could trigger
+registration of these nodes. On the contrary, if one node starts to get away
+from the rest of the region, then other nodes will notice and can decide to
+kick this node out of the system (after consensus with the existing nodes).
+Modifications (e.g. nodes movement, churn), can be detected directly with the
+messages, and the system can react to it. Churn can be interpreted as a node
+movement in this model, with the churning node moving to infinity. If one
+moving node is leaving one region, this information can be propagated to the
+directly upper region containing the node. 
 
 
 %%%%%%%%%%%%%%%%%%%%
