@@ -377,16 +377,108 @@ in charge of answering the request for nodes assignment and nodes location.
 
 \begin{figure}[!h] \centering
 \includegraphics[width=400pt]{figures/Nyle_controlflow} \caption{General control Flow
-of Nyle} \label{fig:modules} \end{figure}
+of Nyle} \label{fig:controlflow} \end{figure}
 
-\section{First version : Simple Control plane}
-This version presents the first version of the Control Plane. In which most of the work is done on the membership component. At each epoch nodes can join if they manage to get an approval from the member of the previous region. The locality component in this model is brute force : every node computes its pings to every other nodes and consencus is made on that information. The region component in this model is really simple : based on the registration, and the pings, CRUX is run at each epoch. Redrawing the map of the entire system. 
-
-
+\section{First version : Simple Control plane} This version presents the first
+version of the Control Plane. In which most of the work is done on the
+membership component. At each epoch nodes can join if they manage to get an
+approval from the member of the previous region. The locality component in this
+model is brute force : every node computes its pings to every other nodes and
+consencus is made on that information. The region component in this model is
+really simple : based on the registration, and the pings, CRUX is run at each
+epoch. Redrawing the map of the entire system. 
 
 
 \subsection{Membership Protocol}
+This section describes the membership protocol [FIG. \ref{fig:registrationprotocol}].
 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=400pt]{figures/Registrationprotocol}
+\caption{Sketch of the protocol}
+\label{fig:registrationprotocol}
+\end{figure}
+
+The system will go through some cycles (called epoch) of two different phases :
+the registration period and the live period. The first period is actually there
+to manage the participants of one current epoch, and the “underlying system”
+(for example a cruxified-blockchain) will be run during the live period. Assume
+that each node has a synchronized wall-clock which gives the time of the
+different periods.
+
+The authority that will decide which node participates in the next epochs are
+the participants of the current epoch, which will be called the admission
+committee. Assume that a set of genesis participants, which will be the first
+admission committee, exists.
+
+\paragraph{Registration Period}
+If a node wants to register for the next epoch, it has to send the following
+information to the admission committee : a name, a public key, and an
+endorsement (for example solution to a proof-of-work problem) and ask for a
+threshold-signature. 
+
+If the new node manages to get back a threshold-signature from the current
+committee, it has to broadcast it again to the admission committee during the
+same registration period. The current committee will then acknowledge that it
+is a participant for the next epoch. The admission committee will aggregate the
+threshold-signatures for all the participants for the next epoch. At the end of
+the registration period, the admission committee will reach a consensus on the
+new participants, by threshold-signing the list of the members.  
+
+\paragraph{Live Period}
+At the beginning of the live period, one member of the admission committee will
+send the threshold-signed list of the participants to the current members. If
+one of the participants did not receive the list, it can ask any member of the
+admission committee to have it. After that propagation, the admission committee
+can retire, and the member of the current epoch becomes the new admission
+committee. Then members of the new epoch will compute ping-distances between
+each other. Participants will as well draw a level from unpredictable,
+bias-resistant public randomness source. They will then reach consensus on
+those ping-distances and levels by threshold-signing them and rebroadcast them.
+At this point each member of the new epoch will have the same view of the
+system (participants + pings + levels). Therefore these participants will be
+capable of running the system in a deterministic manner.
+
+Following the election of the new admission committee at the beginning of the
+live-epoch, the registration period for the next epoch can begin, as the
+authority that will accept admission is running. Registration period and live
+period can therefore be superposed [FIG. \ref{fig:registrationprotocol}], which
+permits to have a system running at every time. 
+
+\subsection{Threshold-signing admission}
+To get an admission a node that wants to join for the next system will use the
+BlsCoSi protocol \cite{BlsCoSi_protocol}. it will generate a tree with him as
+the root and the admission committee as nodes in the tree. Each node of the
+admission committee will have the choice of signing or rejecting the admission
+query. The threshold will be set at the majority. So if a node manages to get a
+majority of signatures then it will be accepted in the system, A node from the
+admission committee is supposed to accept the query if it has not already seen
+the node, and if the endorsement is convincing and was made with the public-key
+associated. This ensures that a node cannot steal the endorsement of another
+for registration.  
+
+%%%%%%% Committee consensus
+\subsection{Committee consensus}
+Committee consensus is used at two different times. First at the end of the
+registration period. Consensus should be reached by the admission committee to
+the participants of the next epochs. A random member of the admission committee
+is selected to run the consensus protocol. It will send the list of members
+that it aggregated during the registration period. And try to get a threshold
+signature on it from the other member of the admission committee. Members of
+the admission committee are supposed to sign the list if they aggregated the
+same list of members for the next epoch.
+
+If one member does not manage to reach consensus, another can be selected to
+run the consensus. A communication round can be added between two consensus
+phases in order that every member of the admission committee broadcast its list
+of members with valid proofs.
+
+The same idea is used at the beginning of the live epoch to reach consensus on
+the list of pings between every member of the system and on the levels on all
+nodes in the system.
+
+% TODO : think on what to do if the consensus is not manageable. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%
