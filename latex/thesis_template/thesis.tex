@@ -546,7 +546,7 @@ will be illustrated in a Strawman model. At the end of Strawman, an advanced
 version of the control plane that uses a region creation algorithm based on
 time/space graphs will be proposed. 
 
-\section{Strawman 1 : Locarno Treaties}
+\section{Strawman 1 : Locarno Treaties} \label{Locarno}
 
 Following the First World War, it was decided that the borders of Germany
 should remain fixed. The Locarno Treaties defined some of these borders. The
@@ -666,6 +666,17 @@ the one that we described before, but philosophically this view goes much
 deeper as it taking in account the interactions of the nodes in a space/time
 matter.
 
+In terms of Nyle components, the locality component has an additional view and
+can influence first the region component. Registration is still global, epochs
+managed the rhythm for the registration. Instead of only having a locality
+measure at the beginning of the epoch, this view allows to have measures of the
+system dynamically at all time. 
+
+This can be used to adapt the region assignment during the system. At first the
+regions will be kept the same with fixed borders but the rules for region
+assignment can be stated. 
+
+\subsubsection{Rules for Region Assignment based on the Space/Time Metric}
 Recall that nodes participate to all region that is bigger than its cluster. If
 nodes in one region detect that another is moving apart, they do not expect it
 to participate in this region anymore and they propagate the information in the
@@ -675,12 +686,27 @@ is approaching it expects it to participate in the region, and propagate the
 information in the directly upper region.
 
 If a node churns, then this information is propagated all the way to the
+biggest region, and the node is excluded from all the regions. 
+
+\subsubsection{Transformation of regions}
+This change in region assignment actually have an effect on the form of the
+region, the same rules developed in \ref{Locarno} can be applied to adapt the
+regions on the fly. 
+
+\subsubsection{Rules for Membership Component based on the Space/Time metric}
+The Space/Time Metric can be leveraged to serve as a Membership Components.
+Decisions are made on the majority of alive nodes. To be able to participate in
+the system or to take part in a decision, a valid endorsement in required. If a
+node churns, then this information is propagated all the way to the
 biggest region, and the node is excluded from the system.  If a node joins the
 system, it starts to ping some nodes for information. It can ask for the list
 of participants and pings everybody. When it starts pinging some nodes that are
 close to it, these nodes detect that a new node wants to join the system and
 expect it to enter the system.  
 
+\subsubsection{Epoch Components}
+With the Membership adaptation and the transformation of the regions, there is
+no need for epochs anymore. This component can be deleted from the system. 
 
 
 %%%%%%%%%%%%%%%%%%%%
