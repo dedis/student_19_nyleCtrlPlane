@@ -21,6 +21,53 @@ Ford}
 
 \maketoc
 
+%%%%%%%%%%%%%%%%%%%%
+\chapter{Related Work}
+%%%%%%%%%%%%%%%%%%%%
+This work builds upon several other work that are linked to the domains of
+blockchains and locality. Nyle proposes a decentralized cryptocurrency using
+different strategies than \cite{bitcoin-paper}, \cite{Dfinity}, \cite{Byzcoin},
+\cite{Omniledger}, \cite{Monoxide} and \cite{Stellar}. It used them as an
+inspiration source and share some aspects with theses general cryptocurrencies
+system. It is somehow orthogonal to them because it can use any cryptocurrency
+system as an underlying system and enhance them using the idea of locality to
+add some partition-resistance to them. The Sybil-resistance scheme used in the
+registration system is directly inspired from \cite{Dfinity}, using
+\textit{endorsement} in the general way, which can be in practice replaced by
+any Sybil-resistance scheme like Proof-of-Work \cite{bitcoin-paper}. 
+
+In particular this work tries to solve some drawbacks of traditional
+cryptocurrencies like \cite{bitcoin-paper}, solving the problem of waiting time
+for validation using region validation and making it resistant to WW3
+scenarios. \cite{Byzcoin}, \cite{Omniledger} gives an interesting solution to
+the waiting time for validation, but they are orthogonal to this research.
+
+\cite{Omniledger} and \cite{Monoxide} uses sharding to increase performance.
+Sharding splits the system in random committee that allow the fastest
+processing of the transaction. This not directly related of what is done in
+this work, as even if the system is split in different parts, it is not done
+randomly but based on the locality, and the system is replicated in all the
+regions. However, cryptocurrencies using shards can still be used as an
+underlying system of Nyle, enhancing the performance of the partition-resistant
+blockchain system created by this means.
+
+This work is directly related to the locality-preserving algorithms developed
+in \cite{CRUX} and compact-graph algorithms \cite{approximation oracle}. These
+are described in detail in the next section. 
+
+There is a class of algorithm that uses the idea of locality in a different
+manner. For example \cite{Geo-DNS} or \cite{IP Anycast} use the idea of
+locality to shorten the path for the packets, connecting the servers via the
+closest path.
+
+Replication is often used to guarantee integrity of the stored information
+\cite{find-paper-replication}. In \cite{CRUX} and Nyle regional replication of
+the system is used to create partition-resistance and permit region-validation.
+
+Classic consensus algorithms as \cite{Paxos}, \cite{PBFT} were used as an
+inspiration to develop some parts of the theoretical algorithm. In practice,
+and for efficiency, this work use \cite{BlsCoSi} that is much more efficient,
+using trees for communication.  
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Background}
