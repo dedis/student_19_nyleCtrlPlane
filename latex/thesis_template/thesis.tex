@@ -558,11 +558,43 @@ epoch using the less redrawing as possible. CRUX is run at the first epoch
 giving the first version of the system. Registration is still global and each
 node will have all the information about the memberships of every node.Then
 from one epoch to another, the purpose of the game is to keep as much region as
-possible without breaking the locality rules. (need to state what are those
-rules, based on CRUX). 
+possible without breaking the locality rules.
 
-In the space-time graph (the image), most of the regions remain the same and
-the modifications appear in small places.
+\subsection{Rules for a node }
+This section describes how to transform the regions from one epoch to another.
+The point of view of one node that stays fixed in the system is taken, the goal
+is that node can keep most of its region assignment.  What are the
+implications. As it was said other nodes might join, leave or move. This leads
+either to change in its cluster of in its bunch. 
+
+\subsubsection{Nodes leaving the cluster} 
+This will shrink the cluster. As the regions created by a given node stops when
+the radius covers the whole cluster, this might lead to the deletion of some
+regions, note that the smallest one is still kept. This does not change the
+region assignment and the nodes can still keep the replicated system of the
+previous epoch running.
+
+\subsubsection{Nodes joining the cluster} 
+On the contrary, if nodes join the cluster, this might lead to the creation of
+additional region to cover these extra nodes. The node will then replicate its
+system to the newly created regions. But most of the regions are kept the same.
+
+\subsubsection{Nodes leaving the bunch} 
+Nodes participate to all the region in their bunch, leading to participate to
+the whole system. If a node left the system in the bunch,  this leads to a
+region centered around a point that is not in the system anymore, but other
+nodes participating in that region might still be in the system. A random node
+participating in that region could be chosen to be responsible for the maintain
+of that region.  Or this region assignment can be forgotten. 
+
+\subsubsection{Nodes joining the bunch} 
+If nodes are joining in a bunch, this leads to additional region assignment. 
+
+\subsection{Rules for the levels.}
+
+
+\textit{In the space-time graph (the image), most of the regions remain the same and
+the modifications appear in small places.}
 
 \section{Strawman 2 : Fog of the War}
 
