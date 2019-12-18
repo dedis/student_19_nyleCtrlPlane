@@ -560,7 +560,7 @@ node will have all the information about the memberships of every node.Then
 from one epoch to another, the purpose of the game is to keep as much region as
 possible without breaking the locality rules.
 
-\subsection{Rules for a node }
+\subsection{Rules for a fixed node}
 This section describes how to transform the regions from one epoch to another.
 The point of view of one node that stays fixed in the system is taken, the goal
 is that node can keep most of its region assignment.  What are the
@@ -590,8 +590,19 @@ of that region.  Or this region assignment can be forgotten.
 \subsubsection{Nodes joining the bunch} 
 If nodes are joining in a bunch, this leads to additional region assignment. 
 
-\subsection{Rules for the levels.}
+\subsection{Rules for other nodes}
+Moving nodes or joining nodes are different, they are joining a new region, the question is how to integrate them in the system while keeping the system balanced. 
 
+\subsubsection{Moving node example}
+Assume that going from Epoch $i$ to $i+1$, one node as gone from one place to the other end of the system. 
+Nodes can keep their level, it will change some of the assignment, but most of the regions will be maintained. 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/LocarnoTreaties_movingnode}
+\caption{A moving node keeping its levels is changing assignments of other nodes but keep the same regions}
+\label{fig:LocarnoTreaties_movingnode}
+\end{figure}
 
 \textit{In the space-time graph (the image), most of the regions remain the same and
 the modifications appear in small places.}
@@ -707,6 +718,12 @@ expect it to enter the system.
 \subsubsection{Epoch Components}
 With the Membership adaptation and the transformation of the regions, there is
 no need for epochs anymore. This component can be deleted from the system. 
+
+
+\subsection{Space/Time protocol}
+Assume that we have a precisely defined set of rule for evolving the region from one epoch to another. 
+The Space/Time Protocol will be the following. Regions are created in the genesis of the system by the algorithm for region creation. The underlying system is replicated in all the deployed regions. And nodes start working in the system. Events are detected with the dynamic Space/Time Metric. 
+
 
 
 %%%%%%%%%%%%%%%%%%%%
