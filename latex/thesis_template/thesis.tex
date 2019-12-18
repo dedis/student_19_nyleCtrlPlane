@@ -24,23 +24,25 @@ Ford}
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
 %%%%%%%%%%%%%%%%%%%%
-This work builds upon several other work that are linked to the domains of
+This work builds upon several other works that are linked to the domains of
 blockchains and locality. Nyle proposes a decentralized cryptocurrency using
 different strategies than \cite{bitcoin-paper}, \cite{Dfinity}, \cite{Byzcoin},
 \cite{Omniledger}, \cite{Monoxide} and \cite{Stellar}. It used them as an
-inspiration source and share some aspects with theses general cryptocurrencies
-system. It is somehow orthogonal to them because it can use any cryptocurrency
-system as an underlying system and enhance them using the idea of locality to
-add some partition-resistance to them. The Sybil-resistance scheme used in the
-registration system is directly inspired from \cite{Dfinity}, using
+inspiration source and share some aspects with theses general cryptocurrencies.
+It is somehow orthogonal to them because it can use any of theses cryptocurrencies
+as an underlying system and enhance them using the idea of locality to
+add some partition-resistance to them. 
+
+But some ideas are taken from these papers are used as well. 
+The Sybil-resistance scheme used in the registration system is directly inspired from \cite{Dfinity}, using
 \textit{endorsement} in the general way, which can be in practice replaced by
 any Sybil-resistance scheme like Proof-of-Work \cite{bitcoin-paper}. 
 
 In particular this work tries to solve some drawbacks of traditional
-cryptocurrencies like \cite{bitcoin-paper}, solving the problem of waiting time
-for validation using region validation and making it resistant to WW3
-scenarios. \cite{Byzcoin}, \cite{Omniledger} gives an interesting solution to
-the waiting time for validation, but they are orthogonal to this research.
+cryptocurrencies like \cite{bitcoin-paper}, solving the problem of the waiting time
+for validation by using region validation and making it resistant to WW3
+scenarios. \cite{Byzcoin} and \cite{Omniledger} gives another interesting solution to
+the waiting time for validation, but their results are orthogonal to this research.
 
 \cite{Omniledger} and \cite{Monoxide} uses sharding to increase performance.
 Sharding splits the system in random committee that allow the fastest
@@ -62,12 +64,16 @@ closest path.
 
 Replication is often used to guarantee integrity of the stored information
 \cite{find-paper-replication}. In \cite{CRUX} and Nyle regional replication of
-the system is used to create partition-resistance and permit region-validation.
+the system is used to create partition-resistance, and in Nyle it can be used to allow region validation.
 
 Classic consensus algorithms as \cite{Paxos}, \cite{PBFT} were used as an
 inspiration to develop some parts of the theoretical algorithm. In practice,
 and for efficiency, this work use \cite{BlsCoSi} that is much more efficient,
 using trees for communication.  
+
+
+%TODO : Add Stellar
+
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Background}
@@ -80,9 +86,8 @@ using trees for communication.
 % (motivation for the control plane)
 %%%%%%%%%%%%%%%%%%
 
-This Master Thesis is part of a biggest structure that concerns
-locality-preserving systems. In particular, it builds upon two different
-systems CRUX\cite{basescu2014crux} and is part of Nyle.This section describes
+This Master Thesis is part of a biggest project that concerns
+locality-preserving systems. In particular, it builds upon CRUX\cite{basescu2014crux} and is part of Nyle.This section describes
 the two different projects. 
 
 \section{CRUX}
@@ -102,25 +107,25 @@ there is no reason that nodes that are functioning in the same side of the
 partition should stop working because of the partition. 
 
 The general idea is that a system can be replicated at different scales, from
-very local to global.  With the additional property than each replicated system
+local (cities, region) to global.  With the additional property than each replicated system
 will continue to work correctly if no partition splits it. If a global
 partition occur, then the global region might not work, but all the replicated
-system in local regions will still work. Which is solving the mentioned problem
+system in local regions will still continue working. This is a direct solution to the previously-mentioned problem
 : nodes working on the same of the partition will continue to work.
 
-This solution comes with an overhead, as the system should be replicated in all
+Obviously, this solution comes with an overhead, as the system should be replicated in all
 the regions. But there are some ways of reducing this overhead, in a way that
 it stays reasonable and that the resistance to partition is maintained. To
 reduce this overhead, CRUX algorithm for regions creation presented below
-ensure that the proper number of regions is created, in a manner that the
-overhead stays reasonable and that the partition resistance stays efficient. If
+ensure that the proper number of regions is created, in a manner that the number of regions created induce a reasonable
+overhead and that the partition resistance stays efficient. If
 CRUX is used for a particular, known system, overhead can be even more reduced.
 As the systems are replicated in every region, most of the data is replicated
-along the regions. So one might actually deep inside the specification of one
+along the regions. So one might actually dig inside the specification of one
 system and manages not to store twice the same data. But this overpass a bit
 the goal of CRUX, which wants to be the more general possible. 
 
-Indeed, the principal force of CRUX is that it is applicable to any distributed
+Indeed, the force of CRUX is that it is applicable to any distributed
 system, as no particular hypothesis on the system is made. It only starts from
 one simple idea : one system can be replicated at smaller scale to ensure
 partition resistance. 
@@ -130,10 +135,10 @@ A note should be made about the CAP-theorem. Recall that this theorem states
 that no system can be consistent, available and partition-resistant at the same
 time. It seems that this solution is adding partition tolerance to available
 and consistent system. Thus leading to the violation of the theorem. But it is
-not exactly the case, as the created system only ensure that nodes can still
-work in the same side of a partition. But the region split by the partition is
+not exactly the case, as the enhanced system only ensure that nodes can still
+work in the same side of a partition. The regions split by a partition are
 not working anymore. Even if the system can still work on the same side of a
-partition, it's not partition resistant.
+partition, it's not totally partition resistant.
 
 %%%% Common Tools
 % - Approximation distance oracle
@@ -141,27 +146,23 @@ partition, it's not partition resistant.
 % - Cluster
 % - ARA 
 %%%%%%%%%%%%%%%%%%
-\subsection{Common Tools :  ARAs} This section describes how to create the
-regions that are used to replicate the system. These regions are used by Nyle
-as well therefore we will describe it in detail. 
+\subsection{Common Tools :  ARAs} 
+This section describes how to create the regions that are used to replicate the system. These regions are used by Nyle
+as well, therefore we will describe it in detail. These regions are called \textit{Available Responsive Areas}, in each region a
+copy of the replicated system is deployed. To create these regions each node will participate first at a lottery. Each node starts at level 0. Then each node go to the next level with a given probability $p$. This procedure is repeated at each level, and is stopped when no nodes are promoted to the next level. This first empty level is called $k$. Then each node can compute two quantities that will be necessary to create \textit{ARAs} : their bunch and their cluster. 
 
-These regions are called \textit{Available Responsive Areas}, in each region a
-copy of the replicated system is deployed. 
-
-To create these regions each node will participate first at a lottery. Each
-node starts at level 0. Then each node go to the next level with probability
-$p$. This procedure repeats at each level, and stop when no nodes are promoted
-to the next level. This first empty level is called $k$. 
-
-\begin{table}[] \begin{tabular}{rrrrr} & 100 & 200 & 500 & 1000 \\ \hline
-\multicolumn{1}{r|}{0} & 90  & 180 & 450 & 900  \\ \multicolumn{1}{r|}{1} & 9
-& 18  & 45  & 90   \\ \multicolumn{1}{r|}{2} & 1   & 2   & 5   & 9 \\
-\multicolumn{1}{r|}{3} & 0   & 0   & 0   & 1   \end{tabular} \caption{Example
-of lottery with $P = 0.1$ where $k= 3$ for $N= 100,200,500$ and $4$ for $N =
-1000$} \end{table}
-
-Then each node can compute two quantities that will be necessary to create
-\textit{ARAs}. Their bunch and their cluster. 
+\begin{table}[] 
+\centering
+\begin{tabular}{rrrrr}
+Levels/Nb of Nodes & 100 & 200 & 500 & 1000 \\ \hline
+\multicolumn{1}{r|}{0} & 90  & 180 & 450 & 900  \\
+\multicolumn{1}{r|}{1} & 9 & 18  & 45  & 90   \\
+\multicolumn{1}{r|}{2} & 1   & 2   & 5   & 9 \\
+\multicolumn{1}{r|}{3} & 0   & 0   & 0   & 1  
+\end{tabular}
+\caption{Example of lottery with $P = 0.1$ where $k= 3$ for $N= 100,200,500$ and $4$ for $N =
+1000$}
+ \end{table}
 
 \paragraph{Bunch} A node can compute its bunch in the following manner. It
 looks at every other nodes by order of distances in ascending order and
@@ -198,31 +199,23 @@ approval time for a transaction.
  
  \paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have
  at least a long-lasting partition that will split the system in two. This is a
- problem for classical cryptocurrencies, because for a block to be approved,
+ problem for classical cryptocurrencies like \cite{bitcoin-paper}, because for a block to be approved,
  the users are supposed to wait to have a global consensus. This consensus will
  not be reached with a long-lasting partition and therefore it will create
  problems for classical cryptocurrencies. Nyle solve this issue by design using
  locality.
 
 \paragraph{Approval Time for a Transaction} \label{approve_time} Another issue
-with waiting global consensus is that it usually takes a long time. If we want
-to use a cryptocurrency in a daily life, we want to solve that problem to be
+with waiting global consensus is that it usually takes a long time. If a customer wants
+to use a cryptocurrency in a daily life, the nodes should be 
 able to validate (at least partially) a transaction relatively fast. The
 solution provided by Nyle use locality again: with Nyle a transaction is
-validated at different levels, and it is up to the user to wait a local, or
-global validation for a transaction.
+validated at different levels, and it is up to the customer to wait a local, or
+global validation for a transaction. For small transaction, for example for buying a coffee, the customer might agree to only have local validation. For bigger transaction he might wants to wait a bit longer to have global validation.
 
 \subsection{Locality : From CRUX to Nyle}
 
-In order to have the locality properties, Nyle uses a similar design than CRUX
-but applies it in the specific case of a cryptocurrency. It assumes the same
-Network model as in CRUX (set of nodes that are connected through an
-Internet-like network,...). It uses the landmark technique from
-approximate-distance oracles and creates ARAs, with the same strategies. So it
-will provide the same properties for the network (and bunches, clusters,...)
-and the ARAs.
-
-So the ARA is the representation of the region. In each of these regions there
+Nyle uses ARA as the representation of one region. In each of these regions there
 will be a copy of the same system, in the case of Nyle the system is a
 blockchain. So each region will have its own blockchain and validate all the
 transactions between the nodes that are included in it. Some nodes can be
@@ -232,11 +225,11 @@ each time there is a transaction that concerns one of its nodes.
 
 \subsection{Stable environment vs Byzantine evolving system}
 
-The big difference between CRUX and NYLE is that the purpose of CRUX is to work
+The big difference between CRUX and Nyle is that the purpose of CRUX is to work
 in environments where machines are relatively "stable" which means that they
 are not supposed to churn or to crash often, and more, where the machines are
 not supposed to move. This is not the case for Nyle : if we have a
-cryptocurrency, we can expect to have malicious, deficient and/or moving users.
+cryptocurrency, we can expect to have malicious, deficient and/or moving nodes.
 This will add some difficulties that will be managed by the protocol.
 
 \subsection{Blockchain System} \label{blockchain_subsection}
@@ -282,10 +275,11 @@ cheats by giving false distances.
 % - If we solve that then we can return to the previous system and everything
             %   should be working
 %%%%%%%%%%%%%%%
-\subsection{Purpose of this project : motivation for a control plane} CRUX
-propose a system that is working in stable system (with low-churn) and where
+\subsection{Purpose of this project : motivation for a control plane}
+
+CRUX proposes a system that is working in stable system (with low-churn) and where
 nodes does not move too much. As this situation corresponds to some systems
-like wide-area database, ... It is definitely not the case of a crypto-money.
+like wide-area database, ... It is definitely not the case of a cryptocurrency.
 For these kind of system, one can expect to have at least some churn, some
 moving nodes and some adversarial nodes.  If the system have a precise protocol
 for dealing with nodes entering, leaving and moving in the system, then the
