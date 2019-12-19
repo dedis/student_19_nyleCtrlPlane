@@ -86,7 +86,7 @@ type Service struct {
 	NrPingAnswers     int
 
 	PrefixForReadingFile string
-	DoneUpdate           bool
+	DoneChan             chan bool
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -109,7 +109,7 @@ func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetG
 func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, error) {
 	var err error
 	if s.e != req.Epoch-1 {
-		err = s.UpdateHistoryWith(s.getRandomName())
+		err = s.UpdateHistoryWith(s.GetRandomName())
 		if err != nil {
 			return nil, err
 		}
@@ -362,7 +362,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 // GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
 func (s *Service) GetConsencusOnNewSigners() error {
 	if s.Cycle.GetCurrentPhase() != EPOCH {
-		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-1*time.Second, "s to Get the Consencus")
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-2*time.Second, "s to Get the Consencus")
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 1*time.Second)
 	}
 	ro, err := s.getRosterForEpoch(s.e)
@@ -379,13 +379,17 @@ func (s *Service) GetConsencusOnNewSigners() error {
 	log.LLvl1("Send Signature", sign)
 	newSigners := s.GetSigners(s.e + 1)
 	for sID := range newSigners.Set {
-		s.ServersMtx.Lock()
-		name := s.ServerIdentityToName[sID]
-		si := s.Servers[name]
-		s.ServersMtx.Unlock()
-		err := s.SendHistory(si)
-		if err != nil {
-			log.LLvl1(s.Name, " got an error while sending history to ", name)
+		if sID != s.ServerIdentity().ID {
+			s.ServersMtx.Lock()
+			name := s.ServerIdentityToName[sID]
+			si := s.Servers[name]
+			s.ServersMtx.Unlock()
+			err := s.SendHistory(si)
+			if err != nil {
+				log.LLvl1(s.Name, " got an error while sending history to ", name)
+			}
+		} else {
+			s.e++
 		}
 	}
 
@@ -558,15 +562,11 @@ func (s *Service) UpdateHistoryWith(name string) error {
 		return fmt.Errorf("%s is not aware of server named %s", s.ServerIdentity(), name)
 	}
 	s.ServersMtx.Unlock()
-	s.DoneUpdate = false
 
+	s.DoneChan = make(chan bool)
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
-
-	// TODO : Fix race condition using Channel :
-	// https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/concurrency
-	for !s.DoneUpdate {
-		time.Sleep(50 * time.Millisecond)
-	}
+	<-s.DoneChan
+	close(s.DoneChan)
 
 	return err
 
@@ -574,6 +574,12 @@ func (s *Service) UpdateHistoryWith(name string) error {
 
 // SendHistory send my version of History to the given SI
 func (s *Service) SendHistory(si *network.ServerIdentity) error {
+	if s.ServerIdentity().ID == si.ID {
+		return fmt.Errorf("%v is asked to send History to itself", s.Name)
+	}
+
+	log.LLvl1(s.ServerIdentity(), " is sending History to ", si)
+
 	s.storage.Lock()
 	// Sending directely a []SignerSet is not working,
 	// This solution flatten the data and reconstruct it afterwards
@@ -589,7 +595,9 @@ func (s *Service) SendHistory(si *network.ServerIdentity) error {
 			signersValue = append(signersValue, v)
 		}
 	}
+	s.storage.Unlock()
 
+	s.ServersMtx.Lock()
 	e := s.SendRaw(si, &ReplyHistory{
 		SenderName:           s.Name,
 		Servers:              s.Servers,
@@ -598,7 +606,8 @@ func (s *Service) SendHistory(si *network.ServerIdentity) error {
 		SignersValue:         signersValue,
 		SignersIndex:         signersIndex,
 	})
-	s.storage.Unlock()
+	s.ServersMtx.Unlock()
+
 	if e != nil {
 		panic(e)
 	}
@@ -625,16 +634,14 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 		log.Error(s.ServerIdentity(), "failed to cast to ReplyHistory")
 		return errors.New("failed to cast to ReplyHistory")
 	}
-
+	s.ServersMtx.Lock()
 	for k, v := range req.Servers {
-		s.ServersMtx.Lock()
 		s.Servers[k] = v
-		s.ServersMtx.Unlock()
 	}
 	for k, v := range req.ServerIdentityToName {
 		s.ServerIdentityToName[k] = v
 	}
-
+	s.ServersMtx.Unlock()
 	// Reconstruction []SignerSet see ExecReqHistory
 	signers := make([]SignersSet, req.SignersIndex[len(req.SignersIndex)-1]+1)
 
@@ -656,11 +663,11 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 		s.e = Epoch(l - 1)
 	}
 
-	s.DoneUpdate = true
+	s.DoneChan <- true
 	return nil
 }
 
-func (s *Service) getRandomName() string {
+func (s *Service) GetRandomName() string {
 	var names []string
 	s.ServersMtx.Lock()
 	for name := range s.Servers {
@@ -668,6 +675,8 @@ func (s *Service) getRandomName() string {
 			names = append(names, name)
 		}
 	}
+	log.LLvl1(s.Name, "has a this list ", names, " of random names.")
+
 	s.ServersMtx.Unlock()
 	index := rand.Intn(len(names))
 	return names[index]

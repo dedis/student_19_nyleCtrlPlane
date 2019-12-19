@@ -410,9 +410,11 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
 			go func(idx int) {
-				if services[idx].(*Service).GetEpoch() != e-1 {
-					updateID := rand.Intn(nbFirstSigners)
-					assert.NoError(t, services[idx].(*Service).UpdateHistoryWith("node_"+strconv.Itoa(updateID)))
+				s := services[idx].(*Service)
+
+				if s.GetEpoch() != e-1 {
+					name := s.GetRandomName()
+					assert.NoError(t, s.UpdateHistoryWith(name))
 				}
 				wg.Done()
 			}(i)
@@ -432,8 +434,10 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 		log.LLvl1("\033[48;5;45mStarting :", e, "\033[0m ")
 
 		// Running consensus - pick a random leader in the previous committee
-		leaderID := rand.Intn(joiningPerEpoch * int(e))
-		assert.NoError(t, services[leaderID].(*Service).GetConsencusOnNewSigners())
+		go func() {
+			leaderID := rand.Intn(joiningPerEpoch * int(e))
+			assert.NoError(t, services[leaderID].(*Service).GetConsencusOnNewSigners())
+		}()
 
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
 			wg.Add(1)
