@@ -176,8 +176,8 @@ Levels/Nb of Nodes & 100 & 200 & 500 & 1000 \\ \hline
 \multicolumn{1}{r|}{2} & 1   & 2   & 5   & 9 \\
 \multicolumn{1}{r|}{3} & 0   & 0   & 0   & 1  
 \end{tabular}
-\caption{Example of lottery with $P = 0.1$ where $k= 3$ for $N= 100,200,500$ and $4$ for $N =
-1000$}
+\caption{Example of lottery with $P = 0.1$ where $k= 3$ for $N= 100,200,500$
+    and $4$ for $N = 1000$}
  \end{table}
 
 \paragraph{Bunch} A node can compute its bunch in the following manner. It
@@ -365,7 +365,8 @@ which we build the locality properties of the system.
 
 
 
-%%%% mostly copied from https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
+%%%% mostly copied from
+% https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
 \section{General Presentation}
 
 The Control Plane is composed of five different components [FIG.
@@ -614,6 +615,15 @@ time/space graphs will be proposed.
 
 \section{Strawman 1 : Locarno Treaties} \label{Locarno}
 
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/LocarnoTreaties-Redrawing}
+\caption{Redrawing the levels at each epoch can leads to very different version
+    of the system. This is what is improved by the Locano Treaties. Shrinking
+    regions are depicted in red, growing regions in green and same region in
+    black.} \label{fig:LocarnoTreaties-Redrawing}
+\end{figure}
+
 Following the First World War, it was decided that the borders of Germany
 should remain fixed. The Locarno Treaties defined some of these borders. The
 idea of this Strawman model in not to let the borders of regions change more
@@ -668,10 +678,11 @@ of the assignment, but most of the regions will be maintained.
 
 \begin{figure}[!h] 
 \centering
-\includegraphics[width=300pt]{figures/LocarnoTreaties_movingnode}
+\includegraphics[width=300pt]{figures/LocarnoTreaties-Moving}
 \caption{A moving node keeping its levels is changing assignments of other
-    nodes but keep the same regions}
-\label{fig:LocarnoTreaties_movingnode}
+    nodes but keep the same regions. Shrinking regions are depicted in red,
+    growing regions in green and same region in black. }
+\label{fig:LocarnoTreaties-Moving}
 \end{figure}
 
 This seems to indicate that movement should not be a problem. There is a
@@ -692,6 +703,22 @@ of regions. The precise rules for that are listed below.
 
 \textit{In the space-time graph (the image), most of the regions remain the same and
 the modifications appear in small places.}
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/LocarnoTreaties-Insertion-close}
+\caption{Keeping the same level leads to smaller changes when a node enter the
+    system. Shrinking regions are depicted in red, growing regions in green and
+    same region in black.} \label{fig:LocarnoTreaties-Insertion-close}
+\end{figure}
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/LocarnoTreaties-Insertion-far}
+\caption{Keeping the same level leads to smaller changes when a node enter the
+    system. Shrinking regions are depicted in red, growing regions in green and
+    same region in black.} \label{fig:LocarnoTreaties-Insertion-far}
+\end{figure}
 
 \section{Strawman 2 : Fog of the War}
 
@@ -815,6 +842,23 @@ Regions are created in the genesis of the system by the algorithm for region
 creation. The underlying system is replicated in all the deployed regions. And
 nodes start working in the system. Events are detected with the dynamic
 Space/Time Metric. 
+
+%%%%%%%%%%%%%%%%%%%%
+\chapter{Possible Improvements}
+%%%%%%%%%%%%%%%%%%%%
+
+
+This chapter lists the improvements that could be applied more or less directly
+to one part of the project, but that were not implemented due to time reasons. 
+
+In the simple control plane protocol, the live clock that are supposed to be
+synchrone for every nodes could be replaced by Timestamps Logical Clocks (TLC)
+\cite{Que-Sera-Consensus}. This could allow the system to be more flexible.
+This replace the clock and succeed the registration and the live period.
+However, this was not implemented as it was hard to see how to go from one
+epoch to another using TLC. Recall that in the existing protocol, at the
+beginning of the live period one node of the old committee sends the necessary
+information to the new committee to begin. Synchronizing this could be hard.
 
 
 
