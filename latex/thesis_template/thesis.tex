@@ -33,16 +33,18 @@ It is somehow orthogonal to them because it can use any of theses cryptocurrenci
 as an underlying system and enhance them using the idea of locality to
 add some partition-resistance to them. 
 
-But some ideas are taken from these papers are used as well. 
-The Sybil-resistance scheme used in the registration system is directly inspired from \cite{Dfinity}, using
-\textit{endorsement} in the general way, which can be in practice replaced by
-any Sybil-resistance scheme like Proof-of-Work \cite{bitcoin-paper}. 
+But some ideas are taken from these papers are used as well.  The
+Sybil-resistance scheme used in the registration system is directly inspired
+from \cite{Dfinity}, using \textit{endorsement} in the general way, which can
+be in practice replaced by any Sybil-resistance scheme like Proof-of-Work
+\cite{bitcoin-paper}. 
 
 In particular this work tries to solve some drawbacks of traditional
-cryptocurrencies like \cite{bitcoin-paper}, solving the problem of the waiting time
-for validation by using region validation and making it resistant to WW3
-scenarios. \cite{Byzcoin} and \cite{Omniledger} gives another interesting solution to
-the waiting time for validation, but their results are orthogonal to this research.
+cryptocurrencies like \cite{bitcoin-paper}, solving the problem of the waiting
+time for validation by using region validation and making it resistant to WW3
+scenarios. \cite{Byzcoin} and \cite{Omniledger} gives another interesting
+solution to the waiting time for validation, but their results are orthogonal
+to this research.
 
 \cite{Omniledger} and \cite{Monoxide} uses sharding to increase performance.
 Sharding splits the system in random committee that allow the fastest
@@ -64,14 +66,17 @@ closest path.
 
 Replication is often used to guarantee integrity of the stored information
 \cite{find-paper-replication}. In \cite{CRUX} and Nyle regional replication of
-the system is used to create partition-resistance, and in Nyle it can be used to allow region validation.
+the system is used to create partition-resistance, and in Nyle it can be used
+to allow region validation.
 
 Classic consensus algorithms as \cite{Paxos}, \cite{PBFT} were used as an
 inspiration to develop some parts of the theoretical algorithm. In practice,
 and for efficiency, this work use \cite{BlsCoSi} that is much more efficient,
 using trees for communication.  
 
-This works uses a distributed public algorithm for the source of randomness like \cite{RandHound}. Each node will use this source to draw a random level.  The way it is used is described in detail in the next section. 
+This works uses a distributed public algorithm for the source of randomness
+like \cite{RandHound}. Each node will use this source to draw a random level.
+The way it is used is described in detail in the next section. 
 
 %TODO : Add Stellar
 
@@ -88,8 +93,9 @@ This works uses a distributed public algorithm for the source of randomness like
 %%%%%%%%%%%%%%%%%%
 
 This Master Thesis is part of a biggest project that concerns
-locality-preserving systems. In particular, it builds upon CRUX\cite{basescu2014crux} and is part of Nyle.This section describes
-the two different projects. 
+locality-preserving systems. In particular, it builds upon
+CRUX\cite{basescu2014crux} and is part of Nyle.This section describes the two
+different projects. 
 
 \section{CRUX}
 
@@ -108,28 +114,30 @@ there is no reason that nodes that are functioning in the same side of the
 partition should stop working because of the partition. 
 
 The general idea is that a system can be replicated at different scales, from
-local (cities, region) to global.  With the additional property than each replicated system
-will continue to work correctly if no partition splits it. If a global
-partition occur, then the global region might not work, but all the replicated
-system in local regions will still continue working. This is a direct solution to the previously-mentioned problem
-: nodes working on the same of the partition will continue to work.
+local (cities, region) to global.  With the additional property than each
+replicated system will continue to work correctly if no partition splits it. If
+a global partition occur, then the global region might not work, but all the
+replicated system in local regions will still continue working. This is a
+direct solution to the previously mentioned problem : nodes working on the same
+of the partition will continue to work.
 
-Obviously, this solution comes with an overhead, as the system should be replicated in all
-the regions. But there are some ways of reducing this overhead, in a way that
-it stays reasonable and that the resistance to partition is maintained. To
-reduce this overhead, CRUX algorithm for regions creation presented below
-ensure that the proper number of regions is created, in a manner that the number of regions created induce a reasonable
-overhead and that the partition resistance stays efficient. If
-CRUX is used for a particular, known system, overhead can be even more reduced.
-As the systems are replicated in every region, most of the data is replicated
-along the regions. So one might actually dig inside the specification of one
-system and manages not to store twice the same data. But this overpass a bit
-the goal of CRUX, which wants to be the more general possible. 
+Obviously, this solution comes with an overhead, as the system should be
+replicated in all the regions. But there are some ways of reducing this
+overhead, in a way that it stays reasonable and that the resistance to
+partition is maintained. To reduce this overhead, CRUX algorithm for regions
+creation presented below ensure that the proper number of regions is created,
+in a manner that the number of regions created induce a reasonable overhead and
+that the partition resistance stays efficient. If CRUX is used for a
+particular, known system, overhead can be even more reduced.  As the systems
+are replicated in every region, most of the data is replicated along the
+regions. So one might actually dig inside the specification of one system and
+manages not to store twice the same data. But this overpass a bit the goal of
+CRUX, which wants to be the more general possible. 
 
-Indeed, the force of CRUX is that it is applicable to any distributed
-system, as no particular hypothesis on the system is made. It only starts from
-one simple idea : one system can be replicated at smaller scale to ensure
-partition resistance. 
+Indeed, the force of CRUX is that it is applicable to any distributed system,
+as no particular hypothesis on the system is made. It only starts from one
+simple idea : one system can be replicated at smaller scale to ensure partition
+resistance. 
 
 % TODO : do more research on that.
 A note should be made about the CAP-theorem. Recall that this theorem states
@@ -148,9 +156,16 @@ partition, it's not totally partition resistant.
 % - ARA 
 %%%%%%%%%%%%%%%%%%
 \subsection{Common Tools :  ARAs} 
-This section describes how to create the regions that are used to replicate the system. These regions are used by Nyle
-as well, therefore we will describe it in detail. These regions are called \textit{Available Responsive Areas}, in each region a
-copy of the replicated system is deployed. To create these regions each node will participate first at a lottery. Each node starts at level 0. Then each node go to the next level with a given probability $p$. This procedure is repeated at each level, and is stopped when no nodes are promoted to the next level. This first empty level is called $k$. Then each node can compute two quantities that will be necessary to create \textit{ARAs} : their bunch and their cluster. 
+This section describes how to create the regions that are used to replicate the
+system. These regions are used by Nyle as well, therefore we will describe it
+in detail. These regions are called \textit{Available Responsive Areas}, in
+each region a copy of the replicated system is deployed. To create these
+regions each node will participate first at a lottery. Each node starts at
+level 0. Then each node go to the next level with a given probability $p$. This
+procedure is repeated at each level, and is stopped when no nodes are promoted
+to the next level. This first empty level is called $k$. Then each node can
+compute two quantities that will be necessary to create \textit{ARAs} : their
+bunch and their cluster. 
 
 \begin{table}[] 
 \centering
@@ -194,37 +209,39 @@ ARA that covers the whole system.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Nyle}
 
-Nyle is cryptocurrency, that uses locality to answer some classical problems of
+Nyle is cryptocurrency that uses locality to answer some classical problems of
 a blockchain systems. Two main problems are addressed: WW3 scenarios and
 approval time for a transaction.
  
- \paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have
- at least a long-lasting partition that will split the system in two. This is a
- problem for classical cryptocurrencies like \cite{bitcoin-paper}, because for a block to be approved,
- the users are supposed to wait to have a global consensus. This consensus will
- not be reached with a long-lasting partition and therefore it will create
- problems for classical cryptocurrencies. Nyle solve this issue by design using
- locality.
+\paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have
+at least a long-lasting partition that will split the system in two. This is a
+problem for classical cryptocurrencies like \cite{bitcoin-paper}, because for a
+block to be approved, the users are supposed to wait to have a global
+consensus. This consensus will not be reached with a long-lasting partition and
+therefore it will create problems for classical cryptocurrencies. Nyle solve
+this issue by design using locality.
 
 \paragraph{Approval Time for a Transaction} \label{approve_time} Another issue
-with waiting global consensus is that it usually takes a long time. If a customer wants
-to use a cryptocurrency in a daily life, the nodes should be 
+with waiting global consensus is that it usually takes a long time. If a
+customer wants to use a cryptocurrency in a daily life, the nodes should be 
 able to validate (at least partially) a transaction relatively fast. The
 solution provided by Nyle use locality again: with Nyle a transaction is
 validated at different levels, and it is up to the customer to wait a local, or
-global validation for a transaction. For small transaction, for example for buying a coffee, the customer might agree to only have local validation. For bigger transaction he might wants to wait a bit longer to have global validation.
+global validation for a transaction. For small transaction, for example for
+buying a coffee, the customer might agree to only have local validation. For
+bigger transaction he might wants to wait a bit longer to have global
+validation.
 
-\subsection{Locality : From CRUX to Nyle}
+\subsection{Locality : From CRUX to Nyle} Nyle uses ARA as the representation
+of one region. In each of these regions there will be a copy of the same
+system, in the case of Nyle the system is a blockchain. So each region will
+have its own blockchain and validate all the transactions between the nodes
+that are included in it. Some nodes can be included in different regions, and
+they will send their transactions to all the regions they are part of. Which
+ensure that each blockchain will be updated each time there is a transaction
+that concerns one of its nodes.
 
-Nyle uses ARA as the representation of one region. In each of these regions there
-will be a copy of the same system, in the case of Nyle the system is a
-blockchain. So each region will have its own blockchain and validate all the
-transactions between the nodes that are included in it. Some nodes can be
-included in different regions, and they will send their transactions to all the
-regions they are part of. Which ensure that each blockchain will be updated
-each time there is a transaction that concerns one of its nodes.
-
-\subsection{Stable environment vs Byzantine evolving system}
+\subsection{Stable Environment vs Byzantine Evolving System}
 
 The big difference between CRUX and Nyle is that the purpose of CRUX is to work
 in environments where machines are relatively "stable" which means that they
@@ -244,7 +261,7 @@ validation} We already have a protocol that validates a transaction.
 
 \subsubsection{Block storage on node} As each node will participate in
 different regions (from very local to world-wide), it will need to store the
-blockchains for all of these region. We have a method that reduces the
+blockchain for all of these regions. We have a method that reduces the
 redundancy, by only storing the hash of a block instead of the full block at
 each level. 
 
@@ -278,15 +295,15 @@ cheats by giving false distances.
 %%%%%%%%%%%%%%%
 \subsection{Purpose of this project : motivation for a control plane}
 
-CRUX proposes a system that is working in stable system (with low-churn) and where
-nodes does not move too much. As this situation corresponds to some systems
-like wide-area database, ... It is definitely not the case of a cryptocurrency.
-For these kind of system, one can expect to have at least some churn, some
-moving nodes and some adversarial nodes.  If the system have a precise protocol
-for dealing with nodes entering, leaving and moving in the system, then the
-problem of the evolution of the system is solved. Indeed the churn phenomenon
-can be describes as some nodes leaving the system and optionally reentering
-later. 
+CRUX proposes a system that is working in a stable system (with low-churn) and
+where nodes do not move too much. As this situation corresponds to some
+systems like wide-area database, ... It is definitely not the case of a
+cryptocurrency.  For these kind of system, one can expect to have at least some
+churn, some moving nodes and some adversarial nodes.  If the system has a
+precise protocol for dealing with nodes entering, leaving and moving in the
+system, then the problem of the evolution of the system is solved. Indeed the
+churn phenomenon can be described as some nodes leaving the system and
+optionally reentering later. 
 
 Therefore the purpose of the control plane will be to deal with the evolution
 of the regions that follows the evolution of the nodes in the system. Once that
@@ -351,16 +368,16 @@ which we build the locality properties of the system.
 %%%% mostly copied from https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
 \section{General Presentation}
 
-The Control Plane is composed of five different components [FIG. \ref{fig:modules}], each
-necessary to solves different part of the problem. It needs a membership
-component, to define precisely which nodes are in the system at any time. It
-needs a locality component which gives the distance between two nodes in the
-system. Then it needs a region management component, which will draw the
-regions based on the membership and the locality. The time will be split into
-epochs, a component is in charge of dealing that aspect. And finally, the
-control plane is in charge of answering some requests linked to the location
-and presence of the nodes in the system. Each will be described in detail
-below. 
+The Control Plane is composed of five different components [FIG.
+\ref{fig:modules}], each necessary to solves different part of the problem. It
+needs a membership component, to define precisely which nodes are in the system
+at any time. It needs a locality component which gives the distance between two
+nodes in the system. Then it needs a region management component, which will
+draw the regions based on the membership and the locality. The time will be
+split into epochs, a component is in charge of dealing that aspect. And
+finally, the control plane is in charge of answering some requests linked to
+the location and presence of the nodes in the system. Each will be described in
+detail below. 
 
 
 \begin{figure}[!h] \centering
@@ -410,7 +427,7 @@ version of the Control Plane. In which most of the work is done on the
 membership component. At each epoch nodes can join if they manage to get an
 approval from the member of the previous region. The locality component in this
 model is brute force : every node computes its pings to every other nodes and
-consencus is made on that information. The region component in this model is
+consensus is made on that information. The region component in this model is
 really simple : based on the registration, and the pings, CRUX is run at each
 epoch. Redrawing the map of the entire system. 
 
@@ -422,7 +439,7 @@ This section describes the membership protocol [FIG. \ref{fig:registrationprotoc
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=400pt]{figures/Registrationprotocol}
-\caption{Sketch of the protocol}
+\caption{Sketch of the Protocol}
 \label{fig:registrationprotocol}
 \end{figure}
 
@@ -472,7 +489,7 @@ authority that will accept admission is running. Registration period and live
 period can therefore be superposed [FIG. \ref{fig:registrationprotocol}], which
 permits to have a system running at every time. 
 
-\subsection{Threshold-signing admission}
+\subsection{Threshold-Signing Admission}
 To get an admission a node that wants to join for the next system will use the
 BlsCoSi protocol \cite{BlsCoSi_protocol}. it will generate a tree with him as
 the root and the admission committee as nodes in the tree. Each node of the
@@ -485,7 +502,7 @@ associated. This ensures that a node cannot steal the endorsement of another
 for registration.  
 
 %%%%%%% Committee consensus
-\subsection{Committee consensus}
+\subsection{Committee Consensus}
 Committee consensus is used at two different times. First at the end of the
 registration period. Consensus should be reached by the admission committee to
 the participants of the next epochs. A random member of the admission committee
@@ -507,7 +524,11 @@ nodes in the system.
 
 
 \subsection{Public distributed source of randomness}
-To draw the level to run the region creation algorithm, a distributed public source of randomness will be used. This can be targeted by adversary trying to get a higher level and thus a higher place in the system. To be sure that this source is not targeted, it is  based on the information created during the consensus on the participants just before drawing the regions. 
+To draw the level to run the region creation algorithm, a distributed public
+source of randomness will be used. This can be targeted by adversaries trying to
+get a higher level and thus a higher place in the system. To be sure that this
+source is not targeted, it is  based on the information created during the
+consensus on the participants just before drawing the regions. 
 
 \section{Discussion}
 \subsection{Advantages}
@@ -531,7 +552,7 @@ register for the next epoch and therefore are removed from the system.
 % TODO add image 
 
 
-\subsubsection{Adaptation to node movements}
+\subsubsection{Adaptation to Node Movements}
 Nodes can move as well, if the regions are only drawn at the beginning of the
 system. Then it's possible that after a while a lot of nodes have migrated from
 where they were at the time that the regions were drawn. This might be a
@@ -557,26 +578,26 @@ system would continue to work, but the control plane could only continue to
 work on the side of the majority. This is not a major drawback as the main
 purpose, the continuity of the subordinate system is guaranteed.
 
-\subsubsection{Epoch transition requires resources}
+\subsubsection{Epoch Transition Requires Resources}
 Epoch transition requires a lot of resources, indeed first it needs a lot
-communication for the consensus and the registration as every nodes that were
-previously on the system should be contacted by every new nodes. If $N_i$ is
+communication for the consensus and the registration as every node that were
+previously on the system should be contacted by every new node. If $N_i$ is
 the number of participants at epoch $i$. Then registration for epoch $i+1$
-requires $O(N_i * N_{i+1})$ messages. As every new nodes have to send a message
+requires $O(N_i * N_{i+1})$ messages. As every new node has to send a message
 to every member of the previous committee. This can be really inefficient. 
 
-Then when the registration is done, the protocole as it is will redraw most of
+Then when the registration is done, the protocol as it is will redraw most of
 the regions as the algorithm for region creation is reused. This can be
-inefficient as well, and it then for the transition to happen, a copy of the
+inefficient as well, and it is then for the transition to happen, a copy of the
 whole underlying system at epoch $i$ should be replicated in each new region of
 epoch $i+1$.
  
-\subsubsection{Omniscience of the nodes}
+\subsubsection{Omniscience of the Nodes}
 Nodes are actually aware of a lot of information. By design they are aware of
 the list of every other nodes in the system, their levels, the pings between
 each pair of nodes in the system, all the region created and all the region
-assignment. The nodes needs to be aware of these information in order that
-every nodes will run the algorithm for region creation and arrives to the same
+assignment. The nodes need to be aware of this information in order that
+every node will run the algorithm for region creation and arrives to the same
 regions. But this can be a lot of information to store.
 
 \section{Security Analysis}
@@ -612,19 +633,19 @@ is that node can keep most of its region assignment.  What are the
 implications. As it was said other nodes might join, leave or move. This leads
 either to change in its cluster of in its bunch. 
 
-\subsubsection{Nodes leaving the cluster} 
+\subsubsection{Nodes Leaving the Cluster} 
 This will shrink the cluster. As the regions created by a given node stops when
 the radius covers the whole cluster, this might lead to the deletion of some
 regions, note that the smallest one is still kept. This does not change the
 region assignment and the nodes can still keep the replicated system of the
 previous epoch running.
 
-\subsubsection{Nodes joining the cluster} 
+\subsubsection{Nodes Joining the Cluster} 
 On the contrary, if nodes join the cluster, this might lead to the creation of
 additional region to cover these extra nodes. The node will then replicate its
 system to the newly created regions. But most of the regions are kept the same.
 
-\subsubsection{Nodes leaving the bunch} 
+\subsubsection{Nodes Leaving the Bunch} 
 Nodes participate to all the region in their bunch, leading to participate to
 the whole system. If a node left the system in the bunch,  this leads to a
 region centered around a point that is not in the system anymore, but other
@@ -636,30 +657,38 @@ of that region.  Or this region assignment can be forgotten.
 If nodes are joining in a bunch, this leads to additional region assignment. 
 
 \subsection{Rules for other nodes}
-Moving nodes or joining nodes are different, they are joining a new region, the question is how to integrate them in the system while keeping the system balanced. 
+Moving nodes or joining nodes are different, they are joining a new region, the
+question is how to integrate them in the system while keeping the system
+balanced. 
 
 \subsubsection{Moving node example}
-Assume that going from Epoch $i$ to $i+1$, one node as gone from one place to the other end of the system. 
-Nodes can keep their level, it will change some of the assignment, but most of the regions will be maintained. 
+Assume that going from Epoch $i$ to $i+1$, one node as gone from one place to
+the other end of the system.  Nodes can keep their level, it will change some
+of the assignment, but most of the regions will be maintained. 
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties_movingnode}
-\caption{A moving node keeping its levels is changing assignments of other nodes but keep the same regions}
+\caption{A moving node keeping its levels is changing assignments of other
+    nodes but keep the same regions}
 \label{fig:LocarnoTreaties_movingnode}
 \end{figure}
 
-This seems to to indicates that movement should not be a problem. There is a slight difference between that situation and redrawing the levels at each epoch. As each node can keep its copy of the underlying system working in its region. If the levels are redrawn, communication might be needed to transfer knowledge from one region to another. This communication overhead is reduced in that situation. 
+This seems to indicate that movement should not be a problem. There is a
+slight difference between that situation and redrawing the levels at each
+epoch. As each node can keep its copy of the underlying system working in its
+region. If the levels are redrawn, communication might be needed to transfer
+knowledge from one region to another. This communication overhead is reduced in
+that situation. 
 
 \subsubsection{Leaving nodes}
-Leaving nodes does not create additional problem as fixed nodes does already now how to deal with that case. 
+Leaving nodes does not create additional problems as fixed nodes does already
+know how to deal with that case. 
 
 \subsubsection{Joining nodes}
-Regions that were already in place have the priority on the newly arriving nodes. The joining nodes can leads to the growth of one region or the creation of regions. The precise rules for that are listed below. 
-
-
-
-
+Regions that were already in place have the priority on the newly arriving
+nodes. The joining nodes can lead to the growth of one region or the creation
+of regions. The precise rules for that are listed below. 
 
 \textit{In the space-time graph (the image), most of the regions remain the same and
 the modifications appear in small places.}
@@ -721,7 +750,7 @@ movement in this model, with the churning node moving to infinity. If one
 moving node is leaving one region, this information can be propagated to the
 directly upper region containing the node. 
 
-\subsection{Information as bubbles in space time graphs}
+\subsection{Information as Bubbles in Space Time Graphs}
 
 Imagine the following situation : there is a system of some nodes divided into
 regions. All nodes are fixed except one which is moving. While moving this node
@@ -779,9 +808,13 @@ With the Membership adaptation and the transformation of the regions, there is
 no need for epochs anymore. This component can be deleted from the system. 
 
 
-\subsection{Space/Time protocol}
-Assume that we have a precisely defined set of rule for evolving the region from one epoch to another. 
-The Space/Time Protocol will be the following. Regions are created in the genesis of the system by the algorithm for region creation. The underlying system is replicated in all the deployed regions. And nodes start working in the system. Events are detected with the dynamic Space/Time Metric. 
+\subsection{Space/Time Protocol}
+Assume that we have a precisely defined set of rules for evolving the region
+from one epoch to another.  The Space/Time Protocol will be the following.
+Regions are created in the genesis of the system by the algorithm for region
+creation. The underlying system is replicated in all the deployed regions. And
+nodes start working in the system. Events are detected with the dynamic
+Space/Time Metric. 
 
 
 
