@@ -71,6 +71,7 @@ inspiration to develop some parts of the theoretical algorithm. In practice,
 and for efficiency, this work use \cite{BlsCoSi} that is much more efficient,
 using trees for communication.  
 
+This works uses a distributed public algorithm for the source of randomness like \cite{RandHound}. Each node will use this source to draw a random level.  The way it is used is described in detail in the next section. 
 
 %TODO : Add Stellar
 
@@ -502,8 +503,11 @@ of members with valid proofs.
 The same idea is used at the beginning of the live epoch to reach consensus on
 the list of pings between every member of the system and on the levels on all
 nodes in the system.
-
 % TODO : think on what to do if the consensus is not manageable. 
+
+
+\subsection{Public distributed source of randomness}
+To draw the level to run the region creation algorithm, a distributed public source of randomness will be used. This can be targeted by adversary trying to get a higher level and thus a higher place in the system. To be sure that this source is not targeted, it is  based on the information created during the consensus on the participants just before drawing the regions. 
 
 \section{Discussion}
 \subsection{Advantages}
@@ -645,6 +649,18 @@ Nodes can keep their level, it will change some of the assignment, but most of t
 \label{fig:LocarnoTreaties_movingnode}
 \end{figure}
 
+This seems to to indicates that movement should not be a problem. There is a slight difference between that situation and redrawing the levels at each epoch. As each node can keep its copy of the underlying system working in its region. If the levels are redrawn, communication might be needed to transfer knowledge from one region to another. This communication overhead is reduced in that situation. 
+
+\subsubsection{Leaving nodes}
+Leaving nodes does not create additional problem as fixed nodes does already now how to deal with that case. 
+
+\subsubsection{Joining nodes}
+Regions that were already in place have the priority on the newly arriving nodes. The joining nodes can leads to the growth of one region or the creation of regions. The precise rules for that are listed below. 
+
+
+
+
+
 \textit{In the space-time graph (the image), most of the regions remain the same and
 the modifications appear in small places.}
 
@@ -680,6 +696,8 @@ nodes of one region) and publish the results.
 \caption{Fog of war representation in a classic real-time strategy video game. }
 \label{fig:registrationprotocol}
 \end{figure}
+
+%%% TODO CONTINUE
 
 \section{Introducing the Space/Time metrics}
 
