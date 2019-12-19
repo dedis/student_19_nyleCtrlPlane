@@ -636,6 +636,37 @@ node will have all the information about the memberships of every node.Then
 from one epoch to another, the purpose of the game is to keep as much region as
 possible without breaking the locality rules.
 
+\subsection{Rebalancing the levels}
+Conserving the levels is the way to go, but maintaining levels can lead to
+de-equilibrated systems. Consider a system with 200 Nodes at epoch 1, with the
+repartition given in Table \ref{example-lottery}. If from epoch 1 to epoch 2,
+100 level-0 nodes leave the system, the remaining system would contain 80
+level-0 nodes instead of 90. 
+
+De-equilibrated systems can lead to some problems, the proof is given in the
+appendix [APP. \ref{proof-reequilibrating}].
+
+The lottery process presented in section \ref{lottery}, is a bit changed in
+this part to allow the adaptation of the levels. The total number of
+participants $N$ in the system is known after the registration, and as the
+probability $P$ is given, it is straightforward to compute the expected number
+of nodes that one should have at every level as it mentioned in Table
+\ref{example-lottery}. 
+
+Instead of drawing the levels from a randomness source, nodes will draw a
+random number from this source between 0 and 1.  All nodes can deduce what
+number the others will draw deterministically from the registration list. The
+highest level will go to the node which has drawn the highest random number.
+And levels are given according to the drawing in a descending order.  
+
+Each node that stays in the system will keep its random number from when it
+joined the system, new nodes gets new random numbers. 
+
+Note that this approach can be targeted from attackers. But as it is equivalent
+to the other one, attacks that are valid for one system are valid for this one.
+But this will ensure to have the proper number of levels in the system in each
+epoch.
+
 \subsection{Rules for a fixed node}
 This section describes how to transform the regions from one epoch to another.
 The point of view of one node that stays fixed in the system is taken, the goal
@@ -656,12 +687,23 @@ additional region to cover these extra nodes. The node will then replicate its
 system to the newly created regions. But most of the regions are kept the same.
 
 \subsubsection{Nodes Leaving the Bunch} 
-Nodes participate to all the region in their bunch, leading to participate to
-the whole system. If a node left the system in the bunch,  this leads to a
-region centered around a point that is not in the system anymore, but other
-nodes participating in that region might still be in the system. A random node
-participating in that region could be chosen to be responsible for the maintain
-of that region.  Or this region assignment can be forgotten. 
+Nodes participate to all the region in their bunch, eventually they will
+participate to a region that spans the whole system. If a node left the system
+in the bunch,  this leads to a region centered around a point that is not in
+the system anymore, this assignment might be forgotten. 
+
+From the point of view of a node, if another node leaves its bunch, it can have
+as effect to add other nodes in its bunch, leading to more region assignment.
+And in some cases, to more nodes in its cluster, leading to region growth. 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/LocarnoTreaties-Leaving-cluster}
+\caption{A leaving node is changing assignments of other
+    nodes but keep the same regions. Shrinking regions are depicted in red,
+    growing regions in green and same region in black. }
+\label{fig:LocarnoTreaties-Leaving-cluster}
+\end{figure}
 
 \subsubsection{Nodes joining the bunch} 
 If nodes are joining in a bunch, this leads to additional region assignment. 
@@ -697,8 +739,7 @@ Leaving nodes does not create additional problems as fixed nodes does already
 know how to deal with that case. 
 
 \subsubsection{Joining nodes}
-Regions that were already in place have the priority on the newly arriving
-nodes. The joining nodes can lead to the growth of one region or the creation
+The joining nodes can lead to the growth of one region or the creation
 of regions. The precise rules for that are listed below. 
 
 \textit{In the space-time graph (the image), most of the regions remain the same and
@@ -719,6 +760,9 @@ the modifications appear in small places.}
     system. Shrinking regions are depicted in red, growing regions in green and
     same region in black.} \label{fig:LocarnoTreaties-Insertion-far}
 \end{figure}
+
+
+
 
 \section{Strawman 2 : Fog of the War}
 
@@ -752,6 +796,12 @@ nodes of one region) and publish the results.
 \caption{Fog of war representation in a classic real-time strategy video game. }
 \label{fig:registrationprotocol}
 \end{figure}
+
+\subsection{Purpose : Reducing the need of the Locality Component}
+The protocol presented in the Simple Control Plane protocol and in the Locarno
+Treaties still need a consensus on the pings between all nodes in the system.
+This can be cumbersome as the number of nodes increases in the system this
+quantity increases in $O(n^2)$ and consensus might not be possible.
 
 %%% TODO CONTINUE
 
