@@ -86,7 +86,7 @@ type Service struct {
 	NrPingAnswers     int
 
 	PrefixForReadingFile string
-	DoneChan             chan bool
+	EpochChan            chan Epoch
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -396,15 +396,15 @@ func (s *Service) GetConsencusOnNewSigners() error {
 	for _, si := range siList {
 		log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
 		go func(SI *network.ServerIdentity) {
-			err = s.SendHistory(SI)
+			panicErr := s.SendHistory(SI)
+			if panicErr != nil {
+				panic(panicErr)
+			}
 		}(si)
-		if err != nil {
-			log.LLvl1(s.Name, " got an error while sending history to ", si)
-		}
 	}
-	log.LLvl1(s.Name, "is done updating before sending to chan", s.DoneChan)
-	s.e++
-	s.DoneChan <- true
+	log.LLvl1(s.Name, "is done updating before sending to chan", s.EpochChan)
+
+	s.EpochChan <- s.e + 1
 	log.LLvl1(s.Name, "is done updating after consencus.")
 
 	return nil
@@ -416,12 +416,12 @@ func (s *Service) StartNewEpoch() error {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch(), "s to start the new Epoch")
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
 	}
-	if s.e != s.Cycle.GetEpoch()+1 {
-		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch()+1)
+	if s.e != s.Cycle.GetEpoch() {
+		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch())
 	}
-	if s.DoneChan != nil {
-		<-s.DoneChan
-	}
+
+	s.e = <-s.EpochChan
+
 	log.Lvl1("\033[48;5;33m", s.Name, " Starts Epoch ", s.e, " Successfully.\033[0m")
 
 	ro, err := s.getRosterForEpoch(s.e)
@@ -583,7 +583,7 @@ func (s *Service) UpdateHistoryWith(name string) error {
 	s.ServersMtx.Unlock()
 
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
-	<-s.DoneChan
+	s.e = <-s.EpochChan
 
 	return err
 
@@ -646,6 +646,7 @@ func (s *Service) ExecReqHistory(env *network.Envelope) error {
 // Assume nodes will not use that for malicious reasons
 // No check for now
 func (s *Service) ExecReplyHistory(env *network.Envelope) error {
+	log.LLvl1(s.Name, " is executing history.")
 	req, ok := env.Msg.(*ReplyHistory)
 	if !ok {
 		log.Error(s.ServerIdentity(), "failed to cast to ReplyHistory")
@@ -677,11 +678,12 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	log.Lvl1(s.Name, "is now at Epoch", l-1)
 	// Catching up on Epochs
 	if s.e < Epoch(l-1) {
-		s.e = Epoch(l - 1)
+		s.EpochChan <- Epoch(l - 1)
+	} else {
+		s.EpochChan <- s.e
 	}
 
 	log.LLvl1(s.Name, "is done updating.")
-	s.DoneChan <- true
 	return nil
 }
 
@@ -719,7 +721,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		// TODO : invesitgate why is blocking with 1
 		// One reason could be that, for one node it get two value, (one for the update one for Consensus)
 		// But that sould not happen
-		DoneChan: make(chan bool, 2),
+		EpochChan: make(chan Epoch, 2),
 	}
 	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
 
