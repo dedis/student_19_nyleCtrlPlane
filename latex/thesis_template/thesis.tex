@@ -636,7 +636,7 @@ node will have all the information about the memberships of every node.Then
 from one epoch to another, the purpose of the game is to keep as much region as
 possible without breaking the locality rules.
 
-\subsection{Rebalancing the levels}
+\subsection{Rebalancing the levels} \label{rebalancing}
 Conserving the levels is the way to go, but maintaining levels can lead to
 de-equilibrated systems. Consider a system with 200 Nodes at epoch 1, with the
 repartition given in Table \ref{example-lottery}. If from epoch 1 to epoch 2,
@@ -667,19 +667,29 @@ to the other one, attacks that are valid for one system are valid for this one.
 But this will ensure to have the proper number of levels in the system in each
 epoch.
 
-\subsection{Rules for a fixed node}
+An example of one attack : if one node is not happy with its level assignment
+it can leave the system a reenter later, hoping to get a better level. This
+attack works against the two algorithms, but this attack does not create too
+bad consequences, as it is presented in \ref{Threat-Model}.
+
+
+
+\subsection{Effects for a fixed node}
 This section describes how to transform the regions from one epoch to another.
 The point of view of one node that stays fixed in the system is taken, the goal
 is that node can keep most of its region assignment.  What are the
 implications. As it was said other nodes might join, leave or move. This leads
 either to change in its cluster of in its bunch. 
+Additional effect can come from the level rebalancing. 
 
 \subsubsection{Nodes Leaving the Cluster} 
 This will shrink the cluster. As the regions created by a given node stops when
 the radius covers the whole cluster, this might lead to the deletion of some
-regions, note that the smallest one is still kept. This does not change the
+regions. This does not change the
 region assignment and the nodes can still keep the replicated system of the
 previous epoch running.
+
+Additional effect can come from the level rebalancing. 
 
 \subsubsection{Nodes Joining the Cluster} 
 On the contrary, if nodes join the cluster, this might lead to the creation of
@@ -762,6 +772,27 @@ the modifications appear in small places.}
 \end{figure}
 
 
+\subsection{Protocol}
+The protocol is mostly the same as the simple control plane protocol [FIG.
+\ref{fig:registrationprotocol}]. The main difference is the level assignment
+which follows the new algorithm described in \ref{rebalancing}. 
+
+\subsubsection{Quantifying the effect of Locarno Treaties}
+The goal of the new protocol is to keep most regions and region assignment
+following the evolution of the system. 
+
+A concrete comparison is made. The system starts with a fixed number of nodes
+and evolves with nodes moving, leaving and entering the system. A metric is
+chosen to evaluate the difference between the system from one epoch to the
+next. The metric is defined as the following :  the list of participants in the
+system is taken sorted by name. Then for each node, their bunch and cluster
+will be compared. Each difference will be counted, if a new node enter the
+system, their bunch and cluster count as a difference. Same if a node leaves
+the system. The idea is that with this new protocol, the difference should be
+reduced. 
+
+The results of the experiment can be seen in [FIG. \ref{TODO FIGURE}]. Maps of
+the system is given in the appendix.
 
 
 \section{Strawman 2 : Fog of the War}
