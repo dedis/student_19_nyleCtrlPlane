@@ -361,14 +361,18 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 // GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
 func (s *Service) GetConsencusOnNewSigners() error {
+
 	if s.Cycle.GetCurrentPhase() != EPOCH {
-		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-2*time.Second, "s to Get the Consencus")
-		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 1*time.Second)
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-3*time.Second, "s to Get the Consencus")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 3*time.Second)
 	}
+	timeCons := time.Now()
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
 		return err
 	}
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
 	// Agree on Signers
 	sign, err := s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
@@ -376,22 +380,32 @@ func (s *Service) GetConsencusOnNewSigners() error {
 		return err
 	}
 
-	log.LLvl1("Send Signature", sign)
+	log.LLvl1("Send Signature after", time.Now().Sub(timeCons), sign)
 	newSigners := s.GetSigners(s.e + 1)
+
+	var siList []*network.ServerIdentity
+	s.ServersMtx.Lock()
 	for sID := range newSigners.Set {
 		if sID != s.ServerIdentity().ID {
-			s.ServersMtx.Lock()
 			name := s.ServerIdentityToName[sID]
-			si := s.Servers[name]
-			s.ServersMtx.Unlock()
-			err := s.SendHistory(si)
-			if err != nil {
-				log.LLvl1(s.Name, " got an error while sending history to ", name)
-			}
-		} else {
-			s.e++
+			siList = append(siList, s.Servers[name])
 		}
 	}
+	s.ServersMtx.Unlock()
+
+	for _, si := range siList {
+		log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
+		go func(SI *network.ServerIdentity) {
+			err = s.SendHistory(SI)
+		}(si)
+		if err != nil {
+			log.LLvl1(s.Name, " got an error while sending history to ", si)
+		}
+	}
+	log.LLvl1(s.Name, "is done updating before sending to chan", s.DoneChan)
+	s.e++
+	s.DoneChan <- true
+	log.LLvl1(s.Name, "is done updating after consencus.")
 
 	return nil
 }
@@ -405,6 +419,11 @@ func (s *Service) StartNewEpoch() error {
 	if s.e != s.Cycle.GetEpoch()+1 {
 		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch()+1)
 	}
+	if s.DoneChan != nil {
+		<-s.DoneChan
+	}
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Epoch ", s.e, " Successfully.\033[0m")
+
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
 		return err
@@ -563,10 +582,8 @@ func (s *Service) UpdateHistoryWith(name string) error {
 	}
 	s.ServersMtx.Unlock()
 
-	s.DoneChan = make(chan bool)
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
 	<-s.DoneChan
-	close(s.DoneChan)
 
 	return err
 
@@ -663,6 +680,7 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 		s.e = Epoch(l - 1)
 	}
 
+	log.LLvl1(s.Name, "is done updating.")
 	s.DoneChan <- true
 	return nil
 }
@@ -698,6 +716,10 @@ func newService(c *onet.Context) (onet.Service, error) {
 		PrefixForReadingFile: dir + "/..",
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
+		// TODO : invesitgate why is blocking with 1
+		// One reason could be that, for one node it get two value, (one for the update one for Consensus)
+		// But that sould not happen
+		DoneChan: make(chan bool, 2),
 	}
 	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
 
