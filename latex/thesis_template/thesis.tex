@@ -900,6 +900,9 @@ This change in region assignment actually have an effect on the form of the
 region, the same rules developed in \ref{Locarno} can be applied to adapt the
 regions on the fly. 
 
+\paragraph{Protocol}
+If node $A$ is moving and leaves a region, and another node $B$ detects that while communicating with $A$, it will take that in account meaning it will store the last ping and adopt its own view on the system. If a major change is detected, for example that $A$ leaves the cluster of $B$ leading to the shrinking of the cluster of $B$ then $B$ will notify the other nodes participating in its cluster that it shrank the region. It will as well notify the first node of its bunch, and provide the ping. As if $A$ moved too fast, it might have left its cluster as well. 
+
 \subsubsection{Rules for Membership Component based on the Space/Time metric}
 The Space/Time Metric can be leveraged to serve as a Membership Components.
 Decisions are made on the majority of alive nodes. To be able to participate in
@@ -909,7 +912,7 @@ biggest region, and the node is excluded from the system.  If a node joins the
 system, it starts to ping some nodes for information. It can ask for the list
 of participants and pings everybody. When it starts pinging some nodes that are
 close to it, these nodes detect that a new node wants to join the system and
-expect it to enter the system.  
+when nodes are aware of the place of the new participant, it can be verified by a random number of checkers. The verification will check that the place is actually right and that a valid \textit{endorsement} is provided, and a level will be given to it. 
 
 \subsubsection{Epoch Components}
 With the Membership adaptation and the transformation of the regions, there is
