@@ -18,8 +18,11 @@ func writeToFile(str, fileStr string) {
 
 func getMemoryUsage(m map[string]map[string]float64) string {
 	size := reflect.TypeOf(m).Size()
-	for mm := range m {
-		size += reflect.TypeOf(mm).Size() * 8
+	for x := range m {
+		size += reflect.TypeOf(x).Size()
+		for y := range x {
+			size += reflect.TypeOf(y).Size()
+		}
 	}
 	return fmt.Sprintf("%d", size)
 }
