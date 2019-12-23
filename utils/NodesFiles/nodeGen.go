@@ -72,9 +72,7 @@ func euclidianDistNew(a NodeFloat, b NodeFloat) float64 {
 }
 
 func computeADistNew(nodes []NodeFloat, K int) {
-
 	for lvl := K - 1; lvl >= 0; lvl-- {
-
 		N := len(nodes)
 		for i := 0; i < N; i++ {
 			crtNode := &nodes[i]
@@ -86,7 +84,6 @@ func computeADistNew(nodes []NodeFloat, K int) {
 					crtNode.pDist[lvl] = nodes[j].Name
 				}
 			}
-
 			crtNode.ADist[0] = 0
 			crtNode.pDist[0] = crtNode.Name
 
