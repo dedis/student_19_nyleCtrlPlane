@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -328,7 +329,6 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	if err != nil {
 		return err
 	}
-
 	s.Proof = buf.(*gpr.SignatureResponse)
 	if s.Proof == nil {
 		log.LLvl1(s.Name, " :cannot share proof as it did not manage to get one")
@@ -336,6 +336,8 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	}
 
 	ro = ro.NewRosterWithRoot(s.ServerIdentity())
+
+	writeToFile(s.Name+",CreateProofForEpoch,"+strconv.Itoa(len(ro.List))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
 	tree := ro.GenerateBinaryTree()
 	pi, err := s.CreateProtocol(gpr.Name, tree)
@@ -392,6 +394,8 @@ func (s *Service) GetConsencusOnNewSigners() error {
 		}
 	}
 	s.ServersMtx.Unlock()
+
+	writeToFile(s.Name+",GetConsencusOnNewSigners,"+strconv.Itoa(len(siList))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
 	for _, si := range siList {
 		log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
@@ -465,6 +469,8 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSig
 	if tree == nil {
 		return nil, errors.New("failed to generate tree")
 	}
+
+	writeToFile(s.Name+",AgreeOnState,"+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
 	// configure the BlsCosi protocol
 	pi, err := s.CreateProtocol(agreeProtocolName, tree)
@@ -584,7 +590,7 @@ func (s *Service) UpdateHistoryWith(name string) error {
 
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
 	s.e = <-s.EpochChan
-
+	writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	return err
 
 }
@@ -753,5 +759,6 @@ func newService(c *onet.Context) (onet.Service, error) {
 		log.Error(err)
 		return nil, err
 	}
+
 	return s, nil
 }

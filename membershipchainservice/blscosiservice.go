@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 
 	"go.dedis.ch/protobuf"
 
@@ -31,6 +32,8 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	nNodes := len(req.Roster.List)
 	//s.Threshold = nNodes / 4
 	//s.NSubtrees = 2
+
+	writeToFile(s.Name+", SignatureRequest, "+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
 	rooted := req.Roster.NewRosterWithRoot(s.ServerIdentity())
 	if rooted == nil {
