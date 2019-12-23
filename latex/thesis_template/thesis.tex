@@ -80,7 +80,6 @@ The way it is used is described in detail in the next section.
 
 %TODO : Add Stellar
 
-
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Background}
 %%%%%%%%%%%%%%%%%%%%
@@ -186,7 +185,6 @@ includes it in its bunch if its level is not smaller than the one it encounters
 so far, including its own level. 
 % TODO include image of Bunch
 
-
 \paragraph{Cluster} A cluster is a complementary concept. The cluster of node
 $A$ is defined as the set of other nodes that have $A$ in their bunch. 
 % TODO include image of Cluster.
@@ -269,7 +267,6 @@ each level.
 the distance from a new node to the rest of the nodes. And that assures no one
 cheats by giving false distances. 
 
-
 \subsection{Next Steps} Here is the structure of Nyle :
 
 \begin{itemize} 
@@ -319,7 +316,6 @@ is replicated in all the regions, the control plane will be global.
 \chapter{Control Plane : Design}
 %%%%%%%%%%%%%%%%
 
-
 %%%%%%%%% 
 %  - Problem definition (Hypothesis, Goals, ...) (2-3p) 
 %%  - Hypothesis on the threat model
@@ -363,8 +359,6 @@ which we build the locality properties of the system.
 \subsection{Threat model}
 %% Todo : when adversarial model is done, depending on results. 
 
-
-
 %%%% mostly copied from
 % https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
 \section{General Presentation}
@@ -380,11 +374,9 @@ finally, the control plane is in charge of answering some requests linked to
 the location and presence of the nodes in the system. Each will be described in
 detail below. 
 
-
 \begin{figure}[!h] \centering
 \includegraphics[width=400pt]{figures/Nyle_components} \caption{List of modules
 of Nyle} \label{fig:modules} \end{figure}
-
 
 \subsection{Membership Component}
 
@@ -432,10 +424,8 @@ consensus is made on that information. The region component in this model is
 really simple : based on the registration, and the pings, CRUX is run at each
 epoch. Redrawing the map of the entire system. 
 
-
 \subsection{Membership Protocol}
 This section describes the membership protocol [FIG. \ref{fig:registrationprotocol}].
-
 
 \begin{figure}[!h] 
 \centering
@@ -523,7 +513,6 @@ the list of pings between every member of the system and on the levels on all
 nodes in the system.
 % TODO : think on what to do if the consensus is not manageable. 
 
-
 \subsection{Public distributed source of randomness}
 To draw the level to run the region creation algorithm, a distributed public
 source of randomness will be used. This can be targeted by adversaries trying to
@@ -545,13 +534,11 @@ fixed number of nodes is required to create the regions. With this control
 plane, node insertion is possible at the beginning of every epoch.
 % TODO add image
 
-
 \subsubsection{Churn resistance}
 Nodes can churn. If the system is not supposed to change, crashing nodes can be
 still in the system. With this control plane, nodes that have crashed cannot
 register for the next epoch and therefore are removed from the system. 
 % TODO add image 
-
 
 \subsubsection{Adaptation to Node Movements}
 Nodes can move as well, if the regions are only drawn at the beginning of the
@@ -593,7 +580,6 @@ inefficient as well, and it is then for the transition to happen, a copy of the
 whole underlying system at epoch $i$ should be replicated in each new region of
 epoch $i+1$.
 
-
 %% TODO FIT
 \begin{figure}[!h] 
 \centering
@@ -601,7 +587,6 @@ epoch $i+1$.
 \caption{Growth of the number of messages for one epoch with the number of nodes.}
 \label{fig:messages-plot}
 \end{figure}
-
 
 %% TODO FIT
 \begin{figure}[!h] 
@@ -621,7 +606,6 @@ every node will run the algorithm for region creation and arrives to the same
 regions. But this can be a lot of information to store.
 
 \section{Security Analysis}
-
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Improvements}
@@ -690,8 +674,6 @@ An example of one attack : if one node is not happy with its level assignment
 it can leave the system a reenter later, hoping to get a better level. This
 attack works against the two algorithms, but this attack does not create too
 bad consequences, as it is presented in \ref{Threat-Model}.
-
-
 
 \subsection{Effects for a fixed node}
 This section describes how to transform the regions from one epoch to another.
@@ -790,7 +772,6 @@ the modifications appear in small places.}
     same region in black.} \label{fig:LocarnoTreaties-Insertion-far}
 \end{figure}
 
-
 \subsection{Protocol}
 The protocol is mostly the same as the simple control plane protocol [FIG.
 \ref{fig:registrationprotocol}]. The main difference is the level assignment
@@ -812,7 +793,6 @@ reduced.
 
 The results of the experiment can be seen in [FIG. \ref{TODO FIGURE}]. Maps of
 the system is given in the appendix.
-
 
 \section{Strawman 2 : Fog of the War}
 
@@ -897,8 +877,6 @@ The protocol is mostly the same as the simple control plane protocol [FIG.
 \ref{fig:registrationprotocol}]. The only difference is the consensus on the
 pings which are now replaced by a declared distance, which is announced before
 the level assignment and a round of checks and announce of the checks. 
-
-
 
 %%% TODO CONTINUE
 
@@ -994,7 +972,6 @@ will be given to it.
 With the Membership adaptation and the transformation of the regions, there is
 no need for epochs anymore. This component can be deleted from the system. 
 
-
 \subsection{Space/Time Protocol}
 Assume that we have a precisely defined set of rules for evolving the region
 from one epoch to another.  The Space/Time Protocol will be the following.
@@ -1007,7 +984,6 @@ Space/Time Metric.
 \chapter{Possible Improvements}
 %%%%%%%%%%%%%%%%%%%%
 
-
 This chapter lists the improvements that could be applied more or less directly
 to one part of the project, but that were not implemented due to time reasons. 
 
@@ -1019,8 +995,6 @@ However, this was not implemented as it was hard to see how to go from one
 epoch to another using TLC. Recall that in the existing protocol, at the
 beginning of the live period one node of the old committee sends the necessary
 information to the new committee to begin. Synchronizing this could be hard.
-
-
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Conclusion}
