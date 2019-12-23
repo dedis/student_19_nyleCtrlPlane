@@ -851,7 +851,54 @@ nodes of one region) and publish the results.
 The protocol presented in the Simple Control Plane protocol and in the Locarno
 Treaties still need a consensus on the pings between all nodes in the system.
 This can be cumbersome as the number of nodes increases in the system this
-quantity increases in $O(n^2)$ and consensus might not be possible.
+quantity increases in $O(n^2)$ and consensus might become too costly. 
+
+The idea is to change that consensus with a declared position and a random
+committee of checkers. The question is still : how to choose the committee ? If
+sampled randomly the chances are big that the selected nodes will be far away
+from each other, and above a certain threshold, the correlation between pings
+and distances are not satisfactory. Therefore the committee of checkers can be
+selected to be the $N$ closest nodes based on the declared distances. And $N$
+can be adapted to increase if one node does not pass the checks. 
+
+If a node does not pass, the checks it either means that this node is faulty or
+that the number of checkers is constituted of a majority of malicious nodes.
+One can solve the second problem by increasing the number of checkers $N$, and
+progressively a majority of honest nodes should have checked the node. It the
+ping still does not correspond to what the node declared then one might assume
+that the node itself is faulty. 
+
+\subsection{Misbehaving Nodes}
+Another question can be, what are we supposed to do with a node that are not
+passing the tests ? First it is important to notice that it won't actually
+change the view that all nodes will have of the system, as nodes use the
+declared distance to compute their bunch and cluster. But one node could use
+that system to keep its level and go to a strategic place where it can have
+more influence. This is what one may want to avoid. 
+
+There are three approaches to this problem, the first is to exclude the node
+from the system, but it might lead to the redrawing of a certain number of
+regions, and it might lead to attacks. Another strategy could be to rewrite the
+position of the faulty node with an approximation based on the ping. If we have
+the position of the other nodes and we have to fix the location of the unknown
+faulty node one might do that by computing the intersection between the circles
+based on the pings. This triangulation strategy can block one faulty node to
+reach a desired position. 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/triangulation_strategy}
+\caption{The classic triangulation can be used to reassign the position of a faulty node.  }
+\label{fig:triangulation_strategy}
+\end{figure}
+
+\subsection{Protocol}
+The protocol is mostly the same as the simple control plane protocol [FIG.
+\ref{fig:registrationprotocol}]. The only difference is the consensus on the
+pings which are now replaced by a declared distance, which is announced before
+the level assignment and a round of checks and announce of the checks. 
+
+
 
 %%% TODO CONTINUE
 
@@ -920,7 +967,14 @@ region, the same rules developed in \ref{Locarno} can be applied to adapt the
 regions on the fly. 
 
 \paragraph{Protocol}
-If node $A$ is moving and leaves a region, and another node $B$ detects that while communicating with $A$, it will take that in account meaning it will store the last ping and adopt its own view on the system. If a major change is detected, for example that $A$ leaves the cluster of $B$ leading to the shrinking of the cluster of $B$ then $B$ will notify the other nodes participating in its cluster that it shrank the region. It will as well notify the first node of its bunch, and provide the ping. As if $A$ moved too fast, it might have left its cluster as well. 
+If node $A$ is moving and leaves a region, and another node $B$ detects that
+while communicating with $A$, it will take that in account meaning it will
+store the last ping and adopt its own view on the system. If a major change is
+detected, for example that $A$ leaves the cluster of $B$ leading to the
+shrinking of the cluster of $B$ then $B$ will notify the other nodes
+participating in its cluster that it shrank the region. It will as well notify
+the first node of its bunch, and provide the ping. As if $A$ moved too fast, it
+might have left its cluster as well. 
 
 \subsubsection{Rules for Membership Component based on the Space/Time metric}
 The Space/Time Metric can be leveraged to serve as a Membership Components.
@@ -931,7 +985,10 @@ biggest region, and the node is excluded from the system.  If a node joins the
 system, it starts to ping some nodes for information. It can ask for the list
 of participants and pings everybody. When it starts pinging some nodes that are
 close to it, these nodes detect that a new node wants to join the system and
-when nodes are aware of the place of the new participant, it can be verified by a random number of checkers. The verification will check that the place is actually right and that a valid \textit{endorsement} is provided, and a level will be given to it. 
+when nodes are aware of the place of the new participant, it can be verified by
+a random number of checkers. The verification will check that the place is
+actually right and that a valid \textit{endorsement} is provided, and a level
+will be given to it. 
 
 \subsubsection{Epoch Components}
 With the Membership adaptation and the transformation of the regions, there is
