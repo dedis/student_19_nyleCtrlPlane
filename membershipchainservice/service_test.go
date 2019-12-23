@@ -368,6 +368,7 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 	nbrEpoch := Epoch(10)
 	nbFirstSigners := 4
 	writeToFile("Name,Function,nb_messages,epoch", "Data/messages.txt")
+	writeToFile("Name,Function,storage,epoch", "Data/storage.txt")
 	joiningPerEpoch := int(0.1 * float64(nbrNodes))
 
 	local := onet.NewTCPTest(tSuite)
