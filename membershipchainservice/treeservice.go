@@ -31,8 +31,7 @@ var execReplyPingsMsgID network.MessageTypeID
 // Setup is a method that will initialize the Crux Protocol
 // it is copy-pasted from : https://github.com/dedis/paper_crux/blob/master/dsn_exp/service/service.go
 func (s *Service) Setup(req *InitRequest) {
-
-	s.Nodes.All = gentree.ReadNodesFromFile(s.PrefixForReadingFile + "/utils/NodesFiles/nodes" + strconv.Itoa(len(req.ServerIdentityToName)) + ".txt")
+	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 
 	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+"/utils/NodesFiles/nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
@@ -40,11 +39,6 @@ func (s *Service) Setup(req *InitRequest) {
 	i := 0
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
-<<<<<<< HEAD
-=======
-		//s.Nodes.All[i] = &gentree.LocalityNode{}
-		s.Nodes.All[i].Name = v
->>>>>>> Add level reader for strawman#1.
 		s.Nodes.All[i].ServerIdentity = k
 		log.LLvl1(s.Nodes.All[i].Name, "Level : ", s.Nodes.All[i].Level)
 		i++

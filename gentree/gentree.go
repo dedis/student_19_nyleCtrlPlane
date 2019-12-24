@@ -63,6 +63,7 @@ type LocalityNode struct {
 	AvailablePortsEnd   int
 	NextPort            int
 	NextPortMtx         sync.Mutex
+	LotteryResult       float64 // This line was added from the Locarno Treaties method of lottery, see the report
 }
 
 // LocalityNodes is a list of LocalityNode

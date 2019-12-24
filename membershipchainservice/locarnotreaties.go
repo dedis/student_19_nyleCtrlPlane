@@ -20,7 +20,10 @@ func SetLevels(nodes []gentree.LocalityNode) {
 
 	var lotteryResults []float64
 	for i := 0; i < nbNodes; i++ {
-		lotteryResults = append(lotteryResults, rand.Float64())
+		if nodes[i].LotteryResult == 0 {
+			nodes[i].LotteryResult = rand.Float64()
+		}
+		lotteryResults = append(lotteryResults, nodes[i].LotteryResult)
 	}
 
 	indexes := indexesOfSortedValues(lotteryResults)
