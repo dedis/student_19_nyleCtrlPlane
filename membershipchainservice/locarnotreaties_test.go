@@ -16,7 +16,10 @@ func TestIndexesOfSortedValues(t *testing.T) {
 }
 
 func TestSetLevels(t *testing.T) {
-	nodes := make([]gentree.LocalityNode, 1000)
+	nodes := make([]*gentree.LocalityNode, 1000)
+	for i := range nodes {
+		nodes[i] = &gentree.LocalityNode{}
+	}
 
 	SetLevels(nodes)
 
@@ -33,7 +36,10 @@ func TestSetLevels(t *testing.T) {
 }
 
 func TestSetLevelsWithResults(t *testing.T) {
-	nodes := make([]gentree.LocalityNode, 1000)
+	nodes := make([]*gentree.LocalityNode, 1000)
+	for i := range nodes {
+		nodes[i] = &gentree.LocalityNode{}
+	}
 
 	for i := 0; i < 10; i++ {
 		nodes[i].LotteryResult = float64(i) + 1.1

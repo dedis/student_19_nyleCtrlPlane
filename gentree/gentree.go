@@ -114,19 +114,12 @@ func (ns LocalityNodes) OccupyNextPort(ip string) int {
 
 // GetByName gets the node by name.
 func (ns LocalityNodes) GetByName(name string) *LocalityNode {
-	nodeIdx := NodeNameToInt(name)
-
-	//log.LLvl1("name here is", name)
-
-	//log.LLvl1("ns length", len(ns.All), "nodeIdx", nodeIdx)
-	if len(ns.All) < nodeIdx {
-		//log.LLvl1("returning NOT fine")
-		return nil
+	for _, n := range ns.All {
+		if n.Name == name {
+			return n
+		}
 	}
-	//log.LLvl1("returning fine", ns.All[nodeIdx])
-	//log.LLvl1(ns.All)
-	return ns.All[nodeIdx%len(ns.All)]
-	return ns.All[nodeIdx]
+	return nil
 }
 
 // NameToServerIdentity gets the server identity by name.

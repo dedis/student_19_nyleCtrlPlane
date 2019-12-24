@@ -31,6 +31,8 @@ var execReplyPingsMsgID network.MessageTypeID
 // Setup is a method that will initialize the Crux Protocol
 // it is copy-pasted from : https://github.com/dedis/paper_crux/blob/master/dsn_exp/service/service.go
 func (s *Service) Setup(req *InitRequest) {
+	oldNodes := s.Nodes
+
 	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 
@@ -39,8 +41,13 @@ func (s *Service) Setup(req *InitRequest) {
 	i := 0
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
+		s.Nodes.All[i] = &gentree.LocalityNode{}
+		if oldNodes.GetByName(v) != nil {
+			s.Nodes.All[i] = oldNodes.GetByName(v)
+		}
+
+		s.Nodes.All[i].Name = v
 		s.Nodes.All[i].ServerIdentity = k
-		log.LLvl1(s.Nodes.All[i].Name, "Level : ", s.Nodes.All[i].Level)
 		i++
 	}
 
@@ -84,6 +91,8 @@ func (s *Service) Setup(req *InitRequest) {
 	}
 
 	s.getPings(true)
+
+	SetLevels(s.Nodes.All)
 
 	s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
 

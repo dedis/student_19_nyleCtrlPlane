@@ -13,7 +13,7 @@ const SHARED_RANDOM_SEED = 10
 
 // SetLevels set the levels according to the algorithm defined in the part Locarno Treaties
 // of the Report.
-func SetLevels(nodes []gentree.LocalityNode) {
+func SetLevels(nodes []*gentree.LocalityNode) {
 	nbNodes := len(nodes)
 	rand.Seed(SHARED_RANDOM_SEED)
 	probability := 1.0 / math.Pow(float64(nbNodes), 1.0/float64(NR_LEVELS))
@@ -22,6 +22,8 @@ func SetLevels(nodes []gentree.LocalityNode) {
 	for i := 0; i < nbNodes; i++ {
 		if nodes[i].LotteryResult == 0 {
 			nodes[i].LotteryResult = rand.Float64()
+		} else {
+			log.LLvl1("\033[48;5;20m Already existing result : ", nodes[i].LotteryResult, " for node :  ", nodes[i].Name, "\033[0m")
 		}
 		lotteryResults = append(lotteryResults, nodes[i].LotteryResult)
 	}
@@ -35,7 +37,6 @@ func SetLevels(nodes []gentree.LocalityNode) {
 		}
 
 		nSelected := int(reduceFactor * math.Floor(math.Pow(probability, float64(l))*float64(nbNodes)))
-		log.LLvl1(nSelected)
 		for i := 0; i < nSelected; i++ {
 			nodes[indexes[k]].Level = l
 			k++
