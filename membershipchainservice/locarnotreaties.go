@@ -24,16 +24,21 @@ func SetLevels(nodes []gentree.LocalityNode) {
 	}
 
 	indexes := indexesOfSortedValues(lotteryResults)
-
-	log.LLvl1(probability, lotteryResults, indexes)
 	k := 0
-	for l := NR_LEVELS - 1; l >= 0; l-- {
-		nSelected := int(math.Pow(probability, float64(l)))
+	for l := NR_LEVELS; l >= 0; l-- {
+		reduceFactor := 1.0
+		if l != NR_LEVELS {
+			reduceFactor = 1 - probability
+		}
+
+		nSelected := int(reduceFactor * math.Floor(math.Pow(probability, float64(l))*float64(nbNodes)))
+		log.LLvl1(nSelected)
 		for i := 0; i < nSelected; i++ {
 			nodes[indexes[k]].Level = l
 			k++
 		}
 	}
+
 }
 
 func indexesOfSortedValues(list []float64) []int {
@@ -44,8 +49,6 @@ func indexesOfSortedValues(list []float64) []int {
 		indexes[i] = i
 	}
 	sort.Sort(IndexValue{Indexes: indexes, Values: copyList})
-	log.LLvl1(indexes)
-	log.LLvl1(copyList)
 	return indexes
 }
 
