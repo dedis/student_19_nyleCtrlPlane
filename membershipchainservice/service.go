@@ -442,6 +442,7 @@ func (s *Service) StartNewEpoch() error {
 	})
 
 	writeToFile(s.Name+",Pings,"+getMemoryUsage(s.PingDistances)+","+strconv.Itoa(int(s.e)), "Data/storage.txt")
+	writeToFile(s.Name+",Maps,"+fmt.Sprintf("%v", s.GraphTree)+","+strconv.Itoa(int(s.e)), "Data/maps_graphTree.txt")
 
 	// Wait that all the other services have set up.
 	time.Sleep(1 * time.Second)

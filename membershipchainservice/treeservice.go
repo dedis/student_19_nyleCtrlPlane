@@ -18,7 +18,7 @@ import (
 	"go.dedis.ch/onet/v3/network"
 )
 
-const RND_NODES = false
+const RND_NODES = true
 const NR_LEVELS = 3
 const OPTIMIZED = false
 const OPTTYPE = 1
@@ -230,7 +230,7 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 
 	// genTrees placeholder code, ideally we'll generate trees from small to large
 
-	file3, _ := os.Create("Specs/gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()))
+	file3, _ := os.Create("Data/gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
 	w3 := bufio.NewWriter(file3)
 
 	gentree.CreateLocalityGraph(s.Nodes, RandomCoordsLevels, RandomCoordsLevels, Levels, pingDist, w3)

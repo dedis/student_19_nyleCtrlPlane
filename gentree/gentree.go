@@ -269,8 +269,11 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 	}
 
 	for _, n := range all.All {
-		log.Lvl1(n.Name, "cluster=", n.Cluster, "bunch=", n.Bunch)
+		s := fmt.Sprintf("%v %v %v %v cluster=%v, bunch=%v\n", n.Name, n.Level, n.X, n.Y, n.Cluster, n.Bunch)
+		w3.WriteString(s)
 	}
+
+	w3.Flush()
 
 	// write to file
 	file, _ := os.Create("Specs/original.txt")
@@ -305,7 +308,9 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 	w.Flush()
 	file.Close()
 
-	w3.WriteString("cluster-bunch-init-start\n")
+	file, _ = os.Create("Data/cluster-bunch-init-start.txt")
+	w = bufio.NewWriter(file)
+	w.WriteString("cluster-bunch-init-start\n")
 
 	// loop in order
 	for i := 0; i < len(all.ClusterBunchDistances); i++ {
@@ -314,17 +319,19 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 			name2 := "node_" + strconv.Itoa(j)
 			dist := all.ClusterBunchDistances[all.GetByName(name1)][all.GetByName(name2)]
 			if dist > 10000.0 {
-				w3.WriteString("inf ")
+				w.WriteString("inf ")
 			} else {
-				w3.WriteString(fmt.Sprintf("%.2f", dist) + " ")
+				w.WriteString(fmt.Sprintf("%.2f", dist) + " ")
 			}
 
 		}
-		w3.WriteString("\n")
+		w.WriteString("\n")
 
 	}
 
-	w3.WriteString("cluster-bunch-init-end\n")
+	w.WriteString("cluster-bunch-init-end\n")
+	w.Flush()
+	file.Close()
 
 }
 
