@@ -6,6 +6,7 @@
 \documentclass[a4paper,11pt,oneside]{report}
 % Options: MScThesis, BScThesis, MScProject, BScProject
 \usepackage[MScThesis]{EPFLreport} \usepackage{xspace}
+\usepackage{array}
 
 \title{A Control Plane in Time and Space for Locality-Preserving Blockchains}
 \author{Arnaud Pannatier} \supervisor{Cristina Basescu} \adviser{Prof. Bryan
@@ -592,8 +593,8 @@ epoch $i+1$.
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=350pt]{figures/storage-plot}
-\caption{Growth of the number of storage for ping distances for one epoch with respect to the number of nodes.}
-\label{fig:storage-plot}
+\caption{Growth of the number of storage for ping distances for one epoch with
+    respect to the number of nodes.} \label{fig:storage-plot}
 \end{figure}
 
  
@@ -606,6 +607,69 @@ every node will run the algorithm for region creation and arrives to the same
 regions. But this can be a lot of information to store.
 
 \section{Security Analysis}
+
+\subsection{Threat Model}
+Attacks on the system can be made internally (from malicious nodes) or
+externally by delaying the interaction between nodes or intercepting and
+changing messages. We will give the precise portion of malicious nodes that
+this protocol can handle. In this threat model, malicious nodes are regular
+nodes that decides to act against the system. In particular, malicious nodes
+have only access to a bounded computational power, and they cannot break the
+cryptographic primitives. 
+
+\subsection{Network Attacks} 
+\subsubsection{Man-in-the-middle attacks} \label{MitM}
+The messages exchanged during the protocol are the following: 
+
+\begin{table}[]
+\begin{tabular}{p{0.05\textwidth}p{0.3\textwidth}*{2}{>{\arraybackslash}p{0.2\textwidth}}}
+& Message                                                                                                       & Signature                                                       & Effects of a Sufficient Delay \\ \hline
+1 & Join request                                                                                               & Requesting node                                           & Request refused               \\
+2 &Threshold signature of the request                                                             & Threshold number of the current committee & Request refused               \\
+3 &Broadcasting of the Threshold signature                                                    & Threshold number of the current committee & Request refused               \\
+4 &Messages for the consensus on the participants,
+list of the participants                                                                                       & Leader of the current committee                   & View Change                   \\
+5 &List of pings and levels                                                                               & Leader of the current committee                   & View Change                  
+\end{tabular}
+\caption{List of the messages exchanged during the protocol. The signature of the message and the effects of a delay are given. }
+\label{tab:my-table}
+\end{table}
+
+As all the messages are signed, if a message is changed, it will be noticed by
+the receiver. Which will discard the altered message, and ask again to the
+sender.  Therefore the only effect of a Man-in-the-middle attack will be to
+delete some of the messages, which is a sort of delay attacks. 
+
+\subsubsection{Delay attacks}
+This protocol is not really resistant against delay attacks. It assumes
+wall-clock synchronicity between the nodes, which can cause some problems. The
+effect of a delay of message are listed in [TAB. \ref{tab:my-table}]. During
+the registration, if the messages are delayed until the start of the next
+epoch, then it will lead to the refusal of the request, and the node have to
+create a request again for the next epoch. If the messages of the leader of the
+consensus for the participants of the pings and levels are deleted or delayed,
+the other nodes will ask for a view change : asking the next node in the list
+to start the consensus. 
+
+\subsection{Malicious Nodes}
+If a malicious node is already in the committee, the only misbehavior that it
+can do the period is to refuse to sign the message. Re-sending wrong messages
+are already treated in \ref{MitM} and it's not possible to forge them because
+of the signature. Refusing to sign join requests can lead to a failing protocol
+if the number of malicious nodes is bigger than the threshold required to get
+the signature. As the signature procedure is done using BlsCoSi, the
+registration process is subject to the same threat. Therefore it is required to
+have no more than $f$ malicious nodes, where $f$ is given by : $3f + 1 = N$,
+where $N$ is the number of nodes in the current committee. As the number of
+nodes in the system evolves with time, it required not to have more than this
+fraction of malicious nodes in the system at any epoch. If for one epoch, the
+number of malicious nodes is bigger, then they can block all the consensus,
+leading to a failing system. 
+
+If a malicious node is elected as a leader of the consensus on the list of
+participants or on the nodes, it can decide not to start the consensus. After a
+while, another node will be elected to run the consensus, which will eventually
+succeed if the number of malicious nodes is low enough.
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Improvements}
