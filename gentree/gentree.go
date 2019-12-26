@@ -269,7 +269,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 	}
 
 	for _, n := range all.All {
-		s := fmt.Sprintf("%v %v %v %v cluster=%v, bunch=%v\n", n.Name, n.Level, n.X, n.Y, n.Cluster, n.Bunch)
+		s := fmt.Sprintf("%v,%v,%v,%v,%v,%v\n", n.Name, n.Level, n.X, n.Y, n.Cluster, n.Bunch)
 		w3.WriteString(s)
 	}
 

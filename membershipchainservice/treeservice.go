@@ -232,6 +232,7 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 
 	file3, _ := os.Create("Data/gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
 	w3 := bufio.NewWriter(file3)
+	w3.WriteString("Name,Level,X,Y,cluster,bunch\n")
 
 	gentree.CreateLocalityGraph(s.Nodes, RandomCoordsLevels, RandomCoordsLevels, Levels, pingDist, w3)
 	myname := s.Nodes.GetServerIdentityToName(s.ServerIdentity())
