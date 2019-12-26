@@ -443,6 +443,8 @@ func (s *Service) StartNewEpoch() error {
 
 	writeToFile(s.Name+",Pings,"+getMemoryUsage(s.PingDistances)+","+strconv.Itoa(int(s.e)), "Data/storage.txt")
 
+	// Wait that all the other services have set up.
+	time.Sleep(1 * time.Second)
 	_, err = s.AgreeOnState(ro, PINGSMSG)
 	if err != nil {
 		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
