@@ -674,9 +674,9 @@ succeed if the number of malicious nodes is low enough.
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Improvements}
 %%%%%%%%%%%%%%%%%%%%
-This section proposes improvement to the simple control plane approach. They
-are supposed to address drawbacks of this simple protocol, each improvement
-will be illustrated in a Strawman model. At the end of Strawman, an advanced
+This section proposes some improvements to the simple control plane approach. They
+are supposed to address the drawbacks of this simple protocol, each improvement
+will be illustrated in a Strawman model. Finally, an advanced
 version of the control plane that uses a region creation algorithm based on
 time/space graphs will be proposed. 
 
@@ -686,22 +686,23 @@ time/space graphs will be proposed.
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Redrawing}
 \caption{Redrawing the levels at each epoch can leads to very different version
-    of the system. This is what is improved by the Locano Treaties. Shrinking
+    of the system. This is what is improved by the Locarno Treaties. Shrinking
     regions are depicted in red, growing regions in green and same region in
     black.} \label{fig:LocarnoTreaties-Redrawing}
 \end{figure}
 
 Following the First World War, it was decided that the borders of Germany
-should remain fixed. The Locarno Treaties defined some of these borders. The
-idea of this Strawman model in not to let the borders of regions change more
-than defined. The rules for evolving from one epoch to another are defined. The
+should remain fixed. The Locarno Treaties defined some of these borders \cite{LocarnoTreaties TODO}. The
+idea of this Strawman model is to limit modifications of regions from one epoch to the next. The
 idea is to use a deterministic set of rules, based on the ping, the
 registrations and the map of the previous epoch to draw the map of the current
 epoch using the less redrawing as possible. CRUX is run at the first epoch
 giving the first version of the system. Registration is still global and each
 node will have all the information about the memberships of every node.Then
-from one epoch to another, the purpose of the game is to keep as much region as
-possible without breaking the locality rules.
+from one epoch to another, the purpose of the game is to keep as much regions as
+possible. The obvious idea to reach this goal is to let the nodes conserves their levels from one epoch to the next. 
+However some small difference should be introduced in order to avoid some problems.
+These are described in the next section.
 
 \subsection{Rebalancing the levels} \label{rebalancing}
 Conserving the levels is the way to go, but maintaining levels can lead to
@@ -720,7 +721,7 @@ probability $P$ is given, it is straightforward to compute the expected number
 of nodes that one should have at every level as it mentioned in Table
 \ref{example-lottery}. 
 
-Instead of drawing the levels from a randomness source, nodes will draw a
+Instead of drawing directly the levels from a randomness source, nodes will draw a
 random number from this source between 0 and 1.  All nodes can deduce what
 number the others will draw deterministically from the registration list. The
 highest level will go to the node which has drawn the highest random number.
@@ -745,7 +746,7 @@ The point of view of one node that stays fixed in the system is taken, the goal
 is that node can keep most of its region assignment.  What are the
 implications. As it was said other nodes might join, leave or move. This leads
 either to change in its cluster of in its bunch. 
-Additional effect can come from the level rebalancing. 
+Additional effects can come from the level rebalancing. 
 
 \subsubsection{Nodes Leaving the Cluster} 
 This will shrink the cluster. As the regions created by a given node stops when
@@ -754,7 +755,7 @@ regions. This does not change the
 region assignment and the nodes can still keep the replicated system of the
 previous epoch running.
 
-Additional effect can come from the level rebalancing. 
+Additional effects can come from the level rebalancing. 
 
 \subsubsection{Nodes Joining the Cluster} 
 On the contrary, if nodes join the cluster, this might lead to the creation of
@@ -790,8 +791,8 @@ balanced.
 
 \subsubsection{Moving node example}
 Assume that going from Epoch $i$ to $i+1$, one node as gone from one place to
-the other end of the system.  Nodes can keep their level, it will change some
-of the assignment, but most of the regions will be maintained. 
+the other end of the system. As nodes can keep their level, it will change some
+of the assignments, but most of the regions will be maintained. 
 
 \begin{figure}[!h] 
 \centering
@@ -866,7 +867,7 @@ that one node should be aware of only the information it needs to perform its
 actions. 
 
 A correspondence can be made with the fog of war in some traditional real-time
-strategy video game. Where each player will have its own view of the system,
+strategy video game, where each player will have its own view of the system,
 based on where it is now (real-time evolution), where it was in the past but
 cannot see now (fog) and what it has not already seen (dark).
 
@@ -922,7 +923,7 @@ more influence. This is what one may want to avoid.
 
 There are three approaches to this problem, the first is to exclude the node
 from the system, but it might lead to the redrawing of a certain number of
-regions, and it might lead to attacks. Another strategy could be to rewrite the
+regions, and it might lead to attacks. Another strategy could be to define the
 position of the faulty node with an approximation based on the ping. If we have
 the position of the other nodes and we have to fix the location of the unknown
 faulty node one might do that by computing the intersection between the circles
@@ -932,7 +933,7 @@ reach a desired position.
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=300pt]{figures/triangulation_strategy}
-\caption{The classic triangulation can be used to reassign the position of a faulty node.  }
+\caption{Triangulation can be used to reassign the position of a faulty node.  }
 \label{fig:triangulation_strategy}
 \end{figure}
 
@@ -947,7 +948,7 @@ the level assignment and a round of checks and announce of the checks.
 \section{Introducing the Space/Time metrics}
 
 Pings give a space/time insight of the evolution of the system.  This idea can
-be leveraged to create the Space/Time version of the control plane.In fact
+be leveraged to create the Space/Time version of the control plane. In fact
 every message (send + reply - processing time) can be transformed to be used as
 a ping as well. Therefore each time a node interacts with other nodes it can
 use that additional information to get insight about the evolution of the
@@ -959,7 +960,7 @@ system. And react to them. For example, if a new node manages to ping an
 existing node from inside one region, the already existing nodes could trigger
 registration of these nodes. On the contrary, if one node starts to get away
 from the rest of the region, then other nodes will notice and can decide to
-kick this node out of the system (after consensus with the existing nodes).
+kick this node out of their region (after consensus with the existing nodes).
 Modifications (e.g. nodes movement, churn), can be detected directly with the
 messages, and the system can react to it. Churn can be interpreted as a node
 movement in this model, with the churning node moving to infinity. If one
@@ -1020,7 +1021,7 @@ might have left its cluster as well.
 
 \subsubsection{Rules for Membership Component based on the Space/Time metric}
 The Space/Time Metric can be leveraged to serve as a Membership Components.
-Decisions are made on the majority of alive nodes. To be able to participate in
+Decisions are made on the majority of nodes. To be able to participate in
 the system or to take part in a decision, a valid endorsement in required. If a
 node churns, then this information is propagated all the way to the
 biggest region, and the node is excluded from the system.  If a node joins the
