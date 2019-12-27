@@ -1,6 +1,8 @@
 package membershipchainservice
 
 import (
+	"fmt"
+
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/network"
@@ -50,6 +52,31 @@ type GraphTree struct {
 	ListOfNodes []*onet.TreeNode
 	Parents     map[*onet.TreeNode][]*onet.TreeNode
 	Radius      float64
+}
+
+// Return Radius, + list of Server Identity of Nodes
+func (g GraphTree) String() string {
+	ret := fmt.Sprintf("[Radius=%v", g.Radius)
+	ret += ",trees=["
+	for i, tn := range g.ListOfNodes {
+		ret += fmt.Sprintf("%v", tn.ServerIdentity.Address)
+		if i != len(g.ListOfNodes)-1 {
+			ret += ","
+		}
+	}
+	ret += "]]"
+	return ret
+}
+
+// GraphTrees maps name to a list of GraphTrees
+type GraphTrees map[string][]GraphTree
+
+func (g GraphTrees) String() string {
+	ret := fmt.Sprintf("Name;List of Trees\n")
+	for name, listGt := range g {
+		ret += name + ";[" + fmt.Sprintf("%v", listGt) + "]\n"
+	}
+	return ret
 }
 
 // ReqPings is use to request pings

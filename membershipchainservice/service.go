@@ -1,6 +1,7 @@
 package membershipchainservice
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -74,7 +75,7 @@ type Service struct {
 
 	// From Crux
 	Nodes             gentree.LocalityNodes
-	GraphTree         map[string][]GraphTree
+	GraphTree         GraphTrees
 	BinaryTree        map[string][]*onet.Tree
 	alive             bool
 	Distances         map[*gentree.LocalityNode]map[*gentree.LocalityNode]gentree.Compact
@@ -433,17 +434,32 @@ func (s *Service) StartNewEpoch() error {
 		return err
 	}
 
+	file, _ := os.OpenFile("Data/members.txt", os.O_RDWR|os.O_CREATE, 0660)
+	w := bufio.NewWriter(file)
+
+	if s.Name == "node_0" {
+		w.WriteString("Name,Address")
+		w.WriteString("\n")
+	}
 	si2name := make(map[*network.ServerIdentity]string)
 	for _, serv := range ro.List {
 		si2name[serv] = s.ServerIdentityToName[serv.ID]
+		if s.Name == "node_0" {
+			w.WriteString(s.ServerIdentityToName[serv.ID] + "," + fmt.Sprintf("%v", serv.Address) + "\n")
+		}
+
 	}
+	w.Flush()
+	file.Close()
+
 	s.Setup(&InitRequest{
 		ServerIdentityToName: si2name,
 	})
 
 	writeToFile(s.Name+",Pings,"+getMemoryUsage(s.PingDistances)+","+strconv.Itoa(int(s.e)), "Data/storage.txt")
-	writeToFile(s.Name+",Maps,"+fmt.Sprintf("%v", s.GraphTree)+","+strconv.Itoa(int(s.e)), "Data/maps_graphTree.txt")
-
+	if s.Name == "node_0" {
+		writeToFile(fmt.Sprintf("%v", s.GraphTree), "Data/maps_graphTree_"+s.Name+"_epoch"+strconv.Itoa(int(s.e))+".txt")
+	}
 	// Wait that all the other services have set up.
 	time.Sleep(1 * time.Second)
 	_, err = s.AgreeOnState(ro, PINGSMSG)
