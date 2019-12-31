@@ -1,9 +1,9 @@
 ping node_0 node_0 = 0
-ping node_0 node_1 = 27.5677111443 
-ping node_1 node_0 = 27.5677111443
-ping node_0 node_2 = 26.0385016936 
-ping node_2 node_0 = 26.0385016936
+ping node_0 node_1 = 88.3706263454 
+ping node_1 node_0 = 88.3706263454
+ping node_0 node_2 = 53.7709320854 
+ping node_2 node_0 = 53.7709320854
 ping node_1 node_1 = 0
-ping node_1 node_2 = 21.0988154238 
-ping node_2 node_1 = 21.0988154238
+ping node_1 node_2 = 36.2143058873 
+ping node_2 node_1 = 36.2143058873
 ping node_2 node_2 = 0
