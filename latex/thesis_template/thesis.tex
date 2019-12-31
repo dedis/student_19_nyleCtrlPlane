@@ -7,6 +7,7 @@
 % Options: MScThesis, BScThesis, MScProject, BScProject
 \usepackage[MScThesis]{EPFLreport} \usepackage{xspace}
 \usepackage{array}
+\usepackage{rotating}
 
 \title{A Control Plane in Time and Space for Locality-Preserving Blockchains}
 \author{Arnaud Pannatier} \supervisor{Cristina Basescu} \adviser{Prof. Bryan
@@ -512,12 +513,13 @@ epoch. Redrawing the map of the entire system.
 \subsection{Membership Protocol}
 This section describes the membership protocol [FIG. \ref{fig:registrationprotocol}].
 
-\begin{figure}[!h] 
+
+\begin{sidewaysfigure}[ht]
 \centering
-\includegraphics[width=400pt]{figures/Registrationprotocol}
+\includegraphics[width=700pt]{figures/Registrationprotocol}
 \caption{Sketch of the Protocol}
 \label{fig:registrationprotocol}
-\end{figure}
+\end{sidewaysfigure}
 
 The system will go through some cycles (called epoch) of two different phases :
 the registration period and the live period. The first period is actually there
