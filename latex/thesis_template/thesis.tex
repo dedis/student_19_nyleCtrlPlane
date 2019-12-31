@@ -652,24 +652,56 @@ the other nodes will ask for a view change : asking the next node in the list
 to start the consensus. 
 
 \subsection{Malicious Nodes}
+\subsubsection{Consensus}
 If a malicious node is already in the committee, the only misbehavior that it
 can do the period is to refuse to sign the message. Re-sending wrong messages
 are already treated in \ref{MitM} and it's not possible to forge them because
 of the signature. Refusing to sign join requests can lead to a failing protocol
 if the number of malicious nodes is bigger than the threshold required to get
-the signature. As the signature procedure is done using BlsCoSi, the
-registration process is subject to the same threat. Therefore it is required to
-have no more than $f$ malicious nodes, where $f$ is given by : $3f + 1 = N$,
-where $N$ is the number of nodes in the current committee. As the number of
-nodes in the system evolves with time, it required not to have more than this
-fraction of malicious nodes in the system at any epoch. If for one epoch, the
-number of malicious nodes is bigger, then they can block all the consensus,
-leading to a failing system. 
+the signature. As the signature procedure is done using BlsCoSi \cite{BlsCoSi},
+the registration process is subject to the same threat. BlsCosi is an efficient
+way to implement The \textit{Practical Byzantine Fault Tolerance} (PBFT)
+algorithm which guarantee \textit{safety} and \textit{liveness} if the system
+as no more than $f$ faults among $3f+1$ malicious nodes.Therefore it is
+required to have no more than $f$ malicious nodes, where $f$ is given by : $3f
++ 1 = N$, where $N$ is the number of nodes in the current committee. As the
+number of nodes in the system evolves with time, it required not to have more
+than this fraction of malicious nodes in the system at any epoch. If for one
+epoch, the number of malicious nodes is bigger, then they can block all the
+consensus, leading to a failing system. 
 
 If a malicious node is elected as a leader of the consensus on the list of
 participants or on the nodes, it can decide not to start the consensus. After a
 while, another node will be elected to run the consensus, which will eventually
 succeed if the number of malicious nodes is low enough.
+
+\subsubsection{Attack on levels}
+At the beginning of one epoch, nodes compute their bunch and cluster based on
+the pings and the level that is drawn from a shared public source of randomness
+which is renewed at each epoch. Nodes deploy region covering its cluster. Each
+node will participates in regions along its bunch. This procedure however is
+not based on the action of a nodes, but just on the fact that they exist at a
+given place and a given level. What is meant by that is that every nodes have
+the same view of the system. And if node $A$ have node $B$ in its bunch, then
+node $A$ is supposed to participates in a region which is based on the position
+of $B$ and spans the cluster of $B$, but $A$ already has all the informations
+to know about this region using only the pings and levels. Therefore node $B$
+cannot use a high level to perform action that will block the system. 
+
+However, if a malicious attacker could take over the lottery process, it could
+manages to group the high level in a side of the system. Leaving only the
+level-zero. This could lead to some problem [App \ref{Problem with
+levels-zero}]. Taking over the lottery process should'nt be possible by design.
+Indeed, the lottery is based on a public source of randomness that renewed at
+each epoch, and revealed after the registration of the levels. 
+
+Nodes can know the level of other nodes, because they base the compute of their
+levels on the threshold-signed list they received from the previous committee.
+It is important that the source is revealed after registration of the levels,
+otherwise malicious nodes could try to influence the order of the list on which
+the lottery process is based. 
+
+
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Improvements}
@@ -692,17 +724,18 @@ time/space graphs will be proposed.
 \end{figure}
 
 Following the First World War, it was decided that the borders of Germany
-should remain fixed. The Locarno Treaties defined some of these borders \cite{LocarnoTreaties TODO}. The
-idea of this Strawman model is to limit modifications of regions from one epoch to the next. The
-idea is to use a deterministic set of rules, based on the ping, the
-registrations and the map of the previous epoch to draw the map of the current
-epoch using the less redrawing as possible. CRUX is run at the first epoch
-giving the first version of the system. Registration is still global and each
-node will have all the information about the memberships of every node.Then
-from one epoch to another, the purpose of the game is to keep as much regions as
-possible. The obvious idea to reach this goal is to let the nodes conserves their levels from one epoch to the next. 
-However some small difference should be introduced in order to avoid some problems.
-These are described in the next section.
+should remain fixed. The Locarno Treaties defined some of these borders
+\cite{LocarnoTreaties TODO}. The idea of this Strawman model is to limit
+modifications of regions from one epoch to the next. The idea is to use a
+deterministic set of rules, based on the ping, the registrations and the map of
+the previous epoch to draw the map of the current epoch using the less
+redrawing as possible. CRUX is run at the first epoch giving the first version
+of the system. Registration is still global and each node will have all the
+information about the memberships of every node.Then from one epoch to another,
+the purpose of the game is to keep as much regions as possible. The obvious
+idea to reach this goal is to let the nodes conserves their levels from one
+epoch to the next.  However some small difference should be introduced in order
+to avoid some problems.  These are described in the next section.
 
 \subsection{Rebalancing the levels} \label{rebalancing}
 Conserving the levels is the way to go, but maintaining levels can lead to
@@ -721,31 +754,21 @@ probability $P$ is given, it is straightforward to compute the expected number
 of nodes that one should have at every level as it mentioned in Table
 \ref{example-lottery}. 
 
-Instead of drawing directly the levels from a randomness source, nodes will draw a
-random number from this source between 0 and 1.  All nodes can deduce what
-number the others will draw deterministically from the registration list. The
-highest level will go to the node which has drawn the highest random number.
-And levels are given according to the drawing in a descending order.  
+Instead of drawing directly the levels from a randomness source, nodes will
+draw a random number from this source between 0 and 1.  All nodes can deduce
+what number the others will draw deterministically from the registration list.
+The highest level will go to the node which has drawn the highest random
+number.  And levels are given according to the drawing in a descending order.  
 
 Each node that stays in the system will keep its random number from when it
 joined the system, new nodes gets new random numbers. 
 
-Note that this approach can be targeted from attackers. But as it is equivalent
-to the other one, attacks that are valid for one system are valid for this one.
-But this will ensure to have the proper number of levels in the system in each
-epoch.
-
-An example of one attack : if one node is not happy with its level assignment
-it can leave the system a reenter later, hoping to get a better level. This
-attack works against the two algorithms, but this attack does not create too
-bad consequences, as it is presented in \ref{Threat-Model}.
-
-\subsection{Effects for a fixed node}
-This section describes how to transform the regions from one epoch to another.
-The point of view of one node that stays fixed in the system is taken, the goal
-is that node can keep most of its region assignment.  What are the
-implications. As it was said other nodes might join, leave or move. This leads
-either to change in its cluster of in its bunch. 
+\subsection{Effects for a fixed node} This section describes how to transform
+the regions from one epoch to another.  The point of view of one node that
+stays fixed in the system is taken, the goal is that node can keep most of its
+region assignment.  What are the implications. As it was said other nodes might
+join, leave or move. This leads either to change in its cluster of in its
+bunch. 
 Additional effects can come from the level rebalancing. 
 
 \subsubsection{Nodes Leaving the Cluster} 
@@ -842,6 +865,31 @@ The protocol is mostly the same as the simple control plane protocol [FIG.
 \ref{fig:registrationprotocol}]. The main difference is the level assignment
 which follows the new algorithm described in \ref{rebalancing}. 
 
+\subsection{Threat Model}
+
+The new lottery process can be targeted from attackers. But as it is equivalent
+to the other one, attacks that are valid for one system are valid for this one.
+But this will ensure to have the proper number of levels in the system in each
+epoch.
+
+If one node is not happy with its level assignment, it can leave the system a
+re-enter later, hoping to get a better level. This attack works against the two
+algorithms, but this attack does not create too
+bad consequences, as it is presented in \ref{Threat-Model}.
+
+Another attack could be that malicious nodes exit and re-enter the system at
+each epoch until they manage to get a good number from the lottery. Then when
+it manages to get good level, they collectively move to one side of the system
+leaving good nodes all at level-0 in the middle of the system. This will create
+a slight overhead for the good nodes as the region’s assignment increase for
+the level-0 nodes. But this attack seems to cost a lot of resources and
+coordination for the attacker to generate a small overhead on the size of the
+participants.
+
+Some defense mechanisms can be set up to ensure that levels are geographically
+distributed over the whole system, they are described in more details in
+\ref{Possible Improvements.} 
+
 \subsubsection{Quantifying the effect of Locarno Treaties}
 The goal of the new protocol is to keep most regions and region assignment
 following the evolution of the system. 
@@ -913,7 +961,20 @@ progressively a majority of honest nodes should have checked the node. It the
 ping still does not correspond to what the node declared then one might assume
 that the node itself is faulty. 
 
-\subsection{Misbehaving Nodes}
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/triangulation_strategy}
+\caption{Triangulation can be used to reassign the position of a faulty node.  }
+\label{fig:triangulation_strategy}
+\end{figure}
+
+\subsection{Protocol}
+The protocol is mostly the same as the simple control plane protocol [FIG.
+\ref{fig:registrationprotocol}]. The only difference is the consensus on the
+pings which are now replaced by a declared distance, which is announced before
+the level assignment and a round of checks and announce of the checks. 
+
+\subsection{Threat Model}
 Another question can be, what are we supposed to do with a node that are not
 passing the tests ? First it is important to notice that it won't actually
 change the view that all nodes will have of the system, as nodes use the
@@ -930,20 +991,7 @@ faulty node one might do that by computing the intersection between the circles
 based on the pings. This triangulation strategy can block one faulty node to
 reach a desired position. 
 
-\begin{figure}[!h] 
-\centering
-\includegraphics[width=300pt]{figures/triangulation_strategy}
-\caption{Triangulation can be used to reassign the position of a faulty node.  }
-\label{fig:triangulation_strategy}
-\end{figure}
-
-\subsection{Protocol}
-The protocol is mostly the same as the simple control plane protocol [FIG.
-\ref{fig:registrationprotocol}]. The only difference is the consensus on the
-pings which are now replaced by a declared distance, which is announced before
-the level assignment and a round of checks and announce of the checks. 
-
-%%% TODO CONTINUE
+As nodes can announce a position and that is checked in priority by close nodes, with this protocol if there is a sufficient number of malicious nodes, they can declare that they all live in a close region and valid each other. There is no simple solution to this problem, but that fact has no consequence on the system so it seems to be an acceptable weakness.
 
 \section{Introducing the Space/Time metrics}
 
@@ -1016,8 +1064,12 @@ store the last ping and adopt its own view on the system. If a major change is
 detected, for example that $A$ leaves the cluster of $B$ leading to the
 shrinking of the cluster of $B$ then $B$ will notify the other nodes
 participating in its cluster that it shrank the region. It will as well notify
-the first node of its bunch, and provide the ping. As if $A$ moved too fast, it
-might have left its cluster as well. 
+the first node of its bunch, and provide the ping. This will start a recursive
+reaction, nodes in the directly bigger region will start pinging $A$, if it is
+still in the region it can be integrated in another region. If $A$ moved too
+fast, it might have left its cluster as well, so the information would be
+transferred to the next bigger region. Eventually the biggest region, which
+covers the whole system would be reached. 
 
 \subsubsection{Rules for Membership Component based on the Space/Time metric}
 The Space/Time Metric can be leveraged to serve as a Membership Components.
@@ -1044,6 +1096,11 @@ Regions are created in the genesis of the system by the algorithm for region
 creation. The underlying system is replicated in all the deployed regions. And
 nodes start working in the system. Events are detected with the dynamic
 Space/Time Metric. 
+
+\subsection{Threat model}
+Malicious nodes might forge ping to let other nodes thinking that a good node have moved. 
+
+%% TODO CONTINUE 
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Possible Improvements}
