@@ -23,6 +23,90 @@ Ford}
 \maketoc
 
 %%%%%%%%%%%%%%%%%%%%
+\chapter{Introduction}
+%%%%%%%%%%%%%%%%%%%%
+
+%% Presentation and setting
+Distributed ledgers are a becoming more and more used as they provide
+independence to a central authority, anonymity, security of transaction,...
+Some distributed ledgers as Bitcoin \cite{Bitcoin} managed to get a lot of
+popularity for various reasons. However they still are subject to some
+weakness. The purpose of this work is to advances the research concerning two
+of them : World War III Scenarios and the time to validate a transaction.
+Indeed, in Bitcoin \cite{bitcoin}, validating a transaction can take around one
+hour, because it takes around ten minutes to validate a block, and it needs
+around six blocks to be convinced with a high probability that the ledger won't
+be forked, and the transaction invalidated. This might be okay for some
+transaction of great value, for example if somebody is buying a car using
+Bitcoin, this person might agree to wait one hour so that its transaction is
+validated. However if somebody wants to buy its daily coffee using bitcoin, it
+might be a bit annoyed with this waiting time. The other problem is World War
+III scenarios. If a third World War occurs, splitting the world in two, one can
+expect that the communication between the two sides might be cut. This is a
+problem for regular distributed ledger as it will lead to forks that cannot be
+resolved at the end of WW3.  This work is part of a bigger project called Nyle,
+which uses the idea of locality to solve these problems. The idea is to
+replicate the system along regions of different sizes, from local (e.g.
+Switzerland, London) to global. With this idea a transaction can be validated
+at a local region first, but it still possible to wait for global validation if
+needed. Most of the time a transaction validated locally will be validated
+globally as well, but in some case, when propagating the information to the
+global regions, some transactions might be invalidated to avoid double
+spending. For big transactions, people might prefer to wait for the global
+confirmation. But if one wants to buy its daily coffee, local validation might
+be enough for the merchant, especially if he saw the person every day. For
+World War III Scenarios, Nyle offers a solution as well, indeed if a global
+partition occurs, the system replicated in smaller regions that are not split
+by a partition can still continue working flawlessly. 
+
+%% Main Challenge
+Nyle distributed ledger is maintained by nodes that are spread over the world.
+Clients will then ask the nodes to proceed their transactions or other
+requests. Nodes are participating to a different number of regions. A first
+challenge is to draw these regions in a satisfactory manner. A second problem
+is \textit{open-membership} : it should be possible for anybody with a
+sufficient computational power and a good connection to maintain a node of the
+system. This allows the system to be distributed. The challenge with
+\textit{open-membership} is that nodes can join, leaves or move in the system
+at anytime. This might not be a problem for classic distributed ledger as
+Bitcoin \cite{Bitcoin}, as its protocol only take in account the computational
+power that is in the system at a given time. But as Nyle is locality-based,
+this might lead to additional challenges, each corresponding to the different
+actions possible : joining, leaving and moving. For joining nodes, consider the
+case where there was only a few nodes spread along a big region, for example
+Western Europe, and after a while a large number of new nodes wants to join in
+that part. If the region stays the same, this might lead to some problems,
+indeed the consensus would take more time and the liveness could not be
+guaranteed. Furthermore for a region of this size, the probability of a
+partition is relatively important. One might want that in this case, additional
+regions, corresponding for example to country might be created. This leads to
+the idea that the regions should be able to adapt depending to node membership.
+If nodes leave the system, this might lead to problems as well, indeed in the
+inverse situation as before, some regions might not have a node inside anymore
+that is maintaining the system. To avoid this situation, one might want to
+adapt the region when nodes leaves to guarantee that a sufficient number of
+nodes are in a region at any time. Moving nodes are creating problems as well,
+if the region assignment is fixed but the nodes are moving, a node could be
+after a while far away from the region it was assigned to. This might take a
+while, but one can imagine the situation where a lot of nodes have moved far
+away from their original position. In case of a global partition, this can lead
+to the failure of even small regions, that is one problem that one wants to
+avoid in Nyle. Therefore the regions should be adapted with the movement of the
+nodes. 
+
+%% Related work is insufficient
+
+%% Description of the approach
+
+%% Why it is needed.
+
+%% Thesis Statement
+
+%% Results 
+
+%% Contribution
+
+%%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
 %%%%%%%%%%%%%%%%%%%%
 This work builds upon several other works that are linked to the domains of
@@ -991,7 +1075,11 @@ faulty node one might do that by computing the intersection between the circles
 based on the pings. This triangulation strategy can block one faulty node to
 reach a desired position. 
 
-As nodes can announce a position and that is checked in priority by close nodes, with this protocol if there is a sufficient number of malicious nodes, they can declare that they all live in a close region and valid each other. There is no simple solution to this problem, but that fact has no consequence on the system so it seems to be an acceptable weakness.
+As nodes can announce a position and that is checked in priority by close
+nodes, with this protocol if there is a sufficient number of malicious nodes,
+they can declare that they all live in a close region and valid each other.
+There is no simple solution to this problem, but that fact has no consequence
+on the system so it seems to be an acceptable weakness.
 
 \section{Introducing the Space/Time metrics}
 
