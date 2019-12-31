@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"go.dedis.ch/onet/v3"
@@ -172,7 +171,9 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 
 	nodes := all.All
 
-	randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// Change to random if needed
+	//randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randSrc := rand.New(rand.NewSource(1.0))
 
 	if randomCoords {
 		//Computes random coordinates

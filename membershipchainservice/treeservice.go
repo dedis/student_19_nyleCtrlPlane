@@ -34,11 +34,11 @@ func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 
+	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+"/utils/NodesFiles/nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
+
 	i := 0
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
-		s.Nodes.All[i] = &gentree.LocalityNode{}
-		s.Nodes.All[i].Name = v
 		s.Nodes.All[i].ServerIdentity = k
 		i++
 	}
@@ -190,11 +190,10 @@ func (s *Service) getPings(readFromFile bool) {
 		if len(s.Nodes.All) > 50 {
 			panic("This file was not generated")
 		}
-		// read from file lines of fomrm "ping node_19 node_7 = 32.317"
+		// read from file lines of form "ping node_19 node_7 = 32.317"
 		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + "/utils/PingsFiles/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
-		//readLine,_ := ReadFileLineByLine("shortest.txt")
 		if err != nil {
-			panic("Cannot read file for ping")
+			panic(fmt.Sprintf("Cannot read file for ping /utils/PingsFiles/pings%v", len(s.Nodes.All)))
 		}
 
 		for true {
@@ -234,7 +233,8 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 	w3 := bufio.NewWriter(file3)
 	w3.WriteString("Name,Level,X,Y,cluster,bunch\n")
 
-	gentree.CreateLocalityGraph(s.Nodes, RandomCoordsLevels, RandomCoordsLevels, Levels, pingDist, w3)
+	// To do a proper comparison, levels should be generated randomly at each epoch, but nodes keep their positions (read from file)
+	gentree.CreateLocalityGraph(s.Nodes, false, RandomCoordsLevels, Levels, pingDist, w3)
 	myname := s.Nodes.GetServerIdentityToName(s.ServerIdentity())
 
 	if Optimized {
@@ -487,4 +487,42 @@ func (s *Service) ExecReplyPings(env *network.Envelope) error {
 	s.PingAnswerMtx.Unlock()
 
 	return nil
+}
+
+func readNodePositionFromFile(Nodes []*gentree.LocalityNode, filename string) {
+
+	// read from file lines of fomrm "nodes_x X Y"
+	readLine, err := ReadFileLineByLine(filename)
+	//readLine,_ := ReadFileLineByLine("shortest.txt")
+	if err != nil {
+		panic("Cannot read file for nodes " + filename)
+	}
+
+	i := 0
+	for true {
+		line := readLine()
+		if line == "" {
+			break
+		}
+
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		tokens := strings.Split(line, " ")
+		name := tokens[0]
+		X, err := strconv.ParseFloat(tokens[1], 64)
+		if err != nil {
+			log.Error("Problem when parsing positions")
+		}
+		Y, err := strconv.ParseFloat(tokens[2], 64)
+		if err != nil {
+			log.Error("Problem when parsing positions")
+		}
+		Nodes[i] = &gentree.LocalityNode{}
+		Nodes[i].Name = name
+		Nodes[i].X = X
+		Nodes[i].Y = Y
+		i++
+	}
 }
