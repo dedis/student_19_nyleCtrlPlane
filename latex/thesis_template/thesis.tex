@@ -45,7 +45,7 @@ might be a bit annoyed with this waiting time. The other problem is World War
 III scenarios. If a third World War occurs, splitting the world in two, one can
 expect that the communication between the two sides might be cut. This is a
 problem for regular distributed ledger as it will lead to forks that cannot be
-resolved at the end of WW3.  This work is part of a bigger project called Nyle,
+resolved at the end of WW3.  This work is part of a bigger project called Nyle [FIG. \ref{fig:Nyle}],
 which uses the idea of locality to solve these problems. The idea is to
 replicate the system along regions of different sizes, from local (e.g.
 Switzerland, London) to global. With this idea a transaction can be validated
@@ -59,6 +59,13 @@ be enough for the merchant, especially if he saw the person every day. For
 World War III Scenarios, Nyle offers a solution as well, indeed if a global
 partition occurs, the system replicated in smaller regions that are not split
 by a partition can still continue working flawlessly. 
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=400pt]{figures/Nyle}
+\caption{Sketch of Nyle: The blockchain is replicated across region}
+\label{fig:Nyle}
+\end{figure}
 
 %% Main Challenge
 Nyle distributed ledger is maintained by nodes that are spread over the world.
@@ -95,29 +102,67 @@ to the failure of even small regions, that is one problem that one wants to
 avoid in Nyle. Therefore the regions should be adapted with the movement of the
 nodes. 
 
-%% Related work is insufficient
+%% Related Work Is Insufficient
+Most of this work is based on the CRUX \cite{basescu2014crux}, which introduces
+the locality algorithm based on compact graph theory and which is described in
+more detail in  \ref{chap:Background}. The existing work on Nyle was done by
+Maxime Sierro and Cristina Basescu \cite{MaximeSierro} which proposes a first
+implementation of Nyle building on the top CRUX \cite{CRUX} but focusing
+directly how to improve the storage of the transactions and the tree structure
+of the regions. This works builds directly upon the existing work, but is
+slightly orthogonal, as the need of a Control Plane was not intended at first.
+A  second work on Nyle was done by Sabrina Kall \cite{SabrinaKall}, which was
+proposing a way of checking efficiently the location of a node and to assert if
+nodes were lying about the location where they claimed to be. There is a
+current work on the Interplanetary-File System (IPFS) \cite{IPFS}, that is
+based on CRUX as well but with the purpose to create a locality-aware overlay
+to speed the system up, but it is not directly related to blockchains. The rest
+of the related work is described in the next chapter \ref{chap:RelatedWork} and
+is mostly orthogonal to the current approach : some other solutions to speed
+the validation of transaction are shown \cite{bitcoin-paper},\cite{Byzcoin},
+\cite{Omniledger}, \cite{Dfinity}, \cite{Monoxide} and \cite{Stellar}, but they
+don't use the concept of the locality for this purpose. 
 
-%% Description of the approach
+%% Description of the Approach
+This work was structured in the following manner : first a simple version of
+the control plane was designed \ref{chap:Design}, which splits the time into
+epochs and take as an assumption that the system is fixed during one epoch. A
+protocol is proposed and discussed and the threat analysis is done. Based on
+the implementations some drawbacks are put in light. Then a series of strawman
+models try to correct some of these drawbacks and are analyzed as well
+\ref{chap:Improvements}. The first one is called "Locarno Treaties" and will
+try to keep the system coherent from one epoch to the next. The next one is
+called "Fog of the war", and try to reduce the need for communication between
+nodes. The last and the most complex consider the interactions of the nodes as
+a space-time graph and try to build upon the existing patterns that appears in
+these graphs to solve the problem of control plane. 
 
 %% Why it is needed.
+%% Already discussed in Main challenges so it is merged with the next
 
 %% Thesis Statement
+This works proposes \textbf{A Control Plane in Time and Space for
+Locality-Preserving Blockchains}. This control plane for Nyle is needed to
+ensure to have a \textit{open-membership} and to solve the problems of World
+War III scenarios and to allow regional validations. The series of strawman
+models improving the simple control plane lead to the use of Space-Time graphs
+that allowed to improve the existing design. 
 
 %% Results 
 
-%% Contribution
+%%My  Contribution
 
 %%%%%%%%%%%%%%%%%%%%
-\chapter{Related Work}
+\chapter{Related Work} \label{chap:RelatedWork}
 %%%%%%%%%%%%%%%%%%%%
 This work builds upon several other works that are linked to the domains of
 blockchains and locality. Nyle proposes a decentralized cryptocurrency using
-different strategies than \cite{bitcoin-paper}, \cite{Dfinity}, \cite{Byzcoin},
-\cite{Omniledger}, \cite{Monoxide} and \cite{Stellar}. It used them as an
-inspiration source and share some aspects with theses general cryptocurrencies.
-It is somehow orthogonal to them because it can use any of theses cryptocurrencies
-as an underlying system and enhance them using the idea of locality to
-add some partition-resistance to them. 
+different strategies than \cite{bitcoin-paper},\cite{Byzcoin},
+\cite{Omniledger}, \cite{Dfinity}, \cite{Monoxide} and \cite{Stellar}. It used
+them as an inspiration source and share some aspects with theses general
+cryptocurrencies.  It is somehow orthogonal to them because it can use any of
+theses cryptocurrencies as an underlying system and enhance them using the idea
+of locality to add some partition-resistance to them. 
 
 But some ideas are taken from these papers are used as well.  The
 Sybil-resistance scheme used in the registration system is directly inspired
@@ -460,9 +505,12 @@ finally, the control plane is in charge of answering some requests linked to
 the location and presence of the nodes in the system. Each will be described in
 detail below. 
 
-\begin{figure}[!h] \centering
-\includegraphics[width=400pt]{figures/Nyle_components} \caption{List of modules
-of Nyle} \label{fig:modules} \end{figure}
+\begin{figure}[!h]
+\centering
+\includegraphics[width=400pt]{figures/Nyle_components}
+\caption{List of modules of Nyle}
+\label{fig:modules}
+\end{figure}
 
 \subsection{Membership Component}
 
@@ -497,9 +545,12 @@ longer if one wants regions not to be redrawn too frequently.
 requests as it is aware of the nodes location and region assignment. It will be
 in charge of answering the request for nodes assignment and nodes location. 
 
-\begin{figure}[!h] \centering
-\includegraphics[width=400pt]{figures/Nyle_controlflow} \caption{General control Flow
-of Nyle} \label{fig:controlflow} \end{figure}
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=400pt]{figures/Nyle_controlflow}
+\caption{General control Flow of Nyle}
+\label{fig:controlflow}
+\end{figure}
 
 \section{First version : Simple Control plane} This version presents the first
 version of the Control Plane. In which most of the work is done on the
