@@ -9,7 +9,7 @@ import (
 )
 
 func TestIndexesOfSortedValues(t *testing.T) {
-	list := []float64{1.0, 2.0, 3.0}
+	list := []float64{3.0, 2.0, 1.0}
 
 	indexes := indexesOfSortedValues(list)
 	expected := []int{2, 1, 0}
@@ -18,50 +18,39 @@ func TestIndexesOfSortedValues(t *testing.T) {
 
 func TestSetLevels(t *testing.T) {
 	nodes := make([]*gentree.LocalityNode, 1000)
+	epochOfEntryMap := make(map[string]Epoch)
 	for i := range nodes {
 		nodes[i] = &gentree.LocalityNode{}
+		name := "node_" + strconv.Itoa(i)
+		nodes[i].Name = name
+		epochOfEntryMap[name] = Epoch(0)
 	}
 
-	SetLevels(nodes)
+	SetLevels(nodes, epochOfEntryMap)
 
 	levelsMap := make(map[int]int)
 	for _, n := range nodes {
 		levelsMap[n.Level]++
 	}
 
-	assert.Equal(t, 900, levelsMap[0])
-	assert.Equal(t, 90, levelsMap[1])
-	assert.Equal(t, 9, levelsMap[2])
-	assert.Equal(t, 1, levelsMap[3])
-
-}
-
-func TestSetLevelsWithResults(t *testing.T) {
-	nodes := make([]*gentree.LocalityNode, 1000)
-	for i := range nodes {
-		nodes[i] = &gentree.LocalityNode{}
-	}
-
-	for i := 0; i < 10; i++ {
-		nodes[i].LotteryResult = float64(i) + 1.1
-	}
-
-	SetLevels(nodes)
-	assert.Equal(t, 3, nodes[9].Level)
-	for i := 0; i < 9; i++ {
-		assert.Equal(t, 2, nodes[i].Level)
-	}
+	assert.Equal(t, 968, levelsMap[0])
+	assert.Equal(t, 31, levelsMap[1])
+	assert.Equal(t, 1, levelsMap[2])
+	assert.Equal(t, 0, levelsMap[3])
 
 }
 
 func TestSetLevelsContinuity(t *testing.T) {
 	nodes := make([]*gentree.LocalityNode, 6)
+	epochOfEntryMap := make(map[string]Epoch)
 	for i := range nodes {
 		nodes[i] = &gentree.LocalityNode{}
-		nodes[i].Name = "node_" + strconv.Itoa(i)
+		name := "node_" + strconv.Itoa(i)
+		nodes[i].Name = name
+		epochOfEntryMap[name] = Epoch(0)
 	}
 
-	SetLevels(nodes)
+	SetLevels(nodes, epochOfEntryMap)
 
 	maxLevel := 0
 	levelsMap := make(map[int]int)
@@ -78,31 +67,43 @@ func TestSetLevelsContinuity(t *testing.T) {
 
 }
 
-func TestSetLevelsSmall(t *testing.T) {
-	nodes := make([]*gentree.LocalityNode, 6)
+func TestSameLevelsForSameEntryTime(t *testing.T) {
+	nodes := make([]*gentree.LocalityNode, 1000)
+	epochOfEntryMap := make(map[string]Epoch)
 	for i := range nodes {
 		nodes[i] = &gentree.LocalityNode{}
-		nodes[i].Name = "node_" + strconv.Itoa(i)
+		name := "node_" + strconv.Itoa(i)
+		nodes[i].Name = name
+		epochOfEntryMap[name] = Epoch(i)
 	}
 
-	nodes[0].LotteryResult = 0.5660920659323543
-	nodes[1].LotteryResult = 0.41765200380165207
-	nodes[2].LotteryResult = 0.925128845219594
-	nodes[3].LotteryResult = 0.42157058562840155
+	SetLevels(nodes, epochOfEntryMap)
 
-	SetLevels(nodes)
-
-	maxLevel := 0
-	levelsMap := make(map[int]int)
+	levelsList1 := make([]int, 1000)
 	for _, n := range nodes {
-		levelsMap[n.Level]++
-		if n.Level > maxLevel {
-			maxLevel = n.Level
-		}
+		levelsList1 = append(levelsList1, n.Level)
 	}
 
-	for i := 0; i < maxLevel; i++ {
-		assert.NotEqual(t, 0, levelsMap[i])
+	SetLevels(nodes, epochOfEntryMap)
+
+	levelsList2 := make([]int, 1000)
+	for _, n := range nodes {
+		levelsList2 = append(levelsList2, n.Level)
 	}
+
+	assert.Equal(t, levelsList1, levelsList2)
+
+	for i := range nodes {
+		epochOfEntryMap["node_"+strconv.Itoa(i)] = Epoch(0)
+	}
+
+	SetLevels(nodes, epochOfEntryMap)
+
+	levelsList2 = make([]int, 1000)
+	for _, n := range nodes {
+		levelsList2 = append(levelsList2, n.Level)
+	}
+
+	assert.NotEqual(t, levelsList1, levelsList2)
 
 }

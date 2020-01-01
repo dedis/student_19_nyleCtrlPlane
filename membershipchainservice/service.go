@@ -369,21 +369,21 @@ func (s *Service) GetConsencusOnNewSigners() error {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-3*time.Second, "s to Get the Consencus")
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 3*time.Second)
 	}
-	timeCons := time.Now()
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
+	//timeCons := time.Now()
+	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
 		return err
 	}
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
+	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
 	// Agree on Signers
-	sign, err := s.AgreeOnState(ro, SIGNERSMSG)
+	_, err = s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
 		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
 		return err
 	}
 
-	log.LLvl1("Send Signature after", time.Now().Sub(timeCons), sign)
+	//log.LLvl1("Send Signature after", time.Now().Sub(timeCons), sign)
 	newSigners := s.GetSigners(s.e + 1)
 
 	var siList []*network.ServerIdentity
@@ -399,7 +399,7 @@ func (s *Service) GetConsencusOnNewSigners() error {
 	writeToFile(s.Name+",GetConsencusOnNewSigners,"+strconv.Itoa(len(siList))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
 	for _, si := range siList {
-		log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
+		//log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
 		go func(SI *network.ServerIdentity) {
 			panicErr := s.SendHistory(SI)
 			if panicErr != nil {
@@ -407,11 +407,7 @@ func (s *Service) GetConsencusOnNewSigners() error {
 			}
 		}(si)
 	}
-	log.LLvl1(s.Name, "is done updating before sending to chan", s.EpochChan)
-
 	s.EpochChan <- s.e + 1
-	log.LLvl1(s.Name, "is done updating after consencus.")
-
 	return nil
 }
 
@@ -469,13 +465,6 @@ func (s *Service) StartNewEpoch() error {
 	}
 	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
 	return err
-}
-
-func (s *Service) Deregistrate() error {
-	return errors.New("Unimplemented Error")
-}
-
-func (s *Service) ChangeLatencies(ic float64) {
 }
 
 // AgreeOnState checks that the members of the roster have the same signers + same maps
@@ -597,6 +586,25 @@ func (s *Service) getServers() map[string]*network.ServerIdentity {
 	}
 	s.ServersMtx.Unlock()
 	return dst
+}
+
+func (s *Service) getepochOfEntryMap() map[string]Epoch {
+	temp := make(map[network.ServerIdentityID]Epoch)
+	s.storage.Lock()
+	for i := len(s.storage.Signers) - 1; i >= 0; i-- {
+		for id := range s.storage.Signers[i] {
+			temp[id] = Epoch(i)
+		}
+	}
+	s.storage.Unlock()
+
+	ret := make(map[string]Epoch)
+	s.ServersMtx.Lock()
+	for id, e := range temp {
+		ret[s.ServerIdentityToName[id]] = e
+	}
+	s.ServersMtx.Unlock()
+	return ret
 }
 
 // UpdateHistoryWith will send an ReqHistory to the service in parameter

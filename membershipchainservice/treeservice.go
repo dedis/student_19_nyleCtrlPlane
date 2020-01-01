@@ -31,26 +31,16 @@ var execReplyPingsMsgID network.MessageTypeID
 // Setup is a method that will initialize the Crux Protocol
 // it is copy-pasted from : https://github.com/dedis/paper_crux/blob/master/dsn_exp/service/service.go
 func (s *Service) Setup(req *InitRequest) {
-	oldNodes := s.Nodes
-
-	log.LLvl1("------------------------------------------------------------------------------------", len(req.ServerIdentityToName))
 	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
-
 	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+"/utils/NodesFiles/nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
 
 	i := 0
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
-		if oldNodes.GetByName(v) != nil {
-			log.LLvl1(oldNodes.GetByName(v))
-			s.Nodes.All[i] = oldNodes.GetByName(v)
-		}
 		s.Nodes.All[i].ServerIdentity = k
 		i++
 	}
-
-	log.LLvl1(s.Name, s.Nodes.All)
 
 	for _, myNode := range s.Nodes.All {
 		myNode.ADist = make([]float64, 0)
@@ -92,10 +82,15 @@ func (s *Service) Setup(req *InitRequest) {
 	}
 
 	s.getPings(true)
-
-	SetLevels(s.Nodes.All)
-
 	str := s.Name + "\n"
+	for _, n := range s.Nodes.All {
+		str += n.Name + " -- " + fmt.Sprintf("%v", n) + " \n"
+	}
+	log.LLvl1(str)
+
+	SetLevels(s.Nodes.All, s.getepochOfEntryMap())
+
+	str = s.Name + "\n"
 	for _, n := range s.Nodes.All {
 		str += n.Name + " -- " + strconv.Itoa(n.Level) + " -- " + fmt.Sprintf("%v,%v", n.X, n.Y) + " \n"
 	}

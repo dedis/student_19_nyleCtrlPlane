@@ -10,31 +10,25 @@ import (
 	"go.dedis.ch/onet/v3/log"
 )
 
-const SHARED_RANDOM_SEED = 10
+const SHARED_SOURCE_OF_RANDOMNESS = 10
 
 // SetLevels set the levels according to the algorithm defined in the part Locarno Treaties
 // of the Report.
-func SetLevels(nodes []*gentree.LocalityNode) {
-
+func SetLevels(nodes []*gentree.LocalityNode, epochOfEntryMap map[string]Epoch) {
+	log.LLvl1(epochOfEntryMap)
 	str := "\n"
 	for i, n := range nodes {
-		str += fmt.Sprintf("%v, %v", i, n) + "\n"
+		str += fmt.Sprintf("%v, %v {L : %v, Entry : %v  - %v,%v}", i, n.Name, n.Level, epochOfEntryMap[n.Name], n.X, n.Y) + "\n"
 	}
 	log.LLvl1(str)
-
 	nbNodes := len(nodes)
-	randSrc := rand.New(rand.NewSource(1.0))
 	// TODO : verify Other method
 	probability := 1.0 / math.Pow(float64(nbNodes), 1.0/float64(NR_LEVELS-1))
 
 	var lotteryResults []float64
-	for i := 0; i < nbNodes; i++ {
-		if nodes[i].LotteryResult == 0 {
-			nodes[i].LotteryResult = randSrc.Float64()
-		} else {
-			log.LLvl1("\033[48;5;20m Already existing result : ", nodes[i].LotteryResult, " for node :  ", nodes[i].Name, "\033[0m")
-		}
-		lotteryResults = append(lotteryResults, nodes[i].LotteryResult)
+	for _, n := range nodes {
+		randSrc := rand.New(getSource(n.Name, epochOfEntryMap[n.Name], SHARED_SOURCE_OF_RANDOMNESS))
+		lotteryResults = append(lotteryResults, randSrc.Float64())
 	}
 
 	indexes := indexesOfSortedValues(lotteryResults)
@@ -63,6 +57,10 @@ func indexesOfSortedValues(list []float64) []int {
 	}
 	sort.Sort(IndexValue{Indexes: indexes, Values: copyList})
 	return indexes
+}
+
+func getSource(name string, e Epoch, sharedSource int64) rand.Source {
+	return rand.NewSource(int64(gentree.NodeNameToInt(name)) + int64(e) + sharedSource)
 }
 
 // IndexValue sort a list and keep track of the swap of indicies
