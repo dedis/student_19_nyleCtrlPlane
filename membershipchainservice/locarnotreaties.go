@@ -1,6 +1,7 @@
 package membershipchainservice
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -14,14 +15,22 @@ const SHARED_RANDOM_SEED = 10
 // SetLevels set the levels according to the algorithm defined in the part Locarno Treaties
 // of the Report.
 func SetLevels(nodes []*gentree.LocalityNode) {
+
+	str := "\n"
+	for i, n := range nodes {
+		str += fmt.Sprintf("%v, %v", i, n) + "\n"
+	}
+	log.LLvl1(str)
+
 	nbNodes := len(nodes)
-	rand.Seed(SHARED_RANDOM_SEED)
-	probability := 1.0 / math.Pow(float64(nbNodes), 1.0/float64(NR_LEVELS))
+	randSrc := rand.New(rand.NewSource(1.0))
+	// TODO : verify Other method
+	probability := 1.0 / math.Pow(float64(nbNodes), 1.0/float64(NR_LEVELS-1))
 
 	var lotteryResults []float64
 	for i := 0; i < nbNodes; i++ {
 		if nodes[i].LotteryResult == 0 {
-			nodes[i].LotteryResult = rand.Float64()
+			nodes[i].LotteryResult = randSrc.Float64()
 		} else {
 			log.LLvl1("\033[48;5;20m Already existing result : ", nodes[i].LotteryResult, " for node :  ", nodes[i].Name, "\033[0m")
 		}
@@ -30,13 +39,13 @@ func SetLevels(nodes []*gentree.LocalityNode) {
 
 	indexes := indexesOfSortedValues(lotteryResults)
 	k := 0
-	for l := NR_LEVELS; l >= 0; l-- {
+	for l := 0; l < NR_LEVELS; l++ {
 		reduceFactor := 1.0
 		if l != NR_LEVELS {
 			reduceFactor = 1 - probability
 		}
 
-		nSelected := int(reduceFactor * math.Floor(math.Pow(probability, float64(l))*float64(nbNodes)))
+		nSelected := int(math.Round(reduceFactor * math.Pow(probability, float64(l)) * float64(nbNodes)))
 		for i := 0; i < nSelected; i++ {
 			nodes[indexes[k]].Level = l
 			k++
@@ -63,7 +72,7 @@ type IndexValue struct {
 }
 
 func (iv IndexValue) Len() int           { return len(iv.Values) }
-func (iv IndexValue) Less(i, j int) bool { return iv.Values[i] > iv.Values[j] }
+func (iv IndexValue) Less(i, j int) bool { return iv.Values[i] < iv.Values[j] }
 func (iv IndexValue) Swap(i, j int) {
 	iv.Indexes[i], iv.Indexes[j] = iv.Indexes[j], iv.Indexes[i]
 	iv.Values[i], iv.Values[j] = iv.Values[j], iv.Values[i]

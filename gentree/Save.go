@@ -600,10 +600,8 @@ func approxDistance(all LocalityNodes, nodeU *LocalityNode, nodeV *LocalityNode)
 			log.Error("shouldn't get here!", nodeU.Name,
 				nodeV.Name, nodeU.OptimalBunch, nodeV.OptimalBunch)
 		}
-		aux := nodeU
-		nodeU = nodeV
-		nodeV = aux
 
+		nodeU, nodeV = nodeV, nodeU
 		for _, n := range all.All {
 			if n.Name == nodeU.PDist[i] {
 				w = n

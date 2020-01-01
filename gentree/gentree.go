@@ -164,14 +164,10 @@ func findTreeNode(tree *onet.Tree, target *onet.TreeNode) (*onet.TreeNode, error
 //Second and Third arguments should always be the same
 func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, levels int, pingDist map[string]map[string]float64, w3 *bufio.Writer) {
 	nodes := all.All
-<<<<<<< HEAD
 
 	// Change to random if needed
 	//randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randSrc := rand.New(rand.NewSource(1.0))
-=======
-	randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
->>>>>>> Implement Locarno Treaties (WIP).
 
 	if randomCoords {
 		//Computes random coordinates
@@ -267,10 +263,13 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 		}
 	}
 
+	total := "\n"
 	for _, n := range all.All {
 		s := fmt.Sprintf("%v,%v,%v,%v,%v,%v\n", n.Name, n.Level, n.X, n.Y, n.Cluster, n.Bunch)
+		total += fmt.Sprintf("        -        %v ------- %v  ---------", n.ADist, n.PDist) + s
 		w3.WriteString(s)
 	}
+	log.LLvl1(total)
 
 	w3.Flush()
 
