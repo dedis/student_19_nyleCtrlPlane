@@ -400,21 +400,6 @@ each level.
 the distance from a new node to the rest of the nodes. And that assures no one
 cheats by giving false distances. 
 
-\subsection{Next Steps} Here is the structure of Nyle :
-
-\begin{itemize} 
-\item Based on the proof-of-location, build a CRUX-like network
-\item In each of the region of the regions build a Blockchain 
-(see \ref{blockchain_subsection})
-\item Use the transaction validation to  give info on the validated region
-(see \ref{approve_time} (Approval time for a transaction))
-\item Dealing with moving actors.
-\item Dealing with double-spending issues
-(if a node spend the same coin in different regions) 
-(see \ref{WW3} WW3 Scenarios) 
-\item (Investigate if this design is open to other errors)
-\end{itemize}
-
 %%%%% TODO : add general description 
 %%%%% Motivation
 % - Already have a system working for non-byzantine no-churn system 
@@ -1258,6 +1243,31 @@ However, this was not implemented as it was hard to see how to go from one
 epoch to another using TLC. Recall that in the existing protocol, at the
 beginning of the live period one node of the old committee sends the necessary
 information to the new committee to begin. Synchronizing this could be hard.
+
+One other improvement that can be added is to allow clients to act for the
+generation of regions with special meaning. For example, it could make sense to
+create a region that is corresponding to precise geographical areas. This could
+allow the client to precisely know where its transactions are validated. For
+example, it could mean more to him to know that his transaction is validated in
+Swiss and Western Europe but not yet globally than knowing that its transaction
+is validated locally but not globally. 
+
+Of course this work is just a small part of what is left to do to have a first
+version of Nyle. Here is a list of what is to implement to have a first version
+of Nyle and description of the current progress.
+
+\begin{itemize} 
+\item Based on the location through time and space of nodes, build regions.
+(Done in this work)
+\item In each of the region of the regions build a Blockchain. (Could use an
+    existing one.)
+\item Use the transaction validation to give info on the validated region. (To
+do) 
+\item Dealing with moving actors. (Done in this work)
+\item Dealing with double-spending issues. (To do)
+(if a node spends the same coin in different regions) 
+(see \ref{WW3} WWIII Scenarios). 
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Conclusion}
