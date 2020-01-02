@@ -18,7 +18,7 @@ import (
 	"go.dedis.ch/onet/v3/network"
 )
 
-const RND_NODES = false
+const USE_LOCARNO = false
 const NR_LEVELS = 3
 const OPTIMIZED = false
 const OPTTYPE = 1
@@ -82,21 +82,19 @@ func (s *Service) Setup(req *InitRequest) {
 	}
 
 	s.getPings(true)
-	str := s.Name + "\n"
-	for _, n := range s.Nodes.All {
-		str += n.Name + " -- " + fmt.Sprintf("%v", n) + " \n"
+	if USE_LOCARNO {
+		SetLevels(s.Nodes.All, s.getepochOfEntryMap())
 	}
-	log.LLvl1(str)
 
-	SetLevels(s.Nodes.All, s.getepochOfEntryMap())
-
-	str = s.Name + "\n"
+	str := s.Name + "\n"
 	for _, n := range s.Nodes.All {
 		str += n.Name + " -- " + strconv.Itoa(n.Level) + " -- " + fmt.Sprintf("%v,%v", n.X, n.Y) + " \n"
 	}
 	log.LLvl1(str)
 
-	s.genTrees(RND_NODES, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
+	// If it does not use Locarno Treaties for generating the levels it has to draw them randomly
+	// If one wants to modify this code to read levels from a file one might have a look to Maxime Sierro Code : https://github.com/dedis/student_19_nylechain
+	s.genTrees(!USE_LOCARNO, NR_LEVELS, OPTIMIZED, MIN_BUNCH_SIZE, OPTTYPE, s.PingDistances)
 
 	s.ShortestDistances = s.floydWarshall()
 
@@ -237,31 +235,28 @@ func (s *Service) getPings(readFromFile bool) {
 	}
 }
 
-func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, OptimisationLevel int, OptType int, pingDist map[string]map[string]float64) {
+func (s *Service) genTrees(RandomLevels bool, Levels int, Optimized bool, OptimisationLevel int, OptType int, pingDist map[string]map[string]float64) {
+	folderStr := "Data/"
+	if RandomLevels {
+		folderStr += "Random/"
+	} else {
+		folderStr += "Locarno/"
+	}
 
-	// genTrees placeholder code, ideally we'll generate trees from small to large
-
-	file3, _ := os.Create("Data/gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
+	file3, _ := os.Create(folderStr + "gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
 	w3 := bufio.NewWriter(file3)
 	w3.WriteString("Name,Level,X,Y,cluster,bunch\n")
 
 	// To do a proper comparison, levels should be generated randomly at each epoch, but nodes keep their positions (read from file)
-	gentree.CreateLocalityGraph(s.Nodes, false, RandomCoordsLevels, Levels, pingDist, w3)
+	gentree.CreateLocalityGraph(s.Nodes, false, RandomLevels, Levels, pingDist, w3)
 	myname := s.Nodes.GetServerIdentityToName(s.ServerIdentity())
 
 	if Optimized {
 		gentree.OptimizeGraph(s.Nodes, myname, OptimisationLevel, OptType)
 	}
 
-	//tree, NodesList, Parents, Distances := gentree.CreateOnetLPTree(s.Nodes, myname, OptimisationLevel)
-
-	// route request to the roots of all rings i'm part of, using the distance oracles thingie
-
-	// then everyone runs consensus in their trees
-
 	dist2 := gentree.AproximateDistanceOracle(s.Nodes)
 
-	// TODO we generate trees for all nodes
 	for _, crtRoot := range s.Nodes.All {
 		crtRootName := crtRoot.Name
 
@@ -272,7 +267,6 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 		if crtRootName == myname {
 			s.Distances = dist2
 		}
-
 		for i, n := range tree {
 			s.GraphTree[crtRootName] = append(s.GraphTree[crtRootName], GraphTree{
 				n,
@@ -282,10 +276,6 @@ func (s *Service) genTrees(RandomCoordsLevels bool, Levels int, Optimized bool, 
 			})
 		}
 	}
-
-	// send the graph trees to all nodes part of them
-	//s.SendGraphTrees()
-
 	for rootName, graphTrees := range s.GraphTree {
 		for _, n := range graphTrees {
 
