@@ -1127,9 +1127,9 @@ There is no simple solution to this problem, but that fact has no consequence
 on the system so it seems to be an acceptable weakness.
 
 \section{Introducing the Space/Time metrics}
-One of the principal reason to split the system based on locality is because of most regular transactions between people are locals, therefore one wants to ensure that in case of a global partition, the locals transactions can still be processed flawlessly. Following this hypothesis, one can try to use this structure to update the system. Based on that, there should be more interaction in local regions. Most interactions can be processed locally. But some need to be propagated up the hierarchy up to the global system. 
+One of the principal reasons to split the system based on the locality is because of most regular transactions between people are local, therefore one wants to ensure that in case of a global partition, the local transactions can still be processed flawlessly. Following this hypothesis, one can try to use this structure to update the system. Based on that, there should be more interaction in local regions. Most interactions can be processed locally. But some need to be propagated up the hierarchy up to the global system. 
 
-Different levels can have different time as well, as local regions should be capable of validating transaction fast, maybe its possible to pull the transaction to regional and global levels using more time. In that way, if a client want to buy a coffee from the local merchant, it could have the local validation in second, but if I wants to do international payment this could be slowed down as they are supposed to happened less often and require more verification.
+Different levels can have different times as well, as local regions should be capable of validating transaction fast, maybe it is possible to pull the transaction to regional and global levels using more time. In that way, if a client wants to buy a coffee from the local merchant, it could have the local validation in second, but if the same client wants to do international payment this could be slowed down as they are supposed to happen less often and require more verification.
 
 Pings give a space/time insight of the evolution of the system.  This idea can
 be leveraged to create the Space/Time version of the control plane. In fact
@@ -1142,7 +1142,7 @@ What type of information can be inferred from this additional method ? First
 nodes can track the evolution through time and space of other nodes in the
 system. And react to them. For example, if one node starts to get away
 from the rest of the region, then other nodes will notice and can decide to
-kick this node out of their region (after consensus with the existing nodes).
+kick this node out of their region.
 Modifications (e.g. nodes movement, churn), can be detected directly with the
 messages, and the system can react to it. Churn can be interpreted as a node
 movement in this model, with the churning node moving to infinity. If one
@@ -1171,15 +1171,17 @@ measure at the beginning of the epoch, this view allows to have measures of the
 system dynamically at all time. 
 This can be used to adapt the system.
 
+The rules of thumb is that node should only care of what is important for them.
+This has as a goal to reduce unnecessary communication. However sometimes
+decisions made by nodes can have an impact on other nodes. In that case, the
+node which is creating the action is responsible to contact the nodes that will
+be impacted.
+
 \subsubsection{Rules for Region Assignment based on the Space/Time Metric}
 Recall that nodes are included in regions from the size of their cluster to the size of the system.
 If nodes in one region detect that another is moving apart, they do not expect it
-to participate in this region anymore and they propagate the information in the
-directly upper region. This is done recursively till the node is again included
-in the more global region.  In the opposite, if a region detect that one node
-is approaching it expects it to participate in the region, and propagate the
-information in the directly upper region.
-
+to participate in this region anymore. In the opposite, if a region detect that one node
+is approaching it expects it to participate in the region.
 If a node churns, then this information is propagated all the way to the
 biggest region, and the node is excluded from all the regions. 
 
@@ -1188,18 +1190,11 @@ This change in region assignment actually have an effect on the form of the
 region, the same rules developed in \ref{Locarno} can be applied to adapt the
 regions on the fly. If node $A$ is moving and leaves a region, and another node $B$ detects that
 while communicating with $A$, it will take that in account meaning it will
-store the last ping and adopt its own view on the system. If a major change is
-detected, for example that $A$ leaves the cluster of $B$ leading to the
-shrinking of the cluster of $B$ then $B$ will notify the other nodes
-participating in its cluster that it shrank the region. It will as well notify
-the first node of its bunch, and provide the ping. This will start a recursive
-reaction, nodes in the directly bigger region will start pinging $A$, if it is
-still in the region it can be integrated in another region. If $A$ moved too
-fast, it might have left its cluster as well, so the information would be
-transferred to the next bigger region. Eventually the biggest region, which
-covers the whole system would be reached. 
+store the last ping and adopt its own view on the system. Now this means that
+nodes will not have the same view of the system at all time, but this view will
+be really flexible. 
 
-
+% TODO Threat Analysis : This might be prone to attacks. Might not need this round of communication, base everything on the pings. 
 
 \subsubsection{Rules for Membership Component based on the Space/Time metric}
 The Space/Time Metric can be leveraged to serve as a Membership Components.
@@ -1234,8 +1229,8 @@ Space/Time Metric.
 Event                 & Effect                                                                                 & Detection                                                & Communication                                                 \\ \midrule
 Node leave a region   & Node should not be assigned to this region anymor. Might trigger region transformation & Ping of other nodes in the region                        & None needed                                                   \\ \hdashline[0.5pt/5pt]
 Node enter a region   & Node should be assigned to this region anymore. Might trigger region transformation    & Ping of other nodes in the region                        & None needed                                                   \\ \hdashline[0.5pt/5pt]
-Region Shrink         & Might exclude other nodes                                                              & Node leaving detected by one node of the region          & Round of communication between node in the region             \\ \hdashline[0.5pt/5pt]
-Region Growth         & Might add other nodes                                                                  & Node entering detected by one node of the region         & Round of communication between node in the region             \\ \hdashline[0.5pt/5pt]
+Region Shrink         & Might exclude other nodes                                                              & Node leaving detected by one node of the region          & None needed             \\ \hdashline[0.5pt/5pt]
+Region Growth         & Might add other nodes                                                                  & Node entering detected by one node of the region         & None needed            \\ \hdashline[0.5pt/5pt]
 Node leave the system & Leave all regions                                                                      & Subcase of Node leave a region                           & None needed                                                   \\ \hdashline[0.5pt/5pt]
 Node join the system  & Join a particular region                                                               & Ping all the nodes in the system                         & Election of a committee of checkers. Consensus on Endorsement \\ \hdashline[0.5pt/5pt]
 Global Partition      & Redrawing the system in both side of the partition                                     & Ping of individual nodes, generate region transformation & Same as before                                                \\ \bottomrule
@@ -1245,7 +1240,9 @@ Global Partition      & Redrawing the system in both side of the partition      
 \end{sidewaystable}
 
 \subsection{Threat model}
-Malicious nodes might forge ping to let other nodes thinking that a good node have moved. 
+The main challenge of this protocol is that the view of the system won't be the
+same for all the nodes in the system. And that might leads to some regions that
+are not stable through time. 
 
 %% TODO CONTINUE 
 
