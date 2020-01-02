@@ -45,14 +45,14 @@ might be a bit annoyed with this waiting time. The other problem is World War
 III scenarios. If a third World War occurs, splitting the world in two, one can
 expect that the communication between the two sides might be cut. This is a
 problem for regular distributed ledger as it will lead to forks that cannot be
-resolved at the end of WW3.  This work is part of a bigger project called Nyle [FIG. \ref{fig:Nyle}],
-which uses the idea of locality to solve these problems. The idea is to
-replicate the system along regions of different sizes, from local (e.g.
-Switzerland, London) to global. With this idea a transaction can be validated
-at a local region first, but it still possible to wait for global validation if
-needed. Most of the time a transaction validated locally will be validated
-globally as well, but in some case, when propagating the information to the
-global regions, some transactions might be invalidated to avoid double
+resolved at the end of WW3.  This work is part of a bigger project called Nyle
+[FIG. \ref{fig:Nyle}], which uses the idea of locality to solve these problems.
+The idea is to replicate the system along regions of different sizes, from
+local (e.g.  Switzerland, London) to global. With this idea a transaction can
+be validated at a local region first, but it still possible to wait for global
+validation if needed. Most of the time a transaction validated locally will be
+validated globally as well, but in some case, when propagating the information
+to the global regions, some transactions might be invalidated to avoid double
 spending. For big transactions, people might prefer to wait for the global
 confirmation. But if one wants to buy its daily coffee, local validation might
 be enough for the merchant, especially if he saw the person every day. For
@@ -168,14 +168,18 @@ But some ideas are taken from these papers are used as well.  The
 Sybil-resistance scheme used in the registration system is directly inspired
 from \cite{Dfinity}, using \textit{endorsement} in the general way, which can
 be in practice replaced by any Sybil-resistance scheme like Proof-of-Work
-\cite{bitcoin-paper}. 
-
-In particular this work tries to solve some drawbacks of traditional
-cryptocurrencies like \cite{bitcoin-paper}, solving the problem of the waiting
-time for validation by using region validation and making it resistant to WW3
-scenarios. \cite{Byzcoin} and \cite{Omniledger} gives another interesting
-solution to the waiting time for validation, but their results are orthogonal
-to this research.
+\cite{bitcoin-paper}. In particular this work tries to solve some drawbacks of
+traditional cryptocurrencies like \cite{bitcoin-paper}, solving the problem of
+the waiting time for validation by using region validation and making it
+resistant to WW3 scenarios. \cite{Byzcoin} and \cite{Omniledger} gives another
+interesting solution to the waiting time for validation, but their results are
+orthogonal to this research. Stellar solution for \textit{open-membership}
+\cite{Stellar} is based on a quorum, allowing each node to trust a subset of
+other nodes of its choice. It is an elegant solution and permits to validate
+transactions fast and securely. A certain complexity seems to be added both in
+theoretical part and practice, this justifies why  a similar approach was not
+followed. However the idea to allow nodes to have a different view of the
+system is at the core of one of the improvements of this work.
 
 \cite{Omniledger} and \cite{Monoxide} uses sharding to increase performance.
 Sharding splits the system in random committee that allow the fastest
@@ -188,28 +192,26 @@ blockchain system created by this means.
 
 This work is directly related to the locality-preserving algorithms developed
 in \cite{CRUX} and compact-graph algorithms \cite{approximation oracle}. These
-are described in detail in the next section. 
-
-There is a class of algorithm that uses the idea of locality in a different
-manner. For example \cite{Geo-DNS} or \cite{IP Anycast} use the idea of
-locality to shorten the path for the packets, connecting the servers via the
-closest path.
-
-Replication is often used to guarantee integrity of the stored information
-\cite{find-paper-replication}. In \cite{CRUX} and Nyle regional replication of
-the system is used to create partition-resistance, and in Nyle it can be used
-to allow region validation.
+are described in detail in the next section. There is a class of algorithm that
+uses the idea of locality in a different manner. For example \cite{Geo-DNS} or
+\cite{IP Anycast} use the idea of locality to shorten the path for the packets,
+connecting the servers via the closest path. Replication is often used to
+guarantee integrity of the stored information \cite{find-paper-replication}. In
+\cite{CRUX} and Nyle regional replication of the system is used to create
+partition-resistance, and in Nyle it can be used to allow region validation.
 
 Classic consensus algorithms as \cite{Paxos}, \cite{PBFT} were used as an
 inspiration to develop some parts of the theoretical algorithm. In practice,
 and for efficiency, this work use \cite{BlsCoSi} that is much more efficient,
-using trees for communication.  
+using trees for communication. \cite{BlsCoSi} is still prone to some drawbacks
+in case of successive view-changes, it could be improved using a different
+algorithm such as HotStuff \cite{HotStuff} which solves the problem of view
+change using a third round of communication. %% TODO VALIDATE. 
 
 This works uses a distributed public algorithm for the source of randomness
 like \cite{RandHound}. Each node will use this source to draw a random level.
 The way it is used is described in detail in the next section. 
 
-%TODO : Add Stellar
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Background}
@@ -275,8 +277,8 @@ that no system can be consistent, available and partition-resistant at the same
 time. It seems that this solution is adding partition tolerance to available
 and consistent system. Thus leading to the violation of the theorem. But it is
 not exactly the case, as the enhanced system only ensure that nodes can still
-work in the same side of a partition. The regions split by a partition are
-not working anymore. Even if the system can still work on the same side of a
+work in the same side of a partition. The regions split by a partition are not
+working anymore. Even if the system can still work on the same side of a
 partition, it's not totally partition resistant.
 
 %%%% Common Tools
@@ -285,13 +287,13 @@ partition, it's not totally partition resistant.
 % - Cluster
 % - ARA 
 %%%%%%%%%%%%%%%%%%
-\subsection{Common Tools :  ARAs} 
-This section describes how to create the regions that are used to replicate the
-system. These regions are used by Nyle as well, therefore we will describe it
-in detail. These regions are called \textit{Available Responsive Areas}, in
-each region a copy of the replicated system is deployed. To create these
-regions each node will participate first at a lottery. Each node starts at
-level 0. Then each node go to the next level with a given probability $p$. This
+\subsection{Common Tools :  ARAs} This section describes how to create the
+regions that are used to replicate the system. These regions are used by Nyle
+as well, therefore we will describe it in detail. These regions are called
+\textit{Available Responsive Areas}, in each region a copy of the replicated
+system is deployed. To create these regions each node will participate first at
+a lottery. Each node starts at level 0. Then each node go to the next level
+with a given probability $p$. This
 procedure is repeated at each level, and is stopped when no nodes are promoted
 to the next level. This first empty level is called $k$. Then each node can
 compute two quantities that will be necessary to create \textit{ARAs} : their
@@ -487,8 +489,6 @@ small pings (under 100ms) the ping time is actually correlated with the
 distance between two nodes. This is a result from \cite{locality-result} on
 which we build the locality properties of the system. 
 
-\subsection{Threat model}
-%% Todo : when adversarial model is done, depending on results. 
 
 %%%% mostly copied from
 % https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
@@ -620,7 +620,7 @@ permits to have a system running at every time.
 
 \subsection{Threshold-Signing Admission}
 To get an admission a node that wants to join for the next system will use the
-BlsCoSi protocol \cite{BlsCoSi_protocol}. it will generate a tree with him as
+BlsCoSi protocol \cite{BlsCoSi_protocol}. It will generate a tree with him as
 the root and the admission committee as nodes in the tree. Each node of the
 admission committee will have the choice of signing or rejecting the admission
 query. The threshold will be set at the majority. So if a node manages to get a
@@ -789,7 +789,7 @@ the other nodes will ask for a view change : asking the next node in the list
 to start the consensus. 
 
 \subsection{Malicious Nodes}
-\subsubsection{Consensus}
+\subsubsection{Attack on Consensus}
 If a malicious node is already in the committee, the only misbehavior that it
 can do the period is to refuse to sign the message. Re-sending wrong messages
 are already treated in \ref{MitM} and it's not possible to forge them because
