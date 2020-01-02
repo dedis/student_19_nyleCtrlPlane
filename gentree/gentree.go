@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"go.dedis.ch/onet/v3"
@@ -113,19 +113,12 @@ func (ns LocalityNodes) OccupyNextPort(ip string) int {
 
 // GetByName gets the node by name.
 func (ns LocalityNodes) GetByName(name string) *LocalityNode {
-	nodeIdx := NodeNameToInt(name)
-
-	//log.LLvl1("name here is", name)
-
-	//log.LLvl1("ns length", len(ns.All), "nodeIdx", nodeIdx)
-	if len(ns.All) < nodeIdx {
-		//log.LLvl1("returning NOT fine")
-		return nil
+	for _, n := range ns.All {
+		if n.Name == name {
+			return n
+		}
 	}
-	//log.LLvl1("returning fine", ns.All[nodeIdx])
-	//log.LLvl1(ns.All)
-	return ns.All[nodeIdx%len(ns.All)]
-	return ns.All[nodeIdx]
+	return nil
 }
 
 // NameToServerIdentity gets the server identity by name.
@@ -169,10 +162,11 @@ func findTreeNode(tree *onet.Tree, target *onet.TreeNode) (*onet.TreeNode, error
 //Fourth argument is how many levels there should be if they are random
 //Second and Third arguments should always be the same
 func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, levels int, pingDist map[string]map[string]float64, w3 *bufio.Writer) {
-
 	nodes := all.All
 
-	randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// Change to random if needed
+	//randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randSrc := rand.New(rand.NewSource(1.0))
 
 	if randomCoords {
 		//Computes random coordinates
@@ -268,9 +262,15 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 		}
 	}
 
+	total := "\n"
 	for _, n := range all.All {
-		log.Lvl1(n.Name, "cluster=", n.Cluster, "bunch=", n.Bunch)
+		s := fmt.Sprintf("%v,%v,%v,%v,%v,%v\n", n.Name, n.Level, n.X, n.Y, n.Cluster, n.Bunch)
+		total += fmt.Sprintf("        -        %v ------- %v  ---------", n.ADist, n.PDist) + s
+		w3.WriteString(s)
 	}
+	log.LLvl1(total)
+
+	w3.Flush()
 
 	// write to file
 	file, _ := os.Create("Specs/original.txt")
@@ -305,7 +305,9 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 	w.Flush()
 	file.Close()
 
-	w3.WriteString("cluster-bunch-init-start\n")
+	file, _ = os.Create("Data/cluster-bunch-init-start.txt")
+	w = bufio.NewWriter(file)
+	w.WriteString("cluster-bunch-init-start\n")
 
 	// loop in order
 	for i := 0; i < len(all.ClusterBunchDistances); i++ {
@@ -314,17 +316,19 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 			name2 := "node_" + strconv.Itoa(j)
 			dist := all.ClusterBunchDistances[all.GetByName(name1)][all.GetByName(name2)]
 			if dist > 10000.0 {
-				w3.WriteString("inf ")
+				w.WriteString("inf ")
 			} else {
-				w3.WriteString(fmt.Sprintf("%.2f", dist) + " ")
+				w.WriteString(fmt.Sprintf("%.2f", dist) + " ")
 			}
 
 		}
-		w3.WriteString("\n")
+		w.WriteString("\n")
 
 	}
 
-	w3.WriteString("cluster-bunch-init-end\n")
+	w.WriteString("cluster-bunch-init-end\n")
+	w.Flush()
+	file.Close()
 
 }
 
@@ -1048,4 +1052,94 @@ func CreateOnetRings(all LocalityNodes, rootName string, dist2 map[*LocalityNode
 	}
 
 	return Trees, Lists, Parents, TreeRadiuses
+}
+
+func ReadNodesFromFile(filename string) []*LocalityNode {
+	ret := make([]*LocalityNode, 0)
+
+	readLine, _ := readFileLineByLine(filename)
+	lineNr := 0
+
+	for {
+		line := readLine()
+		if line == "" {
+			break
+		}
+
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		tokens := strings.Split(line, " ")
+		coords := strings.Split(tokens[1], ",")
+		x, y := coords[0], coords[1]
+		name, level_str := tokens[0], tokens[2]
+
+		level, err := strconv.Atoi(level_str)
+		if err != nil {
+			log.Lvl1("Error", err)
+		}
+		xFloat, err := strconv.ParseFloat(x, 64)
+		if err != nil {
+			log.Fatal("Problem when parsing pings")
+		}
+		yFloat, err := strconv.ParseFloat(y, 64)
+		if err != nil {
+			log.Fatal("Problem when parsing pings")
+		}
+
+		myNode := createNode(name, xFloat, yFloat, level)
+		ret = append(ret, myNode)
+		log.LLvl3("Read node", *myNode)
+
+		lineNr++
+	}
+
+	log.LLvl3("Read nodes", ret)
+	return ret
+}
+
+func createNode(Name string, x float64, y float64, level int) *LocalityNode {
+	var myNode LocalityNode
+
+	myNode.X = x
+	myNode.Y = y
+	myNode.Name = Name
+	myNode.Level = level
+	myNode.ADist = make([]float64, 0)
+	myNode.PDist = make([]string, 0)
+	myNode.Cluster = make(map[string]bool)
+	myNode.Bunch = make(map[string]bool)
+	myNode.Rings = make([]string, 0)
+
+	return &myNode
+}
+
+func readFileLineByLine(configFilePath string) (func() string, error) {
+	f, err := os.Open(configFilePath)
+	//defer close(f)
+
+	if err != nil {
+		return func() string { return "" }, err
+	}
+	checkErr(err)
+	reader := bufio.NewReader(f)
+	//defer close(reader)
+	var line string
+	return func() string {
+		if err == io.EOF {
+			return ""
+		}
+		line, err = reader.ReadString('\n')
+		checkErr(err)
+		line = strings.Split(line, "\n")[0]
+		return line
+	}, nil
+}
+
+func checkErr(e error) {
+	if e != nil && e != io.EOF {
+		fmt.Print(e)
+		panic(e)
+	}
 }

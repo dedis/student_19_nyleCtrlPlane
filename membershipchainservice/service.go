@@ -1,12 +1,14 @@
 package membershipchainservice
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -73,7 +75,7 @@ type Service struct {
 
 	// From Crux
 	Nodes             gentree.LocalityNodes
-	GraphTree         map[string][]GraphTree
+	GraphTree         GraphTrees
 	BinaryTree        map[string][]*onet.Tree
 	alive             bool
 	Distances         map[*gentree.LocalityNode]map[*gentree.LocalityNode]gentree.Compact
@@ -328,7 +330,6 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	if err != nil {
 		return err
 	}
-
 	s.Proof = buf.(*gpr.SignatureResponse)
 	if s.Proof == nil {
 		log.LLvl1(s.Name, " :cannot share proof as it did not manage to get one")
@@ -336,6 +337,8 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	}
 
 	ro = ro.NewRosterWithRoot(s.ServerIdentity())
+
+	writeToFile(s.Name+",CreateProofForEpoch,"+strconv.Itoa(len(ro.List))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
 	tree := ro.GenerateBinaryTree()
 	pi, err := s.CreateProtocol(gpr.Name, tree)
@@ -366,21 +369,21 @@ func (s *Service) GetConsencusOnNewSigners() error {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-3*time.Second, "s to Get the Consencus")
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 3*time.Second)
 	}
-	timeCons := time.Now()
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
+	//timeCons := time.Now()
+	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
 		return err
 	}
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
+	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
 	// Agree on Signers
-	sign, err := s.AgreeOnState(ro, SIGNERSMSG)
+	_, err = s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
 		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
 		return err
 	}
 
-	log.LLvl1("Send Signature after", time.Now().Sub(timeCons), sign)
+	//log.LLvl1("Send Signature after", time.Now().Sub(timeCons), sign)
 	newSigners := s.GetSigners(s.e + 1)
 
 	var siList []*network.ServerIdentity
@@ -393,8 +396,10 @@ func (s *Service) GetConsencusOnNewSigners() error {
 	}
 	s.ServersMtx.Unlock()
 
+	writeToFile(s.Name+",GetConsencusOnNewSigners,"+strconv.Itoa(len(siList))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
+
 	for _, si := range siList {
-		log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
+		//log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
 		go func(SI *network.ServerIdentity) {
 			panicErr := s.SendHistory(SI)
 			if panicErr != nil {
@@ -402,11 +407,7 @@ func (s *Service) GetConsencusOnNewSigners() error {
 			}
 		}(si)
 	}
-	log.LLvl1(s.Name, "is done updating before sending to chan", s.EpochChan)
-
 	s.EpochChan <- s.e + 1
-	log.LLvl1(s.Name, "is done updating after consencus.")
-
 	return nil
 }
 
@@ -429,14 +430,34 @@ func (s *Service) StartNewEpoch() error {
 		return err
 	}
 
+	file, _ := os.OpenFile("Data/members.txt", os.O_RDWR|os.O_CREATE, 0660)
+	w := bufio.NewWriter(file)
+
+	if s.Name == "node_0" {
+		w.WriteString("Name,Address")
+		w.WriteString("\n")
+	}
 	si2name := make(map[*network.ServerIdentity]string)
 	for _, serv := range ro.List {
 		si2name[serv] = s.ServerIdentityToName[serv.ID]
+		if s.Name == "node_0" {
+			w.WriteString(s.ServerIdentityToName[serv.ID] + "," + fmt.Sprintf("%v", serv.Address) + "\n")
+		}
+
 	}
+	w.Flush()
+	file.Close()
+
 	s.Setup(&InitRequest{
 		ServerIdentityToName: si2name,
 	})
 
+	writeToFile(s.Name+",Pings,"+getMemoryUsage(s.PingDistances)+","+strconv.Itoa(int(s.e)), "Data/storage.txt")
+	if s.Name == "node_0" {
+		writeToFile(fmt.Sprintf("%v", s.GraphTree), "Data/maps_graphTree_"+s.Name+"_epoch"+strconv.Itoa(int(s.e))+".txt")
+	}
+	// Wait that all the other services have set up.
+	time.Sleep(1 * time.Second)
 	_, err = s.AgreeOnState(ro, PINGSMSG)
 	if err != nil {
 		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
@@ -444,13 +465,6 @@ func (s *Service) StartNewEpoch() error {
 	}
 	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
 	return err
-}
-
-func (s *Service) Deregistrate() error {
-	return errors.New("Unimplemented Error")
-}
-
-func (s *Service) ChangeLatencies(ic float64) {
 }
 
 // AgreeOnState checks that the members of the roster have the same signers + same maps
@@ -465,6 +479,8 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSig
 	if tree == nil {
 		return nil, errors.New("failed to generate tree")
 	}
+
+	writeToFile(s.Name+",AgreeOnState,"+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
 	// configure the BlsCosi protocol
 	pi, err := s.CreateProtocol(agreeProtocolName, tree)
@@ -572,6 +588,25 @@ func (s *Service) getServers() map[string]*network.ServerIdentity {
 	return dst
 }
 
+func (s *Service) getepochOfEntryMap() map[string]Epoch {
+	temp := make(map[network.ServerIdentityID]Epoch)
+	s.storage.Lock()
+	for i := len(s.storage.Signers) - 1; i >= 0; i-- {
+		for id := range s.storage.Signers[i] {
+			temp[id] = Epoch(i)
+		}
+	}
+	s.storage.Unlock()
+
+	ret := make(map[string]Epoch)
+	s.ServersMtx.Lock()
+	for id, e := range temp {
+		ret[s.ServerIdentityToName[id]] = e
+	}
+	s.ServersMtx.Unlock()
+	return ret
+}
+
 // UpdateHistoryWith will send an ReqHistory to the service in parameter
 func (s *Service) UpdateHistoryWith(name string) error {
 	log.Lvl1("Updating ", s.Name, "with ", name)
@@ -584,7 +619,7 @@ func (s *Service) UpdateHistoryWith(name string) error {
 
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
 	s.e = <-s.EpochChan
-
+	writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	return err
 
 }
@@ -753,5 +788,6 @@ func newService(c *onet.Context) (onet.Service, error) {
 		log.Error(err)
 		return nil, err
 	}
+
 	return s, nil
 }

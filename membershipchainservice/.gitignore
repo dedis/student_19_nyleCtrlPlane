@@ -5,3 +5,4 @@ nodes_read.txt
 out-gentree.txt
 sanity-node_*
 tiv-node_*
+Data/*
