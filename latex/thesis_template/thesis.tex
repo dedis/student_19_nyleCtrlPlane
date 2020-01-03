@@ -38,11 +38,11 @@ Ford}
 %% Presentation and setting
 Distributed ledgers are a becoming more and more used as they provide
 independence to a central authority, anonymity, security of transaction,...
-Some distributed ledgers as Bitcoin \citation{Nakamoto2009} managed to get a lot of
+Some distributed ledgers as Bitcoin \cite{Nakamoto2009} managed to get a lot of
 popularity for various reasons. However they still are subject to some
 weakness. The purpose of this work is to advances the research concerning two
 of them : World War III Scenarios and the time to validate a transaction.
-Indeed, in Bitcoin \citation{Nakamoto2009}, validating a transaction can take around one
+Indeed, in Bitcoin \cite{Nakamoto2009}, validating a transaction can take around one
 hour, because it takes around ten minutes to validate a block, and it needs
 around six blocks to be convinced with a high probability that the ledger won't
 be forked, and the transaction invalidated. This might be okay for some
@@ -54,7 +54,7 @@ III scenarios. If a third World War occurs, splitting the world in two, one can
 expect that the communication between the two sides might be cut. This is a
 problem for regular distributed ledger as it will lead to forks that cannot be
 resolved at the end of WW3.  This work is part of a bigger project called Nyle
-[FIG. \ref{fig:Nyle}], which uses the idea of locality to solve these problems.
+[FIG. \autoref{fig:Nyle}], which uses the idea of locality to solve these problems.
 The idea is to replicate the system along regions of different sizes, from
 local (e.g.  Switzerland, London) to global. With this idea a transaction can
 be validated at a local region first, but it still possible to wait for global
@@ -85,7 +85,7 @@ sufficient computational power and a good connection to maintain a node of the
 system. This allows the system to be distributed. The challenge with
 \textit{open-membership} is that nodes can join, leaves or move in the system
 at anytime. This might not be a problem for classic distributed ledger as
-Bitcoin \citation{Nakamoto2009}, as its protocol only take in account the computational
+Bitcoin \cite{Nakamoto2009}, as its protocol only take in account the computational
 power that is in the system at a given time. But as Nyle is locality-based,
 this might lead to additional challenges, each corresponding to the different
 actions possible : joining, leaving and moving. For joining nodes, consider the
@@ -111,34 +111,35 @@ avoid in Nyle. Therefore the regions should be adapted with the movement of the
 nodes. 
 
 %% Related Work Is Insufficient
-Most of this work is based on the CRUX \citation{Basescu2014}, which introduces
+Most of this work is based on the CRUX \cite{Basescu2014}, which introduces
 the locality algorithm based on compact graph theory and which is described in
-more detail in  \ref{chap:Background}. The existing work on Nyle was done by
-Maxime Sierro and Cristina Basescu \citation{Sierro2019} which proposes a first
-implementation of Nyle building on the top CRUX \citation{Basescu2014} but focusing
+more detail in  \autoref{chap:Background}. The existing work on Nyle was done by
+Maxime Sierro and Cristina Basescu \cite{Sierro2019} which proposes a first
+implementation of Nyle building on the top CRUX \cite{Basescu2014} but focusing
 directly how to improve the storage of the transactions and the tree structure
 of the regions. This works builds directly upon the existing work, but is
 slightly orthogonal, as the need of a Control Plane was not intended at first.
-A  second work on Nyle was done by Sabrina Kall \citation{Kall2019}, which was
+A  second work on Nyle was done by Sabrina Kall \cite{Kall2019}, which was
 proposing a way of checking efficiently the location of a node and to assert if
 nodes were lying about the location where they claimed to be. There is a
-current work on the Interplanetary-File System (IPFS) \cite{IPFS}, that is
+current work on the Interplanetary-File System (IPFS) \cite{Michel2019}, that is
 based on CRUX as well but with the purpose to create a locality-aware overlay
 to speed the system up, but it is not directly related to blockchains. The rest
-of the related work is described in the next chapter \ref{chap:RelatedWork} and
+of the related work is described in the next chapter \autoref{chap:RelatedWork} and
 is mostly orthogonal to the current approach : some other solutions to speed
-the validation of transaction are Bitcoin \citation{Nakamoto2009}, Byzcoin \citation{Kogias2016},
-Omniledger \cite{Kokoris-Kogias2017},  DFINITY \cite{Hanke2018},  \cite{Monoxide} and \cite{Stellar}, but they
-don't use the concept of the locality for this purpose. 
+the validation of transaction are Bitcoin \cite{Nakamoto2009}, Byzcoin \cite{Kogias2016},
+Omniledger \cite{Kokoris-Kogias2017},  DFINITY \cite{Hanke2018},
+\cite{Wang2019} and \cite{Lokhava2019}, but they don't use the concept of the
+locality for this purpose. 
 
 %% Description of the Approach
 This work was structured in the following manner : first a simple version of
-the control plane was designed \ref{chap:Design}, which splits the time into
+the control plane was designed \autoref{chap:Design}, which splits the time into
 epochs and take as an assumption that the system is fixed during one epoch. A
 protocol is proposed and discussed and the threat analysis is done. Based on
 the implementations some drawbacks are put in light. Then a series of strawman
 models try to correct some of these drawbacks and are analyzed as well
-\ref{chap:Improvements}. The first one is called "Locarno Treaties" and will
+\autoref{chap:Improvements}. The first one is called "Locarno Treaties" and will
 try to keep the system coherent from one epoch to the next. The next one is
 called "Fog of the war", and try to reduce the need for communication between
 nodes. The last and the most complex consider the interactions of the nodes as
@@ -165,64 +166,68 @@ that allowed to improve the existing design.
 %%%%%%%%%%%%%%%%%%%%
 This work builds upon several other works that are linked to the domains of
 blockchains and locality. Nyle proposes a decentralized cryptocurrency using
-different strategies than \cite{bitcoin-paper},\cite{Byzcoin},
-\cite{Omniledger}, \cite{Dfinity}, \cite{Monoxide} and \cite{Stellar}. It used
-them as an inspiration source and share some aspects with theses general
-cryptocurrencies.  It is somehow orthogonal to them because it can use any of
-theses cryptocurrencies as an underlying system and enhance them using the idea
-of locality to add some partition-resistance to them. 
+different strategies than Bitcoin \cite{Nakamoto2009}, Byzcoin \cite{Kogias2016},
+Omniledger \cite{Kokoris-Kogias2017}, DFINITY \cite{Hanke2018}, Monoxide
+\cite{Wang2019} and Stellar \cite{Lokhava2019}. It used them as an inspiration
+source and share some aspects with theses general cryptocurrencies.  It is
+somehow orthogonal to them because it can use any of theses cryptocurrencies as
+an underlying system and enhance them using the idea of locality to add some
+partition-resistance to them. 
 
 But some ideas are taken from these papers are used as well.  The
 Sybil-resistance scheme used in the registration system is directly inspired
-from \cite{Dfinity}, using \textit{endorsement} in the general way, which can
+from \cite{Hanke2018}, using \textit{endorsement} in the general way, which can
 be in practice replaced by any Sybil-resistance scheme like Proof-of-Work
-\cite{bitcoin-paper}. In particular this work tries to solve some drawbacks of
-traditional cryptocurrencies like \cite{bitcoin-paper}, solving the problem of
+\cite{Nakamoto2009}. In particular this work tries to solve some drawbacks of
+traditional cryptocurrencies like \cite{Nakamoto2009}, solving the problem of
 the waiting time for validation by using region validation and making it
-resistant to WW3 scenarios. \cite{Byzcoin} and \cite{Omniledger} gives another
-interesting solution to the waiting time for validation, but their results are
-orthogonal to this research. Stellar solution for \textit{open-membership}
-\cite{Stellar} is based on a quorum, allowing each node to trust a subset of
-other nodes of its choice. It is an elegant solution and permits to validate
-transactions fast and securely. A certain complexity seems to be added both in
-theoretical part and practice, this justifies why  a similar approach was not
-followed. However the idea to allow nodes to have a different view of the
-system is at the core of one of the improvements of this work.
+resistant to WW3 scenarios. Byzcoin \cite{Kogias2016} and Omniledger
+\cite{Kokoris-Kogias2017} gives another interesting solution to the waiting
+time for validation, but their results are orthogonal to this research. Stellar
+solution for \textit{open-membership} \cite{Lokhava2019} is based on a quorum,
+allowing each node to trust a subset of other nodes of its choice. It is an
+elegant solution and permits to validate transactions fast and securely. A
+certain complexity seems to be added both in theoretical part and practice,
+this justifies why  a similar approach was not followed. However the idea to
+allow nodes to have a different view of the system is at the core of one of the
+improvements of this work.
 
-\cite{Omniledger} and \cite{Monoxide} uses sharding to increase performance.
-Sharding splits the system in random committee that allow the fastest
-processing of the transaction. This not directly related of what is done in
-this work, as even if the system is split in different parts, it is not done
-randomly but based on the locality, and the system is replicated in all the
-regions. However, cryptocurrencies using shards can still be used as an
-underlying system of Nyle, enhancing the performance of the partition-resistant
-blockchain system created by this means.
+Omniledger \cite{Kokoris-Kogias2017}  and Monoxide \cite{Wang2019} uses
+sharding to increase performance.  Sharding splits the system in random
+committee that allow the fastest processing of the transaction. This not
+directly related of what is done in this work, as even if the system is split
+in different parts, it is not done randomly but based on the locality, and the
+system is replicated in all the regions. However, cryptocurrencies using shards
+can still be used as an underlying system of Nyle, enhancing the performance of
+the partition-resistant blockchain system created by this means.
 
 This work is directly related to the locality-preserving algorithms developed
-in \cite{CRUX} and compact-graph algorithms \cite{approximation oracle}. These
+in CRUX \cite{Basescu2014} and compact-graph algorithms \cite{Thorup2005}. These
 are described in detail in the next section. There is a class of algorithm that
-uses the idea of locality in a different manner. For example \cite{Geo-DNS} or
-\cite{IP Anycast} use the idea of locality to shorten the path for the packets,
-connecting the servers via the closest path. Replication is often used to
-guarantee integrity of the stored information \cite{find-paper-replication}. In
-\cite{CRUX} and Nyle regional replication of the system is used to create
-partition-resistance, and in Nyle it can be used to allow region validation.
+uses the idea of locality in a different manner. For example Geo-DNS
+\cite{Katz-bassett2006} or IP Anycast \cite{Abley2006} use the idea of locality
+to shorten the path for the packets, connecting the servers via the closest
+path. Replication is often used to guarantee integrity of the stored
+information \cite{find-paper-replication}. In CRUX \cite{Basescu2014} and Nyle
+regional replication of the system is used to create partition-resistance, and
+in Nyle it can be used to allow region validation.
 
-Classic consensus algorithms as \cite{Paxos}, \cite{PBFT} were used as an
-inspiration to develop some parts of the theoretical algorithm. In practice,
-and for efficiency, this work use \cite{BlsCoSi} that is much more efficient,
-using trees for communication. \cite{BlsCoSi} is still prone to some drawbacks
-in case of successive view-changes, it could be improved using a different
-algorithm such as HotStuff \cite{HotStuff} which solves the problem of view
-change using a third round of communication. %% TODO VALIDATE. 
+Classic consensus algorithms as PAXOS \cite{Lamport2000}, PBFT
+\cite{Castro1999} were used as an inspiration to develop some parts of the
+theoretical algorithm. In practice, and for efficiency, this work use BlsCoSi
+\cite{Boneh2018} that is much more efficient, using trees for communication.
+BlsCoSi \cite{Boneh2018} is still prone to some drawbacks in case of successive
+view-changes, it could be improved using a different algorithm such as HotStuff
+\cite{Yin2018} which solves the problem of view change using a third round of
+communication. %% TODO VALIDATE. 
 
 This works uses a distributed public algorithm for the source of randomness
-like \cite{RandHound}. Each node will use this source to draw a random level.
-The way it is used is described in detail in the next section. 
+like Randhound \cite{Syta2016}. Each node will use this source to draw a random
+level.  The way it is used is described in detail in the next section. 
 
 
 %%%%%%%%%%%%%%%%%%%%
-\chapter{Background}
+\chapter{Background} \label{chap:Background}
 %%%%%%%%%%%%%%%%%%%%
 
 %%%% Plan
@@ -234,7 +239,7 @@ The way it is used is described in detail in the next section.
 
 This Master Thesis is part of a biggest project that concerns
 locality-preserving systems. In particular, it builds upon
-CRUX\cite{basescu2014crux} and is part of Nyle.This section describes the two
+CRUX \cite{Basescu2014} and is part of Nyle. This section describes the two
 different projects. 
 
 \section{CRUX}
@@ -246,12 +251,13 @@ different projects.
 % - Generality 
 % - CAP Theorem
 %%%%%%%%%%%%%%%%%%
-\subsection{General Presentation} CRUX introduces a smart way of dealing with
-partitions in decentralized systems. The purpose is the following : partitions
-occur in decentralized system. But one can maybe try to find a solution to
-reduce their effects on the global system. For example, if a partition occurs,
-there is no reason that nodes that are functioning in the same side of the
-partition should stop working because of the partition. 
+\subsection{General Presentation}
+CRUX \cite{Basescu2014} introduces a smart way of dealing with partitions in
+decentralized systems. The purpose is the following : partitions occur in
+decentralized systems. But one can maybe try to find a solution to reduce their
+effects on the global system. For example, if a partition occurs, there is no
+reason that nodes that are functioning in the same side of the partition should
+stop working because of the partition. 
 
 The general idea is that a system can be replicated at different scales, from
 local (cities, region) to global.  With the additional property than each
@@ -264,20 +270,21 @@ of the partition will continue to work.
 Obviously, this solution comes with an overhead, as the system should be
 replicated in all the regions. But there are some ways of reducing this
 overhead, in a way that it stays reasonable and that the resistance to
-partition is maintained. To reduce this overhead, CRUX algorithm for regions
-creation presented below ensure that the proper number of regions is created,
-in a manner that the number of regions created induce a reasonable overhead and
-that the partition resistance stays efficient. If CRUX is used for a
-particular, known system, overhead can be even more reduced.  As the systems
-are replicated in every region, most of the data is replicated along the
-regions. So one might actually dig inside the specification of one system and
-manages not to store twice the same data. But this overpass a bit the goal of
-CRUX, which wants to be the more general possible. 
+partition is maintained. To reduce this overhead, CRUX \cite{Basescu2014}
+algorithm for regions creation presented below ensure that the proper number of
+regions is created, in a manner that the number of regions created induce a
+reasonable overhead and that the partition resistance stays efficient. If CRUX
+\cite{Basescu2014} is used for a particular, known system, overhead can be even
+more reduced.  As the systems are replicated in every region, most of the data
+is replicated along the regions. So one might actually dig inside the
+specification of one system and manages not to store twice the same data. But
+this overpass a bit the goal of CRUX \cite{Basescu2014}, which wants to be the
+more general possible. 
 
-Indeed, the force of CRUX is that it is applicable to any distributed system,
-as no particular hypothesis on the system is made. It only starts from one
-simple idea : one system can be replicated at smaller scale to ensure partition
-resistance. 
+Indeed, the force of CRUX \cite{Basescu2014} is that it is applicable to any
+distributed system, as no particular hypothesis on the system is made. It only
+starts from one simple idea : one system can be replicated at smaller scale to
+ensure partition resistance. 
 
 % TODO : do more research on that.
 A note should be made about the CAP-theorem. Recall that this theorem states
@@ -354,7 +361,7 @@ approval time for a transaction.
  
 \paragraph{WW3 Scenarios} \label{WW3} In case of a WW3, we can expect to have
 at least a long-lasting partition that will split the system in two. This is a
-problem for classical cryptocurrencies like \cite{bitcoin-paper}, because for a
+problem for classical cryptocurrencies like \cite{Nakamoto2009}, because for a
 block to be approved, the users are supposed to wait to have a global
 consensus. This consensus will not be reached with a long-lasting partition and
 therefore it will create problems for classical cryptocurrencies. Nyle solve
@@ -382,18 +389,19 @@ that concerns one of its nodes.
 
 \subsection{Stable Environment vs Byzantine Evolving System}
 
-The big difference between CRUX and Nyle is that the purpose of CRUX is to work
-in environments where machines are relatively "stable" which means that they
-are not supposed to churn or to crash often, and more, where the machines are
-not supposed to move. This is not the case for Nyle : if we have a
-cryptocurrency, we can expect to have malicious, deficient and/or moving nodes.
-This will add some difficulties that will be managed by the protocol.
+The big difference between CRUX \cite{Basescu2014} and Nyle is that the purpose
+of CRUX \cite{Basescu2014} is to work in environments where machines are
+relatively "stable" which means that they are not supposed to churn or to crash
+often, and more, where the machines are not supposed to move. This is not the
+case for Nyle : if we have a cryptocurrency, we can expect to have malicious,
+deficient and/or moving nodes.  This will add some difficulties that will be
+managed by the protocol.
 
 \subsection{Blockchain System} \label{blockchain_subsection}
 
 Each region will have its own blockchain, in Nyle the choice for the blockchain
-will be chosen between Omniledger or ByzCoin. But it can be generalized to any
-kind of blockchain.
+will be chosen between Omniledger \cite{Kokoris-Kogias2017} or ByzCoin
+\cite{Kogias2016}. But it can be generalized to any kind of blockchain.
 
 \subsection{What is already implemented for Nyle} \subsubsection{Transaction
 validation} We already have a protocol that validates a transaction.
@@ -418,20 +426,20 @@ cheats by giving false distances.
 %%%%%%%%%%%%%%%
 \subsection{Purpose of this project : motivation for a control plane}
 
-CRUX proposes a system that is working in a stable system (with low-churn) and
-where nodes do not move too much. As this situation corresponds to some
-systems like wide-area database, ... It is definitely not the case of a
-cryptocurrency.  For these kind of system, one can expect to have at least some
-churn, some moving nodes and some adversarial nodes.  If the system has a
-precise protocol for dealing with nodes entering, leaving and moving in the
-system, then the problem of the evolution of the system is solved. Indeed the
-churn phenomenon can be described as some nodes leaving the system and
-optionally reentering later. 
+CRUX \cite{Basescu2014} proposes a system that is working in a stable system
+(with low-churn) and where nodes do not move too much. As this situation
+corresponds to some systems like wide-area database, ... It is definitely not
+the case of a cryptocurrency.  For these kind of system, one can expect to have
+at least some churn, some moving nodes and some adversarial nodes.  If the
+system has a precise protocol for dealing with nodes entering, leaving and
+moving in the system, then the problem of the evolution of the system is
+solved. Indeed the churn phenomenon can be described as some nodes leaving the
+system and optionally reentering later. 
 
 Therefore the purpose of the control plane will be to deal with the evolution
 of the regions that follows the evolution of the nodes in the system. Once that
 problem is solved, the blockchain can be replicated in the evolving region and
-the strategy will be the same as in CRUX. 
+the strategy will be the same as in CRUX \cite{Basescu2014}. 
 
 Thus this project introduce a control plane, that is in charge of the evolution
 of the nodes in the system. In particular, it will be in charge of dealing with
@@ -479,8 +487,8 @@ means that every message sent by a node to another will arrive in order, and
 that a message that is sent will be received within a given window of time. The
 third hypothesis is made on the geometry of the network. It states that for
 small pings (under 100ms) the ping time is actually correlated with the
-distance between two nodes. This is a result from \cite{locality-result} on
-which we build the locality properties of the system. 
+distance between two nodes \cite{Seibert2014} .On this result we build the
+locality properties of the system. 
 
 
 %%%% mostly copied from
@@ -488,7 +496,7 @@ which we build the locality properties of the system.
 \section{General Presentation}
 
 The Control Plane is composed of five different components [FIG.
-\ref{fig:modules}], each necessary to solves different part of the problem. It
+\autoref{fig:modules}], each necessary to solves different part of the problem. It
 needs a membership component, to define precisely which nodes are in the system
 at any time. It needs a locality component which gives the distance between two
 nodes in the system. Then it needs a region management component, which will
@@ -555,7 +563,7 @@ really simple : based on the registration, and the pings, CRUX is run at each
 epoch. Redrawing the map of the entire system. 
 
 \subsection{Membership Protocol}
-This section describes the membership protocol [FIG. \ref{fig:registrationprotocol}].
+This section describes the membership protocol [FIG. \autoref{fig:registrationprotocol}].
 
 
 \begin{sidewaysfigure}[ht]
@@ -608,12 +616,12 @@ capable of running the system in a deterministic manner.
 Following the election of the new admission committee at the beginning of the
 live-epoch, the registration period for the next epoch can begin, as the
 authority that will accept admission is running. Registration period and live
-period can therefore be superposed [FIG. \ref{fig:registrationprotocol}], which
+period can therefore be superposed [FIG. \autoref{fig:registrationprotocol}], which
 permits to have a system running at every time. 
 
 \subsection{Threshold-Signing Admission}
 To get an admission a node that wants to join for the next system will use the
-BlsCoSi protocol \cite{BlsCoSi_protocol}. It will generate a tree with him as
+BlsCoSi protocol \cite{Boneh2018}. It will generate a tree with him as
 the root and the admission committee as nodes in the tree. Each node of the
 admission committee will have the choice of signing or rejecting the admission
 query. The threshold will be set at the majority. So if a node manages to get a
@@ -773,7 +781,7 @@ delete some of the messages, which is a sort of delay attacks.
 \subsubsection{Delay attacks}
 This protocol is not really resistant against delay attacks. It assumes
 wall-clock synchronicity between the nodes, which can cause some problems. The
-effect of a delay of message are listed in [TAB. \ref{tab:my-table}]. During
+effect of a delay of message are listed in [TAB. \autoref{tab:my-table}]. During
 the registration, if the messages are delayed until the start of the next
 epoch, then it will lead to the refusal of the request, and the node have to
 create a request again for the next epoch. If the messages of the leader of the
@@ -785,20 +793,20 @@ to start the consensus.
 \subsubsection{Attack on Consensus}
 If a malicious node is already in the committee, the only misbehavior that it
 can do the period is to refuse to sign the message. Re-sending wrong messages
-are already treated in \ref{MitM} and it's not possible to forge them because
-of the signature. Refusing to sign join requests can lead to a failing protocol
+are already treated in \autoref{MitM} and it's not possible to forge them because
+of the signature. refusing to sign join requests can lead to a failing protocol
 if the number of malicious nodes is bigger than the threshold required to get
-the signature. As the signature procedure is done using BlsCoSi \cite{BlsCoSi},
-the registration process is subject to the same threat. BlsCosi is an efficient
-way to implement The \textit{Practical Byzantine Fault Tolerance} (PBFT)
-algorithm which guarantee \textit{safety} and \textit{liveness} if the system
-as no more than $f$ faults among $3f+1$ malicious nodes.Therefore it is
-required to have no more than $f$ malicious nodes, where $f$ is given by : $3f
-+ 1 = N$, where $N$ is the number of nodes in the current committee. As the
-number of nodes in the system evolves with time, it required not to have more
-than this fraction of malicious nodes in the system at any epoch. If for one
-epoch, the number of malicious nodes is bigger, then they can block all the
-consensus, leading to a failing system. 
+the signature. As the signature procedure is done using BlsCoSi \cite{Boneh2018},
+the registration process is subject to the same threat. BlsCoSi
+\cite{Boneh2018} is an efficient way to implement The \textit{Practical
+Byzantine Fault Tolerance} (PBFT) \cite{Castro1999} algorithm which guarantee
+\textit{safety} and \textit{liveness} if the system as no more than $f$ faults
+among $3f+1$ malicious nodes.Therefore it is required to have no more than $f$
+malicious nodes, where $f$ is given by : $3f + 1 = N$, where $N$ is the number
+of nodes in the current committee. As the number of nodes in the system evolves
+with time, it required not to have more than this fraction of malicious nodes
+in the system at any epoch. If for one epoch, the number of malicious nodes is
+bigger, then they can block all the consensus, leading to a failing system. 
 
 If a malicious node is elected as a leader of the consensus on the list of
 participants or on the nodes, it can decide not to start the consensus. After a
@@ -820,7 +828,7 @@ cannot use a high level to perform action that will block the system.
 
 However, if a malicious attacker could take over the lottery process, it could
 manages to group the high level in a side of the system. Leaving only the
-level-zero. This could lead to some problem [App \ref{Problem with
+level-zero. This could lead to some problem [App \autoref{Problem with
 levels-zero}]. Taking over the lottery process should'nt be possible by design.
 Indeed, the lottery is based on a public source of randomness that renewed at
 each epoch, and revealed after the registration of the levels. 
@@ -854,35 +862,35 @@ time/space graphs will be proposed.
 \end{figure}
 
 Following the First World War, it was decided that the borders of Germany
-should remain fixed. The Locarno Treaties defined some of these borders
-\cite{LocarnoTreaties TODO}. The idea of this Strawman model is to limit
-modifications of regions from one epoch to the next. The idea is to use a
-deterministic set of rules, based on the ping, the registrations and the map of
-the previous epoch to draw the map of the current epoch using the less
-redrawing as possible. CRUX is run at the first epoch giving the first version
-of the system. Registration is still global and each node will have all the
-information about the memberships of every node.Then from one epoch to another,
-the purpose of the game is to keep as much regions as possible. The obvious
-idea to reach this goal is to let the nodes conserves their levels from one
-epoch to the next.  However some small difference should be introduced in order
-to avoid some problems.  These are described in the next section.
+should remain fixed. The Locarno Treaties defined some of these borders. The
+idea of this Strawman model is to limit modifications of regions from one epoch
+to the next. The idea is to use a deterministic set of rules, based on the
+ping, the registrations and the map of the previous epoch to draw the map of
+the current epoch using the less redrawing as possible. CRUX is run at the
+first epoch giving the first version of the system. Registration is still
+global and each node will have all the information about the memberships of
+every node.Then from one epoch to another, the purpose of the game is to keep
+as much regions as possible. The obvious idea to reach this goal is to let the
+nodes conserves their levels from one epoch to the next.  However some small
+difference should be introduced in order to avoid some problems.  These are
+described in the next section.
 
 \subsection{Rebalancing the levels} \label{rebalancing}
 Conserving the levels is the way to go, but maintaining levels can lead to
 de-equilibrated systems. Consider a system with 200 Nodes at epoch 1, with the
-repartition given in Table \ref{example-lottery}. If from epoch 1 to epoch 2,
+repartition given in Table \autoref{example-lottery}. If from epoch 1 to epoch 2,
 100 level-0 nodes leave the system, the remaining system would contain 80
 level-0 nodes instead of 90. 
 
 De-equilibrated systems can lead to some problems, the proof is given in the
-appendix [APP. \ref{proof-reequilibrating}].
+appendix [APP. \autoref{proof-reequilibrating}].
 
-The lottery process presented in section \ref{lottery}, is a bit changed in
+The lottery process presented in section \autoref{lottery}, is a bit changed in
 this part to allow the adaptation of the levels. The total number of
 participants $N$ in the system is known after the registration, and as the
 probability $P$ is given, it is straightforward to compute the expected number
 of nodes that one should have at every level as it mentioned in Table
-\ref{example-lottery}. 
+\autoref{example-lottery}. 
 
 Instead of drawing directly the levels from a randomness source, nodes will
 draw a random number from this source between 0 and 1.  All nodes can deduce
@@ -992,8 +1000,8 @@ the modifications appear in small places.}
 
 \subsection{Protocol}
 The protocol is mostly the same as the simple control plane protocol [FIG.
-\ref{fig:registrationprotocol}]. The main difference is the level assignment
-which follows the new algorithm described in \ref{rebalancing}. 
+\autoref{fig:registrationprotocol}]. The main difference is the level assignment
+which follows the new algorithm described in \autoref{rebalancing}. 
 
 \subsection{Threat Model}
 
@@ -1005,7 +1013,7 @@ epoch.
 If one node is not happy with its level assignment, it can leave the system a
 re-enter later, hoping to get a better level. This attack works against the two
 algorithms, but this attack does not create too
-bad consequences, as it is presented in \ref{Threat-Model}.
+bad consequences, as it is presented in \autoref{Threat-Model}.
 
 Another attack could be that malicious nodes exit and re-enter the system at
 each epoch until they manage to get a good number from the lottery. Then when
@@ -1018,7 +1026,7 @@ participants.
 
 Some defense mechanisms can be set up to ensure that levels are geographically
 distributed over the whole system, they are described in more details in
-\ref{Possible Improvements.} 
+\autoref{Possible Improvements.} 
 
 \subsubsection{Quantifying the effect of Locarno Treaties}
 The goal of the new protocol is to keep most regions and region assignment
@@ -1034,7 +1042,7 @@ system, their bunch and cluster count as a difference. Same if a node leaves
 the system. The idea is that with this new protocol, the difference should be
 reduced. 
 
-The results of the experiment can be seen in [FIG. \ref{TODO FIGURE}]. Maps of
+The results of the experiment can be seen in [FIG. \autoref{TODO FIGURE}]. Maps of
 the system is given in the appendix.
 
 \section{Strawman 2 : Fog of the War}
@@ -1100,7 +1108,7 @@ that the node itself is faulty.
 
 \subsection{Protocol}
 The protocol is mostly the same as the simple control plane protocol [FIG.
-\ref{fig:registrationprotocol}]. The only difference is the consensus on the
+\autoref{fig:registrationprotocol}]. The only difference is the consensus on the
 pings which are now replaced by a declared distance, which is announced before
 the level assignment and a round of checks and announce of the checks. 
 
@@ -1128,9 +1136,21 @@ There is no simple solution to this problem, but that fact has no consequence
 on the system so it seems to be an acceptable weakness.
 
 \section{Introducing the Space/Time metrics}
-One of the principal reasons to split the system based on the locality is because of most regular transactions between people are local, therefore one wants to ensure that in case of a global partition, the local transactions can still be processed flawlessly. Following this hypothesis, one can try to use this structure to update the system. Based on that, there should be more interaction in local regions. Most interactions can be processed locally. But some need to be propagated up the hierarchy up to the global system. 
+One of the principal reasons to split the system based on the locality is
+because of most regular transactions between people are local, therefore one
+wants to ensure that in case of a global partition, the local transactions can
+still be processed flawlessly. Following this hypothesis, one can try to use
+this structure to update the system. Based on that, there should be more
+interaction in local regions. Most interactions can be processed locally. But
+some need to be propagated up the hierarchy up to the global system. 
 
-Different levels can have different times as well, as local regions should be capable of validating transaction fast, maybe it is possible to pull the transaction to regional and global levels using more time. In that way, if a client wants to buy a coffee from the local merchant, it could have the local validation in second, but if the same client wants to do international payment this could be slowed down as they are supposed to happen less often and require more verification.
+Different levels can have different times as well, as local regions should be
+capable of validating transaction fast, maybe it is possible to pull the
+transaction to regional and global levels using more time. In that way, if a
+client wants to buy a coffee from the local merchant, it could have the local
+validation in second, but if the same client wants to do international payment
+this could be slowed down as they are supposed to happen less often and require
+more verification.
 
 Pings give a space/time insight of the evolution of the system.  This idea can
 be leveraged to create the Space/Time version of the control plane. In fact
@@ -1179,21 +1199,22 @@ node which is creating the action is responsible to contact the nodes that will
 be impacted.
 
 \subsubsection{Rules for Region Assignment based on the Space/Time Metric}
-Recall that nodes are included in regions from the size of their cluster to the size of the system.
-If nodes in one region detect that another is moving apart, they do not expect it
-to participate in this region anymore. In the opposite, if a region detect that one node
-is approaching it expects it to participate in the region.
-If a node churns, then this information is propagated all the way to the
-biggest region, and the node is excluded from all the regions. 
+Recall that nodes are included in regions from the size of their cluster to the
+size of the system.  If nodes in one region detect that another is moving
+apart, they do not expect it to participate in this region anymore. In the
+opposite, if a region detect that one node is approaching it expects it to
+participate in the region.  If a node churns, then this information is
+propagated all the way to the biggest region, and the node is excluded from all
+the regions. 
 
 \subsubsection{Transformation of regions}
 This change in region assignment actually have an effect on the form of the
-region, the same rules developed in \ref{Locarno} can be applied to adapt the
-regions on the fly. If node $A$ is moving and leaves a region, and another node $B$ detects that
-while communicating with $A$, it will take that in account meaning it will
-store the last ping and adopt its own view on the system. Now this means that
-nodes will not have the same view of the system at all time, but this view will
-be really flexible. 
+region, the same rules developed in \autoref{Locarno} can be applied to adapt
+the regions on the fly. If node $A$ is moving and leaves a region, and another
+node $B$ detects that while communicating with $A$, it will take that in
+account meaning it will store the last ping and adopt its own view on the
+system. Now this means that nodes will not have the same view of the system at
+all time, but this view will be really flexible. 
 
 % TODO Threat Analysis : This might be prone to attacks. Might not need this round of communication, base everything on the pings. 
 
@@ -1256,7 +1277,7 @@ to one part of the project, but that were not implemented due to time reasons.
 
 In the simple control plane protocol, the live clock that are supposed to be
 synchrone for every nodes could be replaced by Timestamps Logical Clocks (TLC)
-\cite{Que-Sera-Consensus}. This could allow the system to be more flexible.
+\cite{Ford2019}. This could allow the system to be more flexible.
 This replace the clock and succeed the registration and the live period.
 However, this was not implemented as it was hard to see how to go from one
 epoch to another using TLC. Recall that in the existing protocol, at the
@@ -1285,7 +1306,7 @@ do)
 \item Dealing with moving actors. (Done in this work)
 \item Dealing with double-spending issues. (To do)
 (if a node spends the same coin in different regions) 
-(see \ref{WW3} WWIII Scenarios). 
+(see \autoref{WW3} WWIII Scenarios). 
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%
