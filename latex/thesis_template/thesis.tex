@@ -447,7 +447,7 @@ the nodes joining, leaving and moving in the global system. If the blockchains
 is replicated in all the regions, the control plane will be global. 
 
 %%%%%%%%%%%%%%%%
-\chapter{Control Plane : Design}
+\chapter{Design} \label{chap:Design}
 %%%%%%%%%%%%%%%%
 
 %%%%%%%%% 
@@ -813,7 +813,7 @@ participants or on the nodes, it can decide not to start the consensus. After a
 while, another node will be elected to run the consensus, which will eventually
 succeed if the number of malicious nodes is low enough.
 
-\subsubsection{Attack on levels}
+\subsubsection{Attack on levels} \label{sec:ControlePlane-Threat-Model}
 At the beginning of one epoch, nodes compute their bunch and cluster based on
 the pings and the level that is drawn from a shared public source of randomness
 which is renewed at each epoch. Nodes deploy region covering its cluster. Each
@@ -828,8 +828,8 @@ cannot use a high level to perform action that will block the system.
 
 However, if a malicious attacker could take over the lottery process, it could
 manages to group the high level in a side of the system. Leaving only the
-level-zero. This could lead to some problem [App \autoref{Problem with
-levels-zero}]. Taking over the lottery process should'nt be possible by design.
+level-zero. This could lead to some problem [APP. \autoref{app:levels-zero}].
+Taking over the lottery process should'nt be possible by design.
 Indeed, the lottery is based on a public source of randomness that renewed at
 each epoch, and revealed after the registration of the levels. 
 
@@ -842,7 +842,7 @@ the lottery process is based.
 
 
 %%%%%%%%%%%%%%%%%%%%
-\chapter{Improvements}
+\chapter{Improvements} \label{chap:Improvements}
 %%%%%%%%%%%%%%%%%%%%
 This section proposes some improvements to the simple control plane approach. They
 are supposed to address the drawbacks of this simple protocol, each improvement
@@ -878,19 +878,19 @@ described in the next section.
 \subsection{Rebalancing the levels} \label{rebalancing}
 Conserving the levels is the way to go, but maintaining levels can lead to
 de-equilibrated systems. Consider a system with 200 Nodes at epoch 1, with the
-repartition given in Table \autoref{example-lottery}. If from epoch 1 to epoch 2,
+repartition given in Table [TAB. \autoref{example-lottery}]. If from epoch 1 to epoch 2,
 100 level-0 nodes leave the system, the remaining system would contain 80
 level-0 nodes instead of 90. 
 
 De-equilibrated systems can lead to some problems, the proof is given in the
 appendix [APP. \autoref{proof-reequilibrating}].
 
-The lottery process presented in section \autoref{lottery}, is a bit changed in
+The lottery process presented in \autoref{lottery}, is a bit changed in
 this part to allow the adaptation of the levels. The total number of
 participants $N$ in the system is known after the registration, and as the
 probability $P$ is given, it is straightforward to compute the expected number
-of nodes that one should have at every level as it mentioned in Table
-\autoref{example-lottery}. 
+of nodes that one should have at every level as it mentioned in Table [TAB. 
+\autoref{example-lottery}]. 
 
 Instead of drawing directly the levels from a randomness source, nodes will
 draw a random number from this source between 0 and 1.  All nodes can deduce
@@ -1013,7 +1013,7 @@ epoch.
 If one node is not happy with its level assignment, it can leave the system a
 re-enter later, hoping to get a better level. This attack works against the two
 algorithms, but this attack does not create too
-bad consequences, as it is presented in \autoref{Threat-Model}.
+bad consequences, as it is presented in \autoref{sec:ControlePlane-Threat-Model}.
 
 Another attack could be that malicious nodes exit and re-enter the system at
 each epoch until they manage to get a good number from the lottery. Then when
@@ -1026,7 +1026,7 @@ participants.
 
 Some defense mechanisms can be set up to ensure that levels are geographically
 distributed over the whole system, they are described in more details in
-\autoref{Possible Improvements.} 
+\autoref{chap:Possible Improvements} 
 
 \subsubsection{Quantifying the effect of Locarno Treaties}
 The goal of the new protocol is to keep most regions and region assignment
@@ -1042,8 +1042,14 @@ system, their bunch and cluster count as a difference. Same if a node leaves
 the system. The idea is that with this new protocol, the difference should be
 reduced. 
 
-The results of the experiment can be seen in [FIG. \autoref{TODO FIGURE}]. Maps of
-the system is given in the appendix.
+The results of the experiment can be seen in [FIG. \autoref{fig:LocarnoTreaties-differences}]. Maps of
+the system is given in the appendix [APP. \autoref{app:LocarnoTreaties-data}].
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=300pt]{figures/LocarnoTreaties-differences}
+\caption{Graph of number of differences between maps from one epoch to the next using the random levels or the one defined in Locarno Treaties } \label{fig:LocarnoTreaties-differences}
+\end{figure}
 
 \section{Strawman 2 : Fog of the War}
 
@@ -1269,7 +1275,7 @@ are not stable through time.
 %% TODO CONTINUE 
 
 %%%%%%%%%%%%%%%%%%%%
-\chapter{Possible Improvements}
+\chapter{Possible Improvements} \label{chap:Possible Improvements}
 %%%%%%%%%%%%%%%%%%%%
 
 This chapter lists the improvements that could be applied more or less directly
@@ -1306,11 +1312,10 @@ do)
 \item Dealing with moving actors. (Done in this work)
 \item Dealing with double-spending issues. (To do)
 (if a node spends the same coin in different regions) 
-(see \autoref{WW3} WWIII Scenarios). 
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%
-\chapter{Conclusion}
+\chapter{Conclusion} \label{chap:Conclusion}
 %%%%%%%%%%%%%%%%%%%%
 
 In the conclusion you repeat the main result and finalize the discussion of
@@ -1320,12 +1325,31 @@ advances the status quo.
 \cleardoublepage \phantomsection \addcontentsline{toc}{chapter}{Bibliography}
 \printbibliography
 
-% Appendices are optional \appendix %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \chapter{How to make a transmogrifier} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% In case you ever need an (optional) appendix.
-%
-% You need the following items: \begin{itemize} \item A box \item Crayons \item
-% A self-aware 5-year old \end{itemize}
+
+\appendix
+
+\chapter{Problems}
+\section{Problem with level-0 nodes} \label{app:levels-zero}
+Assume that ARA creation started with only one node (at level 0). Then we add nodes of level-0 to the existing structure with the candidate strategy, if all the nodes stay at level 0, by construction, they will have every other node in their bunch. (because it’s adding every other node if their level it not smaller). After adding N nodes with this process, the Nth node will participate in N-1 ARA which is a lot more than $ARA_{max}$ of the CRUX \cite{Basescu2014} design. 
+So the level of the existing nodes needs to be updated. But as mentioned above, the borders of the ARAs should not move too much (except for including the new node). (If not, by following the process one node which was originally in one given ARA can be updated to be outside, so it may create some problems.)
+
+\chapter{Locarno Treaties : Data} \label{app:LocarnoTreaties-data}
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=350pt]{figures/LocarnoTreaties-RandomFinal}
+\caption{Graphs of the system at each epoch, the levels are depicted in different colors.}
+\label{fig:LocarnoTreaties-RandomFinal}
+\end{figure}
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=500pt]{figures/LocarnoTreaties-LocarnoFinal}
+\caption{Graphs of the system at each epoch, the levels are depicted in different colors.}
+\label{fig:LocarnoTreaties-LocarnoFinal}
+\end{figure}
+
+
+
 
 \end{document}
