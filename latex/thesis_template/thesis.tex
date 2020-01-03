@@ -1,3 +1,4 @@
+% !TEX TS–program = pdflatexmk
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % EPFL report package, main thesis file Goal: provide formatting for theses and
 % project reports Template's Author: Mathias Payer <mathias.payer@epfl.ch>
@@ -37,11 +38,11 @@ Ford}
 %% Presentation and setting
 Distributed ledgers are a becoming more and more used as they provide
 independence to a central authority, anonymity, security of transaction,...
-Some distributed ledgers as Bitcoin \cite{Bitcoin} managed to get a lot of
+Some distributed ledgers as Bitcoin \citation{Nakamoto2009} managed to get a lot of
 popularity for various reasons. However they still are subject to some
 weakness. The purpose of this work is to advances the research concerning two
 of them : World War III Scenarios and the time to validate a transaction.
-Indeed, in Bitcoin \cite{bitcoin}, validating a transaction can take around one
+Indeed, in Bitcoin \citation{Nakamoto2009}, validating a transaction can take around one
 hour, because it takes around ten minutes to validate a block, and it needs
 around six blocks to be convinced with a high probability that the ledger won't
 be forked, and the transaction invalidated. This might be okay for some
@@ -84,7 +85,7 @@ sufficient computational power and a good connection to maintain a node of the
 system. This allows the system to be distributed. The challenge with
 \textit{open-membership} is that nodes can join, leaves or move in the system
 at anytime. This might not be a problem for classic distributed ledger as
-Bitcoin \cite{Bitcoin}, as its protocol only take in account the computational
+Bitcoin \citation{Nakamoto2009}, as its protocol only take in account the computational
 power that is in the system at a given time. But as Nyle is locality-based,
 this might lead to additional challenges, each corresponding to the different
 actions possible : joining, leaving and moving. For joining nodes, consider the
@@ -110,15 +111,15 @@ avoid in Nyle. Therefore the regions should be adapted with the movement of the
 nodes. 
 
 %% Related Work Is Insufficient
-Most of this work is based on the CRUX \cite{basescu2014crux}, which introduces
+Most of this work is based on the CRUX \citation{Basescu2014}, which introduces
 the locality algorithm based on compact graph theory and which is described in
 more detail in  \ref{chap:Background}. The existing work on Nyle was done by
-Maxime Sierro and Cristina Basescu \cite{MaximeSierro} which proposes a first
-implementation of Nyle building on the top CRUX \cite{CRUX} but focusing
+Maxime Sierro and Cristina Basescu \citation{Sierro2019} which proposes a first
+implementation of Nyle building on the top CRUX \citation{Basescu2014} but focusing
 directly how to improve the storage of the transactions and the tree structure
 of the regions. This works builds directly upon the existing work, but is
 slightly orthogonal, as the need of a Control Plane was not intended at first.
-A  second work on Nyle was done by Sabrina Kall \cite{SabrinaKall}, which was
+A  second work on Nyle was done by Sabrina Kall \citation{Kall2019}, which was
 proposing a way of checking efficiently the location of a node and to assert if
 nodes were lying about the location where they claimed to be. There is a
 current work on the Interplanetary-File System (IPFS) \cite{IPFS}, that is
@@ -126,8 +127,8 @@ based on CRUX as well but with the purpose to create a locality-aware overlay
 to speed the system up, but it is not directly related to blockchains. The rest
 of the related work is described in the next chapter \ref{chap:RelatedWork} and
 is mostly orthogonal to the current approach : some other solutions to speed
-the validation of transaction are shown \cite{bitcoin-paper},\cite{Byzcoin},
-\cite{Omniledger}, \cite{Dfinity}, \cite{Monoxide} and \cite{Stellar}, but they
+the validation of transaction are Bitcoin \citation{Nakamoto2009}, Byzcoin \citation{Kogias2016},
+Omniledger \cite{Kokoris-Kogias2017},  DFINITY \cite{Hanke2018},  \cite{Monoxide} and \cite{Stellar}, but they
 don't use the concept of the locality for this purpose. 
 
 %% Description of the Approach
