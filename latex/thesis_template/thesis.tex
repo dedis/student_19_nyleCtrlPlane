@@ -85,68 +85,71 @@ challenge is to draw these regions in a satisfactory manner. A second problem
 is \textit{open-membership} : it should be possible for anybody with a
 sufficient computational power and a good connection to maintain a node of the
 system. This allows the system to be distributed. The challenge with
-\textit{open-membership} is that there should be a way to know the participants of the system if one wants to have a consensus.   A second challenge is that nodes can join, leaves or move in the system
-at any moment. This might not be a problem for classic distributed ledger as
-Bitcoin \cite{Nakamoto2009}, as its protocol only take in account the computational
-power that is in the system at a given time. But as Nyle is locality-based,
-this might lead to additional challenges, each corresponding to the different
-actions possible : joining, leaving and moving. For joining nodes, consider the
-case where there was only a few nodes spread along a big region, for example
-Western Europe, and after a while a large number of new nodes wants to join in
-that part. If the region stays the same, this might lead to some problems,
-indeed the consensus would take more time and the liveness could not be
-guaranteed. Furthermore for a region of this size, the probability of a
-partition is relatively important. One might want that in this case, additional
-regions, corresponding for example to country might be created. This leads to
-the idea that the regions should be able to adapt depending to node membership.
-If nodes leave the system, this might lead to problems as well. Indeed in the
-inverse situation as before, after a while some regions might not contains any node
-that are maintaining the system. To avoid this situation, one might want to
-adapt the region when nodes leaves to guarantee that a sufficient number of
-nodes are in a region at any time. Moving nodes are creating problems as well,
-if the region assignment is fixed but the nodes are moving, a node drift appart
-after a while far away from the region it was assigned to. This might take a
-while, but one can imagine the situation where a lot of nodes have moved far
-away from their original position. In case of a global partition, this can lead
-to the failure of even small regions, that is one problem that one wants to
-avoid in Nyle. Therefore the regions should be adapted with the movement of the
-nodes. 
+\textit{open-membership} is that there should be a way to know the participants
+of the system if one wants to have a consensus.   A second challenge is that
+nodes can join, leaves or move in the system at any moment. This might not be a
+problem for classic distributed ledger as Bitcoin \cite{Nakamoto2009}, as its
+protocol only take in account the computational power that is in the system at
+a given time. But as Nyle is locality-based, this might lead to additional
+challenges, each corresponding to the different actions possible : joining,
+leaving and moving. For joining nodes, consider the case where there was only a
+few nodes spread along a big region, for example Western Europe, and after a
+while a large number of new nodes wants to join in that part. If the region
+stays the same, this might lead to some problems, indeed the consensus would
+take more time and the liveness could not be guaranteed. Furthermore for a
+region of this size, the probability of a partition is relatively important.
+One might want that in this case, additional regions, corresponding for example
+to country might be created. This leads to the idea that the regions should be
+able to adapt depending to node membership.  If nodes leave the system, this
+might lead to problems as well. Indeed in the inverse situation as before,
+after a while some regions might not contains any node that are maintaining the
+system. To avoid this situation, one might want to adapt the region when nodes
+leaves to guarantee that a sufficient number of nodes are in a region at any
+time. Moving nodes are creating problems as well, if the region assignment is
+fixed but the nodes are moving, a node drift appart after a while far away from
+the region it was assigned to. This might take a while, but one can imagine the
+situation where a lot of nodes have moved far away from their original
+position. In case of a global partition, this can lead to the failure of even
+small regions, that is one problem that one wants to avoid in Nyle. Therefore
+the regions should be adapted with the movement of the nodes. 
 
 %% Related Work Is Insufficient
-Most of this work is based on the CRUX \cite{Basescu2014}, which introduces
-the algorithm that allow to draw regions based on compact graph theory and which is described in
-more detail in  \autoref{chap:Background}. The existing work on Nyle was done by
-Maxime Sierro and Cristina Basescu \cite{Sierro2019} which proposes a first
-implementation of Nyle building on the top CRUX \cite{Basescu2014} but focusing
-directly how to improve the storage of the transactions and the tree structure
-of the regions. This works builds directly upon the existing work, but is
-slightly orthogonal, as the Controle Plane is not directly linked to the replicated blockchain.
-A  second work on Nyle was done by Sabrina Kall \cite{Kall2019}, which was
-proposing a way of checking efficiently the location of a node and to assert if
-nodes were lying about the location where they claimed to be. There is a
-current work on the Interplanetary-File System (IPFS) \cite{Michel2019}, that is
-based on CRUX as well but with the purpose to create a locality-aware overlay
-to speed the system up, but it is not directly related to blockchains. The rest
-of the related work is described in the next chapter \autoref{chap:RelatedWork} and
-is mostly orthogonal to the current approach : some other solutions to speed
-the validation of transaction are Bitcoin \cite{Nakamoto2009}, Byzcoin \cite{Kogias2016},
-Omniledger \cite{Kokoris-Kogias2017},  DFINITY \cite{Hanke2018},
-Monoxide \cite{Wang2019} and Stellar \cite{Lokhava2019}, but they don't use the concept of the
-locality for this purpose. 
+Most of this work is based on the CRUX \cite{Basescu2014}, which introduces the
+algorithm that allow to draw regions based on compact graph theory and which is
+described in more detail in  \autoref{chap:Background}. The existing work on
+Nyle was done by Maxime Sierro and Cristina Basescu \cite{Sierro2019} which
+proposes a first implementation of Nyle building on the top CRUX
+\cite{Basescu2014} but focusing directly how to improve the storage of the
+transactions and the tree structure of the regions. This works builds directly
+upon the existing work, but is slightly orthogonal, as the Controle Plane is
+not directly linked to the replicated blockchain.  A  second work on Nyle was
+done by Sabrina Kall \cite{Kall2019}, which was proposing a way of checking
+efficiently the location of a node and to assert if nodes were lying about the
+location where they claimed to be. There is a current work on the
+Interplanetary-File System (IPFS) \cite{Michel2019}, that is based on CRUX as
+well but with the purpose to create a locality-aware overlay to speed the
+system up, but it is not directly related to blockchains. The rest of the
+related work is described in the next chapter \autoref{chap:RelatedWork} and is
+mostly orthogonal to the current approach : some other solutions to speed the
+validation of transaction are Bitcoin \cite{Nakamoto2009}, Byzcoin
+\cite{Kogias2016}, Omniledger \cite{Kokoris-Kogias2017},  DFINITY
+\cite{Hanke2018}, Monoxide \cite{Wang2019} and Stellar \cite{Lokhava2019}, but
+they don't use the concept of the locality for this purpose. 
 
 %% Description of the Approach
 This work was structured in the following manner : first a simple version of
 the control plane was designed \autoref{chap:Design}, which splits the time into
 epochs and take as an assumption that the system is fixed during one epoch. A
 protocol is proposed and discussed and the threat analysis is done. Based on
-its implementation and performance analysis some drawbacks are put in light. Then a series of strawman
-models try to correct some of these drawbacks and are analyzed as well
-\autoref{chap:Improvements}. The first one is called "Locarno Treaties" and will
-try to keep the system coherent from one epoch to the next. The next one is
-called "Fog of the war", and try to reduce the need for communication between
-nodes. The last and the most complex consider the interactions of the nodes as
-a space-time graph and try to build upon the existing patterns that appears in
-these graphs to solve the problem of control plane. 
+its implementation and performance analysis some drawbacks are put in light.
+Then a series of strawman models try to correct some of these drawbacks and are
+analyzed as well \autoref{chap:Improvements}. The first one is called "Locarno
+Treaties" and will try to keep the system coherent from one epoch to the next.
+The next one is called "Fog of the war", and try to reduce the need for
+communication between nodes. The last and the most complex consider the
+interactions of the nodes as a space-time graph and try to build upon the
+existing patterns that appears in these graphs to solve the problem of control
+plane. 
 
 %% Why it is needed.
 %% Already discussed in Main challenges so it is merged with the next
@@ -176,22 +179,24 @@ somehow orthogonal to them because it can use any of theses cryptocurrencies as
 an underlying system and enhance them using the idea of locality to add some
 partition-resistance to them. 
 
-Some concepts are directly inspired from these works. The
-Sybil-resistance scheme used in the registration system is directly inspired
-from DFINITY \cite{Hanke2018}, using \textit{endorsement} in the general way, which can
-be in practice replaced by any Sybil-resistance scheme like Proof-of-Work
-\cite{Nakamoto2009}, Proof-of-Stake \cite{wood2014ethereum}, or even Proof-of-Personhood \cite{Borge2017}. In particular this work tries to solve some drawbacks of
-traditional cryptocurrencies like \cite{Nakamoto2009}, solving the problem of
-the waiting time for validation by using region validation and making it
-resistant to WWIII scenarios. Byzcoin \cite{Kogias2016} and Omniledger
-\cite{Kokoris-Kogias2017} gives another interesting solution to accelerate the validation, but their results are orthogonal to this research. Stellar's
-solution for \textit{open-membership} \cite{Lokhava2019} is based on a quorum,
-allowing each node to trust a subset of other nodes of its choice. It is an
-elegant solution and permits to validate transactions fast and securely. A
-certain complexity seems to be added both in theoretical part and practice,
-this justifies why  a similar approach was not followed. However the idea to
-allow nodes to have a different view of the system is at the core of one of the
-improvements of this work.
+Some concepts are directly inspired from these works. The Sybil-resistance
+scheme used in the registration system is directly inspired from DFINITY
+\cite{Hanke2018}, using \textit{endorsement} in the general way, which can be
+in practice replaced by any Sybil-resistance scheme like Proof-of-Work
+\cite{Nakamoto2009}, Proof-of-Stake \cite{wood2014ethereum}, or even
+Proof-of-Personhood \cite{Borge2017}. In particular this work tries to solve
+some drawbacks of traditional cryptocurrencies like \cite{Nakamoto2009},
+solving the problem of the waiting time for validation by using region
+validation and making it resistant to WWIII scenarios. Byzcoin
+\cite{Kogias2016} and Omniledger \cite{Kokoris-Kogias2017} gives another
+interesting solution to accelerate the validation, but their results are
+orthogonal to this research. Stellar's solution for \textit{open-membership}
+\cite{Lokhava2019} is based on a quorum, allowing each node to trust a subset
+of other nodes of its choice. It is an elegant solution and permits to validate
+transactions fast and securely. A certain complexity seems to be added both in
+theoretical part and practice, this justifies why  a similar approach was not
+followed. However the idea to allow nodes to have a different view of the
+system is at the core of one of the improvements of this work.
 
 Omniledger \cite{Kokoris-Kogias2017}  and Monoxide \cite{Wang2019} uses
 sharding to increase performance.  Sharding splits the system in random
@@ -203,12 +208,12 @@ can still be used as an underlying system of Nyle, enhancing the performance of
 the partition-resistant blockchain system created by this means.
 
 This work is directly related to the locality-preserving algorithms developed
-in CRUX \cite{Basescu2014} and compact-graph algorithms \cite{Thorup2005}. These
-are described in detail in \autoref{chap:Background}. There is a class of algorithm that
-uses the idea of locality in a different manner. For example Geo-DNS
-\cite{Katz-bassett2006} or IP Anycast \cite{Abley2006} use the idea of locality
-to shorten the path for the packets, connecting the servers via the closest
-path. Replication is often used to guarantee integrity of the stored
+in CRUX \cite{Basescu2014} and compact-graph algorithms \cite{Thorup2005}.
+These are described in detail in \autoref{chap:Background}. There is a class of
+algorithm that uses the idea of locality in a different manner. For example
+Geo-DNS \cite{Katz-bassett2006} or IP Anycast \cite{Abley2006} use the idea of
+locality to shorten the path for the packets, connecting the servers via the
+closest path. Replication is often used to guarantee integrity of the stored
 information \cite{find-paper-replication}. In CRUX \cite{Basescu2014} and Nyle
 regional replication of the system is used to create partition-resistance, and
 in Nyle it can be used to allow region validation.
@@ -271,16 +276,16 @@ of the partition will continue to work.
 Obviously, this solution comes with an overhead, as the system should be
 replicated in all the regions. But there are some ways of reducing this
 overhead, in a way that it stays reasonable and that the resistance to
-partition is maintained. To reduce this overhead, CRUX 
-algorithm for regions creation \cite{Basescu2014} presented below ensure that the proper number of
+partition is maintained. To reduce this overhead, CRUX algorithm for regions
+creation \cite{Basescu2014} presented below ensure that the proper number of
 regions is created in a manner that the number of regions created induce a
 reasonable overhead and that the partition resistance stays efficient. If CRUX
-\cite{Basescu2014} is used for a specific system, overhead can be even
-more reduced:  as the systems are replicated in every region, most of the data
-is replicated as well. So one might actually dig inside the
-specification of one system and manages not to store twice the same data. But
-this overpass a bit the goal of CRUX \cite{Basescu2014}, which wants to be the
-more general possible. 
+\cite{Basescu2014} is used for a specific system, overhead can be even more
+reduced:  as the systems are replicated in every region, most of the data is
+replicated as well. So one might actually dig inside the specification of one
+system and manages not to store twice the same data. But this overpass a bit
+the goal of CRUX \cite{Basescu2014}, which wants to be the more general
+possible. 
 
 Indeed, the force of CRUX \cite{Basescu2014} is that it is applicable to any
 distributed system, as no particular hypothesis on the system is made. It only
@@ -383,13 +388,13 @@ validation.
 
 \subsection{Description}
 
-Nyle uses ARA as the representation of one region. In each of these regions there will be a copy of the same
-system, in the case of Nyle the system is a blockchain. So each region will
-have its own blockchain and validate all the transactions between the nodes
-that are included in it. Some nodes can be included in different regions, and
-they will send their transactions to all the regions they are part of. Which
-ensure that each blockchain will be updated each time there is a transaction
-that concerns one of its nodes.
+Nyle uses ARA as the representation of one region. In each of these regions
+there will be a copy of the same system, in the case of Nyle the system is a
+blockchain. So each region will have its own blockchain and validate all the
+transactions between the nodes that are included in it. Some nodes can be
+included in different regions, and they will send their transactions to all the
+regions they are part of. Which ensure that each blockchain will be updated
+each time there is a transaction that concerns one of its nodes.
 
 The big difference between CRUX \cite{Basescu2014} and Nyle is that the purpose
 of CRUX \cite{Basescu2014} is to work in environments where machines are
@@ -443,12 +448,11 @@ system and optionally reentering later.
 Therefore the purpose of the control plane will be to deal with the evolution
 of the regions that follows the evolution of the nodes in the system. Once that
 problem is solved, the blockchain can be replicated in the evolving region and
-the strategy will be the same as in CRUX \cite{Basescu2014}. 
-
-Thus this project introduce a control plane, that is in charge of the evolution
-of the nodes in the system. In particular, it will be in charge of dealing with
-the nodes joining, leaving and moving in the global system. If the blockchains
-is replicated in all the regions, the control plane will be global. 
+the strategy will be the same as in CRUX \cite{Basescu2014}. Thus this project
+introduce a control plane, that is in charge of the evolution of the nodes in
+the system. In particular, it will be in charge of dealing with the nodes
+joining, leaving and moving in the global system. If the blockchains is
+replicated in all the regions, the control plane will be global. 
 
 %%%%%%%%%%%%%%%%
 \chapter{Design} \label{chap:Design}
@@ -491,8 +495,9 @@ means that every message sent by a node to another will arrive in order, and
 that a message that is sent will be received within a given window of time. The
 third hypothesis is made on the geometry of the network. It states that for
 small pings (under 100ms) the ping time is actually correlated with the
-distance between two nodes. This is the case for the Internet network \cite{Seibert2014}. On this result we build the
-locality properties of the system. 
+distance between two nodes. This is the case for the Internet network
+\cite{Seibert2014}. On this result we build the locality properties of the
+system. 
 
 
 %%%% mostly copied from
@@ -527,20 +532,21 @@ should be signed by the majority of the nodes of the previous epoch.
 
 \subsection{Locality Component}
 
- The role of the locality component is to give all pairwise latencies between
- nodes of the system. We assume it already exists (distance oracle), or it can
- be computed by nodes. In the first model all pairwise latencies is computed
- between each node and every node agree on them via consensus. 
+The role of the locality component is to give all pairwise latencies between
+nodes of the system. We assume it already exists (distance oracle), or it can
+be computed by nodes. In the first model all pairwise latencies is computed
+between each node and every node agree on them via consensus. 
  
- \subsection{Region Component} This component is used to create and update
- regions. This part will be based on CRUX. At each epoch
- CRUX is run based on the new registration, and regions are created.
+\subsection{Region Component} This component is used to create and update
+regions. This part will be based on CRUX. At each epoch CRUX is run based on
+the new registration, and regions are created.
  
- \subsection{Epoch Component} The epoch manager is linked to the membership
- system (we allow to change membership at the beginning of one epoch). New
- nodes can join at the beginning of one epoch. If nodes have moved, the region
- component will change or maintain their assignment at the beginning of one
- epoch. If nodes have crashed, they won't be able to join for the next epoch and will therefore leave the system.
+\subsection{Epoch Component} The epoch manager is linked to the membership
+system (we allow to change membership at the beginning of one epoch). New nodes
+can join at the beginning of one epoch. If nodes have moved, the region
+component will change or maintain their assignment at the beginning of one
+epoch. If nodes have crashed, they won't be able to join for the next epoch and
+will therefore leave the system.
 
 Epochs happen at a defined rhythm (e.g. one day). This frequency can be
 shortened to ensure that nodes that want to join do not wait too long, or made
@@ -613,8 +619,9 @@ each other. Participants will as well draw a level from unpredictable,
 bias-resistant public randomness source. They will then reach consensus on
 those ping-distances and levels by threshold-signing them and rebroadcast them.
 At this point each member of the new epoch will have the same view of the
-system as they will know the participants, the pings distances between each one of them and their levels. Therefore these participants will be
-capable of running the system in a deterministic manner.
+system as they will know the participants, the pings distances between each one
+of them and their levels. Therefore these participants will be capable of
+running the system in a deterministic manner.
 
 Following the election of the new admission committee at the beginning of the
 live-epoch, the registration period for the next epoch can begin, as the
@@ -673,7 +680,8 @@ then the system is replicated inside all regions.
 \subsubsection{Nodes insertion}
 The version without control plane cannot add nodes to the system. Indeed a
 fixed number of nodes is required to create the regions. With this control
-plane, node insertion is possible at the beginning of every epoch \autoref{fig:insertion-comparision}.
+plane, node insertion is possible at the beginning of every epoch
+\autoref{fig:insertion-comparision}.
 
 % TODO add image
 \begin{figure}[!h] 
@@ -851,11 +859,12 @@ cannot use a high level to perform action that will block the system.
 However, if a malicious attacker could take over the lottery process, it could
 manages to group the high level in a side of the system. Leaving only the
 level-zero. This could lead to some problem [APP. \autoref{app:levels-zero}].
-Taking over the lottery process should not be possible by design.
-Indeed, the lottery is based on a public source of randomness that renewed at
-each epoch, and revealed after the registration of the levels. Nodes can know the level of other nodes, because they base the compute of their
-levels on the threshold-signed list they received from the previous committee.
-It is important that the source is revealed after registration of the levels,
+Taking over the lottery process should not be possible by design.  Indeed, the
+lottery is based on a public source of randomness that renewed at each epoch,
+and revealed after the registration of the levels. Nodes can know the level of
+other nodes, because they base the compute of their levels on the
+threshold-signed list they received from the previous committee.  It is
+important that the source is revealed after registration of the levels,
 otherwise malicious nodes could try to influence the order of the list on which
 the lottery process is based. 
 
@@ -881,16 +890,16 @@ time/space graphs will be proposed.
 
 Following the First World War, it was decided that the borders of Germany
 should remain fixed. The Locarno Treaties defined some of these borders. The
-idea of this Strawman model is to do the same by limiting modifications of regions from one epoch
-to the next. The idea is to use a deterministic set of rules, based on the
-ping, the registrations and the map of the previous epoch to draw the map of
-the current epoch using the less redrawing as possible. Registration is still
-global and each node will have all the information about the memberships of
-every node.Then from one epoch to another, the purpose of the game is to keep
-as much regions as possible. The obvious idea to reach this goal is to let the
-nodes keep their levels from one epoch to the next.  However some small
-difference should be introduced in order to avoid some problems.  These are
-described in the next section.
+idea of this Strawman model is to do the same by limiting modifications of
+regions from one epoch to the next. The idea is to use a deterministic set of
+rules, based on the ping, the registrations and the map of the previous epoch
+to draw the map of the current epoch using the less redrawing as possible.
+Registration is still global and each node will have all the information about
+the memberships of every node.Then from one epoch to another, the purpose of
+the game is to keep as much regions as possible. The obvious idea to reach this
+goal is to let the nodes keep their levels from one epoch to the next.  However
+some small difference should be introduced in order to avoid some problems.
+These are described in the next section.
 
 \subsection{Rebalancing the levels} \label{rebalancing}
 Conserving the levels is the way to go, but maintaining levels can lead to
@@ -900,19 +909,21 @@ repartition given in \autoref{example-lottery}. If from epoch 1 to epoch 2,
 level-0 nodes instead of 90. 
 
 Unbalanced systems can lead to some problems, the proof is given in the
-appendix [\autoref{app:unbalanced-levels}]. The lottery process presented in \autoref{sec:common-tools}, is a bit changed in
-this part to allow the adaptation of the levels. The total number of
-participants $N$ in the system is known after the registration, and as the
-probability $P$ is given, it is straightforward to compute the expected number
-of nodes that one should have at every level as it mentioned in \autoref{example-lottery}. 
+appendix [\autoref{app:unbalanced-levels}]. The lottery process presented in
+\autoref{sec:common-tools}, is a bit changed in this part to allow the
+adaptation of the levels. The total number of participants $N$ in the system is
+known after the registration, and as the probability $P$ is given, it is
+straightforward to compute the expected number of nodes that one should have at
+every level as it mentioned in \autoref{example-lottery}. 
 
 Instead of drawing directly the levels from a randomness source, nodes will
-draw a random number from this source between 0 and 1 [\autoref{fig:sketch-new-levels}].  All nodes can deduce
-what number the others will draw deterministically from the registration list.
-The highest level will go to the node which has drawn the highest random
-number.  And levels are given according to the drawing in a descending order.  
-Each node that stays in the system will keep its random number from when it
-joined the system, new nodes gets new random numbers. 
+draw a random number from this source between 0 and 1
+[\autoref{fig:sketch-new-levels}].  All nodes can deduce what number the others
+will draw deterministically from the registration list.  The highest level will
+go to the node which has drawn the highest random number.  And levels are given
+according to the drawing in a descending order.  Each node that stays in the
+system will keep its random number from when it joined the system, new nodes
+gets new random numbers. 
 
 \begin{figure}[!h] 
 \centering
@@ -923,11 +934,15 @@ joined the system, new nodes gets new random numbers.
 
 
 \subsection{Motivation for keeping the levels}
-This section describes the reasons for keeping the levels. In order to understand what are the effects on the global system it is useful to look in detail at what are the consequences of the movement of a given node have on a given fixed node. Then some precise examples of evolution of the system are treated as well. 
+This section describes the reasons for keeping the levels. In order to
+understand what are the effects on the global system it is useful to look in
+detail at what are the consequences of the movement of a given node have on a
+given fixed node. Then some precise examples of evolution of the system are
+treated as well. 
 
 \subsubsection{Effects for a fixed node} 
-The point of view of one node that stays fixed in the system is taken, the goal is that node can keep most of its
-region assignment.  Other nodes might
+The point of view of one node that stays fixed in the system is taken, the goal
+is that node can keep most of its region assignment.  Other nodes might
 join, leave or move and this can lead either to change in its cluster of in its
 bunch. But additional effects can come from the level rebalancing. 
 
@@ -971,9 +986,10 @@ question is how to integrate them in the system while keeping the system
 balanced. 
 
 \paragraph{High level node moving}
-Assume that going from Epoch $i$ to $i+1$, one of a relatively high-level node as gone from one place to
-the other end of the system. As nodes can keep their level, it will change some
-of the assignments, but most of the regions will be maintained. 
+Assume that going from Epoch $i$ to $i+1$, one of a relatively high-level node
+as gone from one place to the other end of the system. As nodes can keep their
+level, it will change some of the assignments, but most of the regions will be
+maintained. 
 
 \begin{figure}[!h] 
 \centering
@@ -992,8 +1008,9 @@ knowledge from one region to another. This communication overhead is reduced in
 that situation. 
 
 \paragraph{Levels of joining nodes}
-One can think that the levels of joining node might have a big influence on the system, this part try to illustrate what might happen.
-The joining nodes can lead to the growth of one region or the creation
+One can think that the levels of joining node might have a big influence on the
+system, this part try to illustrate what might happen.  The joining nodes can
+lead to the growth of one region or the creation
 of regions. The precise rules for that are listed below. 
 
 \begin{figure}[!h] 
@@ -1099,7 +1116,8 @@ nodes of one region) and publish the results.
 The protocol presented in the Simple Control Plane protocol and in the Locarno
 Treaties still need a consensus on the pings between all nodes in the system.
 This can be cumbersome as the number of nodes increases in the system this
-quantity increases in $O(N^2)$, where $N$ is the number of node. Consensus might become too costly for that reason.
+quantity increases in $O(N^2)$, where $N$ is the number of node. Consensus
+might become too costly for that reason.
 
 The idea is to change that consensus with a declared position and a random
 committee of checkers. The question is still : how to choose the committee ? If
@@ -1117,9 +1135,10 @@ ping still does not correspond to what the node declared then one might assume
 that the node itself is faulty. 
 
 \subsection{Protocol}
-The protocol is mostly the same as the simple control plane protocol [\autoref{fig:registrationprotocol}]. The only difference is the consensus on the
-pings which are now replaced by a declared distance, which is announced before
-the level assignment and a round of checks and announce of the checks. 
+The protocol is mostly the same as the simple control plane protocol
+[\autoref{fig:registrationprotocol}]. The only difference is the consensus on
+the pings which are now replaced by a declared distance, which is announced
+before the level assignment and a round of checks and announce of the checks. 
 
 \subsection{Threat Model}
 Another question can be, what are we supposed to do with a node that are not
@@ -1151,44 +1170,115 @@ they can declare that they all live in a close region and valid each other.
 There is no simple solution to this problem, but that fact has no consequence
 on the system so it seems to be an acceptable weakness.
 
-\section{Introducing the Space/Time Interaction metric}
+\section{Introducing the Space/Time Interaction distance}
 One of the principal reasons to split the system based on the locality is
 because of most regular transactions between people are local, therefore one
 wants to ensure that in case of a global partition, the local transactions can
 still be processed flawlessly. Following this hypothesis, one can try to use
-this structure to update the system. As there should be more
-interaction in local regions. Most interactions can be processed locally. 
+this structure to update the system. As there should be more interaction in
+local regions. Most interactions can be processed locally. By using locality
+the really goal is to maintain the interactions between the nodes. In that
+case, the metric of distance is used to get an insight of the interactions. And
+this is a reasonable approximation, but it might be worth it to investigate
+directly what this interactions means. 
 
-Therefore each time a node interacts with other nodes it can
-use that additional information to get insight about the evolution of the
-system. What type of information can be inferred from this additional method ? First
-nodes can track the evolution through time and space of other nodes in the
-system. And react to them. For example, if one node starts to get away
-from the rest of the region, then other nodes will notice and can decide to
-kick this node out of their region.
-Modifications (e.g. nodes movement, churn), can be detected directly with the
-messages, and the system can react to it. Churn can be interpreted as a node
-movement in this model, with the churning node moving to infinity. If one
-moving node is leaving one region, this information can be propagated to the
-directly upper region containing the node. 
+\subsection{Interactions as a distance on Space/Time Graphs}
 
-\subsection{Information as Bubbles in Space Time Graphs}
-
-If one wants to leverage the locality of interactions to build regions it might be worth it to investigate the following case. 
-Imagine that some nodes $A$ and $B$ are close locally and interacts often, but they are not part of the same small local region. 
-By design there is a bigger region in which they interacts, and each of these interaction should pass by this bigger region. One property that might be useful is that these frequent interactions should have an impact on the system leading to the inclusion of one node in a "regional" region. If the metric that defines distance is changed from kilometers to "interactions". One should be able to redraw the whole system based on that, and to apply Crux to solves the system. Now how to actually define this metric ? Let's try with count of operation per unit of time.  Let's enumerate the properties of a metric space. 
+If one wants to leverage the locality of interactions to build regions, it
+might be worth it to investigate the following case.  Imagine that some nodes
+$A$ and $B$ interacts often, but they are not part of the same small local
+region.  By design there is a bigger region in which they interact, and each of
+these interactions should pass by this bigger region. One property that might
+be useful is that these frequent interactions should have an impact on the
+system leading to the inclusion of one node in a "regional" region. If the
+metric that defines distance is changed from kilometers to "interactions". One
+should be able to redraw the whole system based on that, and to apply Crux to
+solves the system. Now how to actually define this metric ? Let's try with the
+following definition of distance : \begin{equation} \label{definition-distance}
+    d(A,B) = \frac{1}{ \mathrm{\#\ messages\ between\ A\ and\ B} } 
+\end{equation}
 
 \begin{itemize}
-\item The distance from a point to itself is zero
-\item The distance between two distinct points is positive
-\item The distance from A to B is the same as the distance from B to A
-\item The distance from A to B (directly) is less than or equal to the distance from A to B via any third point C.
+\item $d(A,B) = 0  \Leftrightarrow A = B$
+\item $d(A,B) \geq 0$
+\item $d(A,B) = d(B,A)$
+\item \color{red} $d(A, C) \leq d(A,B) + d(B,C)$ \color{black}
 \end{itemize}
-
 \color{red} TODO cite metric space \color{black}
 
-Interestingly the interaction metric follow this property. Indeed for the first, one can consider that one node always interacts with itself. Second the number of interaction per unit of time is positive. Third the interactions are counted as symmetric (if $A$ is sending a message to $B$ we count that as an interaction between $A$ and $B$). Fourth the number of interaction between two nodes is always less or equal that the number of interaction that transit to a third point. Now the problem with this metric is that it is actually not transitive. First one should notice that if $A$ is close to $B$ and $C$ it is possible that $B$ and $C$ never interacts therefore are "far from each other". 
+Interestingly the interaction metric follow this property. Indeed for the
+first, we define that the number of messages that one node send to itself is
+infinite. Second the number of messages is positive meaning that the distance
+will always be positive. Third the interactions are counted as symmetric (if
+$A$ is sending a message to $B$ we count that as an interaction between $A$ and
+$B$). Actually the triangle inequality is not respected and that is a problem
+indeed one should notice that if $A$ is close to $B$ and $B$ to $C$ but it is
+possible that $A$ and $C$ never interacts therefore are "far from each other". 
 
+\paragraph{Example :  CFF Distance}
+A parallel can be made with the CFF distance. Indeed in some case it is much
+faster to take a train from $A$ to $B$ and then to take a train from $B$ to $C$
+than taking a bus from $A$ to $C$. 
+
+\subsection{Finding Meaning}
+In order to understand better what means this metric, the standard case is
+considered. We want to understand what is mean to move with that new metric as
+well as joining and leaving the system. 
+
+\paragraph{Movements for Nodes With Interaction Distance}
+It is easier to understand what it means to move in that space by looking to
+the relative distance between nodes. Imagine that node $A$ get closer to node
+$B$ but away from $C$ in that space. That means that the interactions between
+$A$ and $B$ increases and on the contrary that the interaction between $A$ and
+$C$ decreases.
+
+\paragraph{Joining nodes with Interaction distance}
+If a node joins the system and start to interact with others, this can be
+viewed as a node coming from an infinite distance and getting closer to other
+nodes.
+
+\paragraph{Churning nodes with Interaction distance}
+If a node churn and stop answering the other, this can be interpreted as a
+movement in the interaction space. It equivalent at if the churning nodes moved
+to infinity.  
+
+\paragraph{"Regions" With Interaction Distance} \label{par:section-example}
+The concept of the region is harder to conceive with that new notion of
+distance. It might be useful to use the parallel with the CFF, let's imagine a
+node at EPFL and try to conceptualize to what might correspond the equivalent
+of "local", "regional" and "global regions". The "local" region might be
+depicted with what places can be reached within 15 min of public
+transportation. This will cover the metro line to Lausanne and some bus stops.
+At the regional level, it might be what places are reachable within 1 hour of
+public transportation. Global level still covers all the nodes.
+
+\subsection{Justification to replace the locality}
+Changing the distance from the regular one to interactions might have some
+implication on the property that we want to keep in the system. 
+
+\paragraph{Partition Resistance}
+For partition resistance actually even more than preserving working region
+composed of geographically close nodes it might be more interesting to preserve
+the set of nodes that have a lot of interactions. As this might be the nodes
+that are doing the most operations of the system. This justifies the use of
+this new distance.
+
+\paragraph{Region Validation for Transaction}
+One problem that Nyle wanted to solve was region validation, to allow a fast
+processing of transaction. This is still possible in that case. However the
+region does not correspond to the same anymore. But they would correspond to
+the example depicted in \autoref{par:section-example}. This might be acceptable
+for a client. 
+
+\subsection{Protocol}
+The protocol is the same as the one described in Locarno Treaties
+\autoref{Locarno}. The only difference is that the distance is changed by the
+new metric \autoref{definition-distance}. The computation of the number of
+messages is done in the following way : Each node keep the track of the count
+of messages it receives from other nodes between epochs, and post the results
+at the beginning of the next epoch instead of the pings. Each node is able then
+to compute the new distance, and the algorithm for regions can be used
+directly.
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Possible Improvements} \label{chap:Possible Improvements}
