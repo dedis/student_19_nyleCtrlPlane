@@ -1195,7 +1195,7 @@ metric that defines distance is changed from kilometers to "interactions". One
 should be able to redraw the whole system based on that, and to apply Crux to
 solves the system. Now how to actually define this metric ? Let's try with the
 following definition of distance : \begin{equation} \label{definition-distance}
-    d(A,B) = \frac{1}{ \mathrm{\#\ messages\ between\ A\ and\ B} } 
+    d(A,B) = \frac{1}{ \mathrm{\#\ messages\ between\ A\ and\ B\ per\ unit\ of\ time} } 
 \end{equation}
 
 \begin{itemize}
@@ -1290,7 +1290,7 @@ to one part of the project, but that were not implemented due to time reasons.
 In the simple control plane protocol, the live clock that are supposed to be
 synchrone for every nodes could be replaced by Timestamps Logical Clocks (TLC)
 \cite{Ford2019}. This could allow the system to be more flexible.
-This replace the clock and succeed the registration and the live period.
+This replace the clock and for the registration and the live period.
 However, this was not implemented as it was hard to see how to go from one
 epoch to another using TLC. Recall that in the existing protocol, at the
 beginning of the live period one node of the old committee sends the necessary
@@ -1304,8 +1304,9 @@ example, it could mean more to him to know that his transaction is validated in
 Swiss and Western Europe but not yet globally than knowing that its transaction
 is validated locally but not globally. 
 
-One of the assumptions that was taken is that the distribution of the levels would be geographically distributed at random. And that will be the case as the nodes are distributed at random. However, it was stated that this aspect could be targeted by malicious nodes. In order to avoid that, some mechanism could be developed to ensure that the levels are geographically distributed at random. One approach could be to count the density of levels per region and to detect if it is more or less the same. If it diverges too much, a fall back to random attribution could be applied. 
+One of the assumptions that was taken is that the distribution of the levels would be geographically distributed at random. And that will be the case as the nodes are  supposed to be as well geographically distributed at random. However, it was stated that this aspect could be targeted by malicious nodes. In order to avoid that attack, some mechanisms could be developed to ensure that the levels are geographically distributed at random. One approach could be to compute the density of levels per region and to detect if it is more or less the same. If it diverges too much, a fall back to random attribution of levels could be applied. 
 
+\section{Roadmap}
 Of course this work is just a small part of what is left to do to have a first
 version of Nyle. Here is a list of what is to implement to have a first version
 of Nyle and description of the current progress.
@@ -1338,10 +1339,13 @@ advances the status quo.
 
 \chapter{Problems with levels}
 \section{Problem with level-0 nodes} \label{app:levels-zero}
+\color{red} TODO : REDO \color{black}
 Assume that ARA creation started with only one node (at level 0). Then we add nodes of level-0 to the existing structure with the candidate strategy, if all the nodes stay at level 0, by construction, they will have every other node in their bunch. (because it’s adding every other node if their level it not smaller). After adding N nodes with this process, the Nth node will participate in N-1 ARA which is a lot more than $ARA_{max}$ of the CRUX \cite{Basescu2014} design. 
 So the level of the existing nodes needs to be updated. But as mentioned above, the borders of the ARAs should not move too much (except for including the new node). (If not, by following the process one node which was originally in one given ARA can be updated to be outside, so it may create some problems.)
 
 \section{Problem with unbalanced levels } \label{app:unbalanced-levels}
+
+\color{red} TODO  \color{black}
 
 \chapter{Locarno Treaties : Data} \label{app:LocarnoTreaties-data}
 
