@@ -1151,7 +1151,7 @@ they can declare that they all live in a close region and valid each other.
 There is no simple solution to this problem, but that fact has no consequence
 on the system so it seems to be an acceptable weakness.
 
-\section{Introducing the Space/Time metrics}
+\section{Introducing the Space/Time Interaction metric}
 One of the principal reasons to split the system based on the locality is
 because of most regular transactions between people are local, therefore one
 wants to ensure that in case of a global partition, the local transactions can
@@ -1159,10 +1159,7 @@ still be processed flawlessly. Following this hypothesis, one can try to use
 this structure to update the system. As there should be more
 interaction in local regions. Most interactions can be processed locally. 
 
-Pings give a space/time insight of the evolution of the system.  This idea can
-be leveraged to create the Space/Time version of the control plane. In fact
-every message (send + reply - processing time) can be transformed to be used as
-a ping as well. Therefore each time a node interacts with other nodes it can
+Therefore each time a node interacts with other nodes it can
 use that additional information to get insight about the evolution of the
 system. What type of information can be inferred from this additional method ? First
 nodes can track the evolution through time and space of other nodes in the
@@ -1177,20 +1174,6 @@ directly upper region containing the node.
 
 \subsection{Information as Bubbles in Space Time Graphs}
 
-Imagine the following situation : there is a system of some nodes divided into
-regions. All nodes are fixed except one which is moving. While moving this node
-is interacting with other nodes (sending messages and executing query for the
-system). Other nodes detect its movement, and are capable of reacting to it.
-This movement triggers some action : joining regions and leaving others. If the
-node is moving slowly, the reaction stays local, as information only needs to
-be propagated in some upper region to be resolved. On the contrary, if the node
-moves fast, then it generates bigger bubbles, it goes to the biggest region to
-be resolved.  Structurally this view of the system is not really different from
-the one that we described before, but philosophically this view goes much
-deeper as it taking in account the interactions of the nodes in a space/time
-matter. 
-
-\subsubsection{Orthogonal other example}
 If one wants to leverage the locality of interactions to build regions it might be worth it to investigate the following case. 
 Imagine that some nodes $A$ and $B$ are close locally and interacts often, but they are not part of the same small local region. 
 By design there is a bigger region in which they interacts, and each of these interaction should pass by this bigger region. One property that might be useful is that these frequent interactions should have an impact on the system leading to the inclusion of one node in a "regional" region. If the metric that defines distance is changed from kilometers to "interactions". One should be able to redraw the whole system based on that, and to apply Crux to solves the system. Now how to actually define this metric ? Let's try with count of operation per unit of time.  Let's enumerate the properties of a metric space. 
@@ -1206,87 +1189,6 @@ By design there is a bigger region in which they interacts, and each of these in
 
 Interestingly the interaction metric follow this property. Indeed for the first, one can consider that one node always interacts with itself. Second the number of interaction per unit of time is positive. Third the interactions are counted as symmetric (if $A$ is sending a message to $B$ we count that as an interaction between $A$ and $B$). Fourth the number of interaction between two nodes is always less or equal that the number of interaction that transit to a third point. Now the problem with this metric is that it is actually not transitive. First one should notice that if $A$ is close to $B$ and $C$ it is possible that $B$ and $C$ never interacts therefore are "far from each other". 
 
-
-In terms of Nyle components, the locality component has an additional view and
-can influence first the region component. Registration is still global, epochs
-managed the rhythm for the registration. Instead of only having a locality
-measure at the beginning of the epoch, this view allows to have measures of the
-system dynamically at all time. 
-This can be used to adapt the system.The rules of thumb is that node should only care of what is important for them.
-This has as a goal to reduce unnecessary communication. However sometimes
-decisions made by nodes can have an impact on other nodes. In that case, the
-node which is creating the action is responsible to contact the nodes that will
-be impacted.
-
-\subsubsection{Rules for Region Assignment based on the Space/Time Metric}
-Recall that nodes are included in regions from the size of their cluster to the
-size of the system.  If nodes in one region detect that another is moving
-apart, they do not expect it to participate in this region anymore. In the
-opposite, if a region detect that one node is approaching it expects it to
-participate in the region.  If a node churns, then this information is
-propagated all the way to the biggest region, and the node is excluded from all
-the regions. 
-
-\subsubsection{Transformation of regions}
-This change in region assignment actually have an effect on the form of the
-region, the same rules developed in \autoref{Locarno} can be applied to adapt
-the regions on the fly. If node $A$ is moving and leaves a region, and another
-node $B$ detects that while communicating with $A$, it will take that in
-account meaning it will store the last ping and adopt its own view on the
-system. Now this means that nodes will not have the same view of the system at
-all time, but this view will be really flexible. 
-
-% TODO Threat Analysis : This might be prone to attacks. Might not need this round of communication, base everything on the pings. 
-
-\subsubsection{Rules for Membership Component based on the Space/Time metric}
-The Space/Time Metric can be leveraged to serve as a Membership Components.
-Decisions are made on the majority of nodes. To be able to participate in
-the system or to take part in a decision, a valid endorsement in required. If a
-node churns, then this information is propagated all the way to the
-biggest region, and the node is excluded from the system.  If a node joins the
-system, it starts to ping some nodes for information. It can ask for the list
-of participants and pings everybody. When it starts pinging some nodes that are
-close to it, these nodes detect that a new node wants to join the system and
-when nodes are aware of the place of the new participant, it can be verified by
-a random number of checkers. The verification will check that the place is
-actually right and that a valid \textit{endorsement} is provided, and a level
-will be given to it. 
-
-\subsubsection{Epoch Components}
-With the Membership adaptation and the transformation of the regions, there is
-no need for epochs anymore. This component can be deleted from the system. 
-
-\subsection{Space/Time Protocol}
-Assume that we have a precisely defined set of rules for evolving the region
-from one epoch to another.  The Space/Time Protocol will be the following.
-Regions are created in the genesis of the system by the algorithm for region
-creation. The underlying system is replicated in all the deployed regions. And
-nodes start working in the system. Events are detected with the dynamic
-Space/Time Metric. 
-
-\begin{sidewaystable}
-\centering
-\begin{tabular}{m{0.15\textwidth}m{0.3\textwidth}*{2}{>{\arraybackslash}m{0.2\textwidth}}}
-\toprule
-Event                 & Effect                                                                                 & Detection                                                & Communication                                                 \\ \midrule
-Node leave a region   & Node should not be assigned to this region anymor. Might trigger region transformation & Ping of other nodes in the region                        & None needed                                                   \\ \hdashline[0.5pt/5pt]
-Node enter a region   & Node should be assigned to this region anymore. Might trigger region transformation    & Ping of other nodes in the region                        & None needed                                                   \\ \hdashline[0.5pt/5pt]
-Region Shrink         & Might exclude other nodes                                                              & Node leaving detected by one node of the region          & None needed             \\ \hdashline[0.5pt/5pt]
-Region Growth         & Might add other nodes                                                                  & Node entering detected by one node of the region         & None needed            \\ \hdashline[0.5pt/5pt]
-Node leave the system & Leave all regions                                                                      & Subcase of Node leave a region                           & None needed                                                   \\ \hdashline[0.5pt/5pt]
-Node join the system  & Join a particular region                                                               & Ping all the nodes in the system                         & Election of a committee of checkers. Consensus on Endorsement \\ \hdashline[0.5pt/5pt]
-Global Partition      & Redrawing the system in both side of the partition                                     & Ping of individual nodes, generate region transformation & Same as before                                                \\ \bottomrule
-\end{tabular}
-\caption{Rules of Space/Time Protocol}
-\label{tab:rules-space-graphs}
-\end{sidewaystable}
-
-\subsection{Threat model}
-The main challenge of this protocol is that the view of the system won't be the
-same for all the nodes in the system. And that might leads to some regions that
-are not stable through time. 
-
-%% TODO CONTINUE 
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Possible Improvements} \label{chap:Possible Improvements}
