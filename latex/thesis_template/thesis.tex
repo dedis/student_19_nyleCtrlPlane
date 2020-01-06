@@ -338,12 +338,24 @@ and $4$ for $N = 1000$.The columns represents the number of nodes and the row th
 \paragraph{Bunch} A node can compute its bunch in the following manner. It
 looks at every other nodes by order of distances in ascending order and
 includes it in its bunch if its level is not smaller than the one it encounters
-so far, including its own level. 
-% TODO include image of Bunch
+so far, including its own level [\autoref{ClusterBunch-Bunch}]. 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=250pt]{figures/ClusterBunch-Bunch}
+\caption{ The bunch of the node is depicted in blue. }
+\label{fig:ClusterBunch-Bunch}
+\end{figure}
 
 \paragraph{Cluster} A cluster is a complementary concept. The cluster of node
-$A$ is defined as the set of other nodes that have $A$ in their bunch. 
-% TODO include image of Cluster.
+$A$ is defined as the set of other nodes that have $A$ in their bunch [\autoref{ClusterBunch-Cluster}]. 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=250pt]{figures/ClusterBunch-Cluster}
+\caption{ The cluster of the node is depicted in orange. }
+\label{fig:ClusterBunch-Cluster}
+\end{figure}
 
 The smallest region radius $R_{min}$ is defined for the whole system. Each node
 will construct $ARAs$ around itself starting at $R_{min}$ and doubling the
