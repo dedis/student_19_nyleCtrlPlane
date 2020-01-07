@@ -366,16 +366,20 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 func (s *Service) GetConsencusOnNewSigners() error {
 
 	if s.Cycle.GetCurrentPhase() != EPOCH {
-		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-3*time.Second, "s to Get the Consencus")
-		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 3*time.Second)
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-TIME_FOR_CONSENCUS, "s to Get the Consencus")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - TIME_FOR_CONSENCUS)
 	}
-	//timeCons := time.Now()
-	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
+	timeCons := time.Now()
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
 	ro, err := s.getRosterForEpoch(s.e)
+	log.Lvl1(ro)
+	s.storage.Lock()
+	log.LLvl1(s.storage.Signers)
+	s.storage.Unlock()
 	if err != nil {
 		return err
 	}
-	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
 	// Agree on Signers
 	_, err = s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
@@ -418,6 +422,7 @@ func (s *Service) StartNewEpoch() error {
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
 	}
 	if s.e != s.Cycle.GetEpoch() {
+		log.Lvl1("\033[48;5;33m", s.Name, " Does not start Epoch ", s.e, " as the clock says it is ", s.Cycle.GetEpoch(), ".\033[0m")
 		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch())
 	}
 
@@ -722,6 +727,7 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	return nil
 }
 
+// GetRandomName get a random name from the list of Server
 func (s *Service) GetRandomName() string {
 	var names []string
 	s.ServersMtx.Lock()

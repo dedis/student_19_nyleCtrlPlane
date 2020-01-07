@@ -448,35 +448,6 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 			}(i)
 		}
 		wg.Wait()
-		/*
-
-			// CHURN - With Deregistration
-			for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-				// NOT IMPLEMENTED
-				if rand.Float64() < cR/2 {
-					err = services[i].(*Service).Deregistrate()
-					if err != nil {
-						return err
-					}
-				}
-
-			}
-
-			// CHRUN - Without Deregistration
-			for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-				if rand.Float64() < cR/2 {
-					hosts[i].Router.Pause()
-				}
-			}
-
-			// CHANGE IN LATENCIES
-			for i := 0; i < nbrNodes; i++ {
-				// NOT IMPLEMENTED
-				services[i].(*Service).ChangeLatencies(ic)
-			}
-
-		*/
-
 	}
 }
 
