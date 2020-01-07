@@ -90,7 +90,7 @@ func (s *Service) Setup(req *InitRequest) {
 	for _, n := range s.Nodes.All {
 		str += n.Name + " -- " + strconv.Itoa(n.Level) + " -- " + fmt.Sprintf("%v,%v", n.X, n.Y) + " \n"
 	}
-	log.LLvl1(str)
+	//log.LLvl1(str)
 
 	// If it does not use Locarno Treaties for generating the levels it has to draw them randomly
 	// If one wants to modify this code to read levels from a file one might have a look to Maxime Sierro Code : https://github.com/dedis/student_19_nylechain

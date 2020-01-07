@@ -268,7 +268,7 @@ func CreateLocalityGraph(all LocalityNodes, randomCoords, randomLevels bool, lev
 		total += fmt.Sprintf("        -        %v ------- %v  ---------", n.ADist, n.PDist) + s
 		w3.WriteString(s)
 	}
-	log.LLvl1(total)
+	//log.LLvl1(total)
 
 	w3.Flush()
 
