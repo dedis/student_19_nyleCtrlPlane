@@ -334,6 +334,13 @@ bunch and their cluster.
 and $4$ for $N = 1000$.The columns represents the number of nodes and the row the levels. }
 \label{example-lottery}
  \end{table}
+ 
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=400pt]{figures/Lottery-Standard}
+\caption{Sketch of the Lottery process, nodes goes from one level to the next with probability $P$}
+\label{fig:ClusterBunch-Bunch}
+\end{figure}
 
 \paragraph{Bunch} A node can compute its bunch in the following manner. It
 looks at every other nodes by order of distances in ascending order and
@@ -698,7 +705,7 @@ plane, node insertion is possible at the beginning of every epoch
 % TODO add image
 \begin{figure}[!h] 
 \centering
-\includegraphics[width=400pt]{figures/JoinSubplots}
+\includegraphics[width=450pt]{figures/JoinSubplots}
 \caption{The simple control plane allow node to join the system. The left plot represents the case with a fixed control plane where node cannot join. The ticks are placed at the start of epochs. }
 \label{fig:insertion-comparision}
 \end{figure}
@@ -710,8 +717,8 @@ register for the next epoch and therefore are removed from the system \autoref{f
 % TODO add image 
 \begin{figure}[!h] 
 \centering
-\includegraphics[width=250pt]{figures/todo}
-\caption{The simple control plane remove nodes that have left the system.}
+\includegraphics[width=450pt]{figures/ChurnSubplots}
+\caption{The simple control plane remove nodes that have left the system. The left plot represents the case with a fixed control plane where node cannot leave. The ticks are placed at the start of epochs.}
 \label{fig:churn-comparision}
 \end{figure}
 
@@ -726,14 +733,7 @@ in the region of their first assignment, a partition could happen somewhere in
 the system leading to failing regions that should be on the same side of the
 partition. The control plane solves this problem as the region are redrawn at
 each epoch taking account of the movement of the nodes. Increasing the
-partition resistance, with the movement of nodes  \autoref{fig:movement-comparison}.
-% TODO add image
-\begin{figure}[!h] 
-\centering
-\includegraphics[width=250pt]{figures/todo}
-\caption{The simple control plane adapts the system to movement}
-\label{fig:movement-comparison}
-\end{figure}
+partition resistance, with the movement of nodes.
 
 \subsection{Drawbacks}
 This control plane is simple and reach its objective, but it requires a lot of
@@ -939,8 +939,8 @@ gets new random numbers.
 
 \begin{figure}[!h] 
 \centering
-\includegraphics[width=250pt]{figures/todo}
-\caption{Sketch of the new method for drawing the levels}
+\includegraphics[width=400pt]{figures/Lottery-Locarno}
+\caption{Sketch of the new method for drawing the levels. The fill represents the number that was drawn from 0 (black) to 1 (white).}
 \label{fig:sketch-new-levels}
 \end{figure}
 
@@ -1316,7 +1316,15 @@ example, it could mean more to him to know that his transaction is validated in
 Swiss and Western Europe but not yet globally than knowing that its transaction
 is validated locally but not globally. 
 
-One of the assumptions that was taken is that the distribution of the levels would be geographically distributed at random. And that will be the case as the nodes are  supposed to be as well geographically distributed at random. However, it was stated that this aspect could be targeted by malicious nodes. In order to avoid that attack, some mechanisms could be developed to ensure that the levels are geographically distributed at random. One approach could be to compute the density of levels per region and to detect if it is more or less the same. If it diverges too much, a fall back to random attribution of levels could be applied. 
+One of the assumptions that was taken is that the distribution of the levels
+would be geographically distributed at random. And that will be the case as the
+nodes are  supposed to be as well geographically distributed at random.
+However, it was stated that this aspect could be targeted by malicious nodes.
+In order to avoid that attack, some mechanisms could be developed to ensure
+that the levels are geographically distributed at random. One approach could be
+to compute the density of levels per region and to detect if it is more or less
+the same. If it diverges too much, a fall back to random attribution of levels
+could be applied. 
 
 \section{Roadmap}
 Of course this work is just a small part of what is left to do to have a first
@@ -1339,9 +1347,53 @@ do)
 \chapter{Conclusion} \label{chap:Conclusion}
 %%%%%%%%%%%%%%%%%%%%
 
-In the conclusion you repeat the main result and finalize the discussion of
-your project. Mention the core results and why as well as how your system
-advances the status quo.
+%In the conclusion you repeat the main result and finalize the discussion of
+%your project. Mention the core results and why as well as how your system
+%advances the status quo.
+
+This works proposed a control plane for preserving-blockchains. First a simple
+version of the control plane was designed. This version splits the time into
+epochs, containing a registration period and a live period. Nodes can register
+for the next epoch by providing a valid endorsement to the participants to the
+current epoch during the registration period. The current participants then
+proceed to generate consensus on the list of future participants. At the
+beginning of the live period, all the pings between the participants are
+computed and participants draw a level from a public source of randomness, and
+the regions are created deterministically from the pings and the levels. This
+first version is already reaching the goal that was expected from the control
+plane, which is to deal with nodes entering, leaving and moving in the system.
+The threat analysis was done and it seems to be secure given that no more than
+$f_i$ malicious nodes are in the system at any epoch $i$, with $f_i$ given by
+$3f_i+1=N_i$ and where $N_i$ is the number of participants at the epoch $i$.
+However it was demonstrated that this protocol was consuming a lot of resources
+in memory and communication. 
+
+A series of improvements were proposed. The first one, called \textit{Locarno
+Treaties}, proposed to change the system of lottery to allow nodes to keep
+their level, while ensuring that their final distribution was not unbalanced.
+It was then shown that with this improvement, the differences from one epoch to
+the next were reduced drastically. A second one, called \textit{Fog of the
+War}, was proposed to reduce the needs of communication. It is worked by
+changing the map of all pings between participants in the system with a
+declared position, which is then checked by a committee of checkers. The
+security analysis of this improvement was done as well. But the implementation
+was not made due to time reasons. 
+
+A third improvement called \textit{Space/Time Interaction Metric} was proposed
+as well. The idea of this improvement was to change the notion of locality,
+from the regular interpretation of \textit{distance} to a new one. With this
+new interpretation, nodes that are interacting a lot are viewed as closed. And
+in the opposite, nodes that does not communicate are separated with an infinite
+distance. With the new interpretation, a node that churns is seen from the
+other as a node which is moving towards infinity.  
+
+%% TODO add amelioration 
+
+%% TODO add implementation
+
+%% TODO Mention the core results and why as well as how your system
+%advances the status quo.
+
 
 \cleardoublepage \phantomsection \addcontentsline{toc}{chapter}{Bibliography}
 \printbibliography
@@ -1352,8 +1404,17 @@ advances the status quo.
 \chapter{Problems with levels}
 \section{Problem with level-0 nodes} \label{app:levels-zero}
 \color{red} TODO : REDO \color{black}
-Assume that ARA creation started with only one node (at level 0). Then we add nodes of level-0 to the existing structure with the candidate strategy, if all the nodes stay at level 0, by construction, they will have every other node in their bunch. (because it’s adding every other node if their level it not smaller). After adding N nodes with this process, the Nth node will participate in N-1 ARA which is a lot more than $ARA_{max}$ of the CRUX \cite{Basescu2014} design. 
-So the level of the existing nodes needs to be updated. But as mentioned above, the borders of the ARAs should not move too much (except for including the new node). (If not, by following the process one node which was originally in one given ARA can be updated to be outside, so it may create some problems.)
+Assume that ARA creation started with only one node (at level 0). Then we add
+nodes of level-0 to the existing structure with the candidate strategy, if all
+the nodes stay at level 0, by construction, they will have every other node in
+their bunch. (because it’s adding every other node if their level it not
+smaller). After adding N nodes with this process, the Nth node will participate
+in N-1 ARA which is a lot more than $ARA_{max}$ of the CRUX \cite{Basescu2014}
+design.  So the level of the existing nodes needs to be updated. But as
+mentioned above, the borders of the ARAs should not move too much (except for
+including the new node). (If not, by following the process one node which was
+originally in one given ARA can be updated to be outside, so it may create some
+problems.)
 
 \section{Problem with unbalanced levels } \label{app:unbalanced-levels}
 
