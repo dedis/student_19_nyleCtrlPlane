@@ -706,8 +706,10 @@ plane, node insertion is possible at the beginning of every epoch
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=450pt]{figures/JoinSubplots}
-\caption{The simple control plane allow node to join the system. The left plot represents the case with a fixed control plane where node cannot join. The ticks are placed at the start of epochs. }
-\label{fig:insertion-comparision}
+\caption{The simple control plane allow node to join the system. The left plot
+    represents the case with a fixed control plane where node cannot join. The
+    ticks are placed at the start of epochs. }
+    \label{fig:insertion-comparision}
 \end{figure}
 
 \subsubsection{Churn resistance}
@@ -718,8 +720,10 @@ register for the next epoch and therefore are removed from the system \autoref{f
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=450pt]{figures/ChurnSubplots}
-\caption{The simple control plane remove nodes that have left the system. The left plot represents the case with a fixed control plane where node cannot leave. The ticks are placed at the start of epochs.}
-\label{fig:churn-comparision}
+\caption{The simple control plane remove nodes that have left the system. The
+    left plot represents the case with a fixed control plane where node cannot
+    leave. The ticks are placed at the start of epochs.}
+    \label{fig:churn-comparision}
 \end{figure}
 
 \subsubsection{Adaptation to Node Movements}
@@ -940,8 +944,9 @@ gets new random numbers.
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=400pt]{figures/Lottery-Locarno}
-\caption{Sketch of the new method for drawing the levels. The fill represents the number that was drawn from 0 (black) to 1 (white).}
-\label{fig:sketch-new-levels}
+\caption{Sketch of the new method for drawing the levels. The fill represents
+    the number that was drawn from 0 (black) to 1 (white).}
+    \label{fig:sketch-new-levels}
 \end{figure}
 
 
@@ -1091,8 +1096,9 @@ the system is given in the appendix [APP. \autoref{app:LocarnoTreaties-data}].
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-differences}
-\caption{Graph of number of differences between maps from one epoch to the next using the random levels or the one defined in Locarno Treaties } \label{fig:LocarnoTreaties-differences}
-\end{figure}
+\caption{Graph of number of differences between maps from one epoch to the next
+using the random levels or the one defined in Locarno Treaties }
+\label{fig:LocarnoTreaties-differences} \end{figure}
 
 \section{Strawman 2 : Fog of the War}
 
@@ -1166,8 +1172,9 @@ regions, and it might lead to attacks. Another strategy could be to define the
 position of the faulty node with an approximation based on the ping. If we have
 the position of the other nodes and we have to fix the location of the unknown
 faulty node one might do that by computing the intersection between the circles
-based on the pings. This triangulation strategy [\autoref{fig:triangulation_strategy}] can block one faulty node to
-reach a desired position. 
+based on the pings. This triangulation strategy
+[\autoref{fig:triangulation_strategy}] can block one faulty node to reach a
+desired position. 
 
 \begin{figure}[!h] 
 \centering
@@ -1185,13 +1192,14 @@ on the system so it seems to be an acceptable weakness.
 \section{Introducing the Space/Time Interaction distance}
 One of the principal reasons to split the system based on the locality is
 because of most regular transactions between people are local, therefore one
-wants to ensure that in case of a global partition, most of the transactions can
-still be processed flawlessly. The first idea for the locality was the following. As there should be more interaction in
-local regions, most interactions can be processed locally. This means that by using locality
-the really goal is to maintain the interactions between the nodes. In that
-case, the space metric is used to get an insight of the interactions. And
-this is a reasonable approximation, but it might be worth it to investigate
-directly what this interactions means. 
+wants to ensure that in case of a global partition, most of the transactions
+can still be processed flawlessly. The first idea for the locality was the
+following. As there should be more interaction in local regions, most
+interactions can be processed locally. This means that by using locality the
+really goal is to maintain the interactions between the nodes. In that case,
+the space metric is used to get an insight of the interactions. And this is a
+reasonable approximation, but it might be worth it to investigate directly what
+this interactions means. 
 
 \subsection{Interactions as a distance on Space/Time Graphs}
 
@@ -1214,17 +1222,20 @@ $\forall A,B \in S$
 \end{equation}
 where $S$ is the set of nodes in the system.
 
-Interestingly this quantity as the property of a distance but not a metric \cite{Greenhoe2016}.  Indeed for the
-first, we define that the number of messages that one node send to itself is
-infinite. Second the number of messages is positive meaning that the distance
-will always be positive. Third the interactions are counted as symmetric (if
-$A$ is sending a message to $B$ we count that as an interaction between $A$ and
-$B$). Actually the triangle inequality is not respected and that is a problem
-indeed one should notice that if $A$ is close to $B$ and $B$ to $C$ but it is
-possible that $A$ and $C$ never interacts therefore are "far from each other".  
+Interestingly this quantity as the property of a distance but not a metric
+\cite{Greenhoe2016}.  Indeed for the first, we define that the number of
+messages that one node send to itself is infinite. Second the number of
+messages is positive meaning that the distance will always be positive. Third
+the interactions are counted as symmetric (if $A$ is sending a message to $B$
+we count that as an interaction between $A$ and $B$). Actually the triangle
+inequality is not respected and that is a problem indeed one should notice that
+if $A$ is close to $B$ and $B$ to $C$ but it is possible that $A$ and $C$ never
+interacts therefore are "far from each other".  
 
 \paragraph{Properties}
-The properties of a metric are $1, 2, 4$ which implies $3$. The properties of a distance is $1,2,3$ but not necerrary $4$  \cite{Greenhoe2016}. In the case of the interaction distance \autoref{definition-distance}, $4$ is not respected.
+The properties of a metric are $1, 2, 4$ which implies $3$. The properties of a
+distance is $1,2,3$ but not necerrary $4$  \cite{Greenhoe2016}. In the case of
+the interaction distance \autoref{definition-distance}, $4$ is not respected.
 
 $\forall A,B \in S$
 \begin{enumerate}
@@ -1242,18 +1253,29 @@ than taking a bus from $A$ to $C$ [\autoref{fig:CFF-map}][\autoref{fig:CFF-NewDi
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=450pt]{figures/CFF-map}
-\caption{Map of the train network in Switzerland, line width is proportional to the number of connection per day.}
-\label{fig:CFF-map}
+\caption{Map of the train network in Switzerland, line width is proportional to
+    the number of connection per day.} \label{fig:CFF-map}
 \end{figure}
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=350pt]{figures/CFF-NewDistances}
-\caption{The train network is drawn again, using the regular distance first. In the second time the graph is displayed using the interaction distance as force in a force-directed graph. Ensuring that nodes that are close with regard to the interaction distance are close on the graph.}
-\label{fig:CFF-NewDistances}
+\caption{The train network is drawn again, using the regular distance first. In
+    the second time the graph is displayed using the interaction distance as
+    force in a force-directed graph. Ensuring that nodes that are close with
+    regard to the interaction distance are close on the graph.}
+    \label{fig:CFF-NewDistances}
 \end{figure}
 
-The fact that this new quantity is a distance and not a metric does not create a problem in our case. Indeed all nodes are considering directly their distance to all the other nodes in the system. When using the pings, nodes were required to compute their pings to any other node in the system. Replacing that with the interaction distance does not change anything. Triangle inequality could be useful it one was trying to find a route from $A$ to $B$ and was considering to pass per different other nodes to arrive to its goal. In our case this is not the case, the hypothesis is that nodes have a one-to-one communication system. Therefore it's only required to know the distance between any pair of points.
+The fact that this new quantity is a distance and not a metric does not create
+a problem in our case. Indeed all nodes are considering directly their distance
+to all the other nodes in the system. When using the pings, nodes were required
+to compute their pings to any other node in the system. Replacing that with the
+interaction distance does not change anything. Triangle inequality could be
+useful it one was trying to find a route from $A$ to $B$ and was considering to
+pass per different other nodes to arrive to its goal. In our case this is not
+the case, the hypothesis is that nodes have a one-to-one communication system.
+Therefore it's only required to know the distance between any pair of points.
 
 \subsection{Finding Meaning}
 In order to understand better what means this distance, some examples are
@@ -1279,13 +1301,14 @@ to infinity.
 
 \paragraph{"Regions" With Interaction Distance} \label{par:section-example}
 The concept of the "region" is harder to conceive with that new notion of
-distance. It might be useful to use the parallel with the CFF \autoref{fig:CFF-NewDistances}, let's imagine a
-node at EPFL and try to conceptualize to what might correspond the equivalent
-of "local", "regional" and "global regions". The "local" region might be
-depicted with what places can be reached within 15 min of public
-transportation. This will cover the metro line to Lausanne and some bus stops.
-At the regional level, it might be what places are reachable within 1 hour of
-public transportation. Global level still covers all the nodes.
+distance. It might be useful to use the parallel with the CFF
+\autoref{fig:CFF-NewDistances}, let's imagine a node at EPFL and try to
+conceptualize to what might correspond the equivalent of "local", "regional"
+and "global regions". The "local" region might be depicted with what places can
+be reached within 15 min of public transportation. This will cover the metro
+line to Lausanne and some bus stops.  At the regional level, it might be what
+places are reachable within 1 hour of public transportation. Global level still
+covers all the nodes.
 
 \subsection{Justification to replace the locality}
 Changing the distance from the regular one to interactions might have some
@@ -1313,7 +1336,8 @@ messages is done in the following way : Each node keep the track of the count
 of messages it receives from other nodes between epochs, and post the results
 at the beginning of the next epoch instead of the pings. Each node is able then
 to compute the new distance, and the algorithm for regions can be used
-directly. In the first epoch, as nodes did not had the time to interacts a lot with each other, pings are used instead of the interaction distance.
+directly. In the first epoch, as nodes did not had the time to interacts a lot
+with each other, pings are used instead of the interaction distance.
 
 
 %%%%%%%%%%%%%%%%%%%%
@@ -1415,9 +1439,23 @@ other as a node which is moving towards infinity.
 
 %% Implementation + Mention the core results and why as well as how your system
 %advances the status quo.
-The implementation of the simple version of the control plane, the first and the third Strawman was made in Go. It was done using the Cothority Framework and based on an existing code base from Cristina Basescu. The evaluation was made on Deterlab. This works enhance Nyle by proposing a control plane, which is necessary as the system of nodes that will run Nyle is not supposed to be really stable. It should be possible for node to leave, join and move in the system, which is made possible by the proposed control plane. Other applications that are based on CRUX \cite{Basescu2014} might consider to use this work to ensure that nodes can move or churn.
+The implementation of the simple version of the control plane, the first and
+the third Strawman was made in Go. It was done using the Cothority Framework
+and based on an existing code base from Cristina Basescu. The evaluation was
+made on Deterlab. This work enhances Nyle by proposing a control plane, which
+is necessary as the system of nodes that will run Nyle is not supposed to be
+really stable. It should be possible for nodes to leave, join and move into the
+system, which is made possible by the proposed control plane. Other
+applications that are based on CRUX \cite{Basescu2014} might consider using
+this work to ensure that nodes can move or churn.
 
-It was a pleasure for me to do this work. Working with locality preserving blockchains allowed me to dive into the blockchain world and to discover a lot of new technologies. Working with the Cothority Framework was an interesting experience and it sharpened my programming skills by understanding more of the concurrency. I found that the logic of decentralized and distributed systems are complex but I find really interesting to develop protocols for these systems. I want to thank my supervisor for the help during the project.
+It was a pleasure for me to do this work. Working with localities preserving
+blockchains allowed me to dive into the blockchain world and to discover a lot
+of new technologies. Working with the Cothority Framework was an interesting
+experience and it sharpened my programming skills by understanding more of the
+concurrency. I found that the logic of decentralized and distributed systems
+are complex but I find really interesting to develop protocols for these
+systems. I want to thank my supervisor for the help during the project.
 
 
 \cleardoublepage \phantomsection \addcontentsline{toc}{chapter}{Bibliography}
