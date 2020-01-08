@@ -1465,23 +1465,30 @@ systems. I want to thank my supervisor for the help during the project.
 \appendix
 
 \chapter{Problems with levels}
-\section{Problem with level-0 nodes} \label{app:levels-zero}
-\color{red} TODO : REDO \color{black}
-Assume that ARA creation started with only one node (at level 0). Then we add
-nodes of level-0 to the existing structure with the candidate strategy, if all
-the nodes stay at level 0, by construction, they will have every other node in
-their bunch. (because it’s adding every other node if their level it not
-smaller). After adding N nodes with this process, the Nth node will participate
-in N-1 ARA which is a lot more than $ARA_{max}$ of the CRUX \cite{Basescu2014}
-design.  So the level of the existing nodes needs to be updated. But as
-mentioned above, the borders of the ARAs should not move too much (except for
-including the new node). (If not, by following the process one node which was
-originally in one given ARA can be updated to be outside, so it may create some
-problems.)
 
 \section{Problem with unbalanced levels } \label{app:unbalanced-levels}
+The problem with unbalanced levels is mainly that a property stated in  \cite{Basescu2014} is not necessary respected anymore. The property is the following : Let's call $ARAs_{max}$ the maximum number of regions in which a node participates. This number is given by : 
 
-\color{red} TODO  \color{black}
+\begin{equation} \label{eq:ARAmax}
+ARAs_{max} = \log_2(R_{max}/R_{min}) (B \log_B(N)+1)
+\end{equation}
+
+where $B$ is a constant, $N$ is the number of nodes in the system, $R_{min}$ is the diameter of the smallest region and $R_{max}$ is a diameter that is large enough to cover the entire network.
+
+This ensure that the overhead that's is created by the replication stays reasonable : by design it is growing logarithmically with the number of nodes $N$ and with $R_{max}$.
+
+We will described two situation were this property is not maintained, as an argument for keeping the distribution of levels balanced.
+
+\subsection{Problem with level-0 nodes} \label{app:levels-zero}
+Assume that there is a system of $N$ nodes that are all at level 0. If all
+the nodes stay at level 0, by construction, they will have every other node in
+their bunch [\autoref{fig:ClusterBunch-Bunch}]. (because it’s adding every other node if their level it not
+smaller). After adding $N$ nodes with this process, the $N$th node will participate
+in $N-1$ region which is a lot more than $ARA_{max}$ \autoref{eq:ARAmax} of the CRUX \cite{Basescu2014}
+design. This could create an unmanageable overhead. Therefore one need to have higher level nodes in the middle of levels 0 nodes. This justifies the attack on level that could be done by malicious nodes as described in \autoref{sec:ControlePlane-Threat-Model}. And the solution proposed in \autoref{chap:Possible Improvements}.
+
+\subsection{Problem with too much different levels}
+Similiarly consider the case were we have $N$ nodes and each is at a different level from $0$ to $N-1$. By design the node at level $0$ will have every other nodes in its bunch. So it will participates in $N$ regions, which grows a lot faster with $N$ than \autoref{eq:ARAmax}. This could lead to  an unmanageable overhead as well. Of course, this example is a bit extreme, but it gives guidelines on what could happen if the distribution of levels are not controlled.
 
 \chapter{Locarno Treaties : Data} \label{app:LocarnoTreaties-data}
 
@@ -1499,6 +1506,39 @@ problems.)
 \label{fig:LocarnoTreaties-LocarnoFinal}
 \end{figure}
 
+
+\chapter{Dataset on Master Thesis}
+Here are some important random facts about this master's thesis. The aggregation of data was stopped the day of the printing.
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Language         & files & blank & comment & code \\ \midrule
+Go               & 25    & 1222  & 857     & 3935 \\
+SVG              & 9     & 0     & 0       & 1587 \\
+TeX              & 7     & 263   & 128     & 1372 \\
+Python           & 4     & 79    & 2       & 315  \\
+Markdown         & 4     & 60    & 0       & 132  \\
+Jupyter Notebook & 2     & 0     & 844     & 130  \\
+TOTAL            & 56    & 1645  & 1832    & 7525 \\ \bottomrule
+\end{tabular}
+\caption{Line of code for the different langages used in that project}
+\label{tab:my-table}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+Name              & Total \\ \midrule
+Number of Commits & 148   \\
+Number of Coffees & 249   \\
+Number of Days    & 82    \\
+Number of Graphs  & 26    \\ \bottomrule
+\end{tabular}
+\caption{Some random stats}
+\label{tab:my-table}
+\end{table}
 
 
 
