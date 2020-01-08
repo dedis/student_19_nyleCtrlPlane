@@ -362,22 +362,11 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	p.Start()
 
-<<<<<<< HEAD
 	select {
 	case <-p.ConfirmationsChan:
 		return nil
 	case <-time.After(gossipTimeOut * 10):
 		log.LLvl1(s.Name, " got a TimeOut in the Gossip Protocol")
-=======
-	gossipTimeOut := 2 * time.Second
-
-	select {
-	case <-p.ConfirmationsChan:
-		return nil
-	case <-time.After(gossipTimeOut):
-		p.Shutdown()
-		p.Done()
->>>>>>> Code Churning example (disable as the current implementation leave
 		return fmt.Errorf("%v got a TimeOut in the Gossip Protocol", s.Name)
 	}
 }
