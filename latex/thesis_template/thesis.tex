@@ -1076,9 +1076,9 @@ The goal of the new protocol is to keep most regions and region assignment
 following the evolution of the system. 
 
 A concrete comparison is made. The system starts with a fixed number of nodes
-and evolves with nodes moving, leaving and entering the system. A metric is
+and evolves with nodes moving, leaving and entering the system. A quantity is
 chosen to evaluate the difference between the system from one epoch to the
-next. The metric is defined as the following :  the list of participants in the
+next. The quantity is defined as the following :  the list of participants in the
 system is taken sorted by name. Then for each node, their bunch and cluster
 will be compared. Each difference will be counted, if a new node enter the
 system, their bunch and cluster count as a difference. Same if a node leaves
@@ -1185,12 +1185,11 @@ on the system so it seems to be an acceptable weakness.
 \section{Introducing the Space/Time Interaction distance}
 One of the principal reasons to split the system based on the locality is
 because of most regular transactions between people are local, therefore one
-wants to ensure that in case of a global partition, the local transactions can
-still be processed flawlessly. Following this hypothesis, one can try to use
-this structure to update the system. As there should be more interaction in
-local regions. Most interactions can be processed locally. By using locality
+wants to ensure that in case of a global partition, most of the transactions can
+still be processed flawlessly. The first idea for the locality was the following. As there should be more interaction in
+local regions, most interactions can be processed locally. This means that by using locality
 the really goal is to maintain the interactions between the nodes. In that
-case, the metric of distance is used to get an insight of the interactions. And
+case, the space metric is used to get an insight of the interactions. And
 this is a reasonable approximation, but it might be worth it to investigate
 directly what this interactions means. 
 
@@ -1198,7 +1197,7 @@ directly what this interactions means.
 
 If one wants to leverage the locality of interactions to build regions, it
 might be worth it to investigate the following case.  Imagine that some nodes
-$A$ and $B$ interacts often, but they are not part of the same small local
+$A$ and $B$ interacts often, but they are not part of the same local
 region.  By design there is a bigger region in which they interact, and each of
 these interactions should pass by this bigger region. One property that might
 be useful is that these frequent interactions should have an impact on the
@@ -1206,26 +1205,34 @@ system leading to the inclusion of one node in a "regional" region. If the
 metric that defines distance is changed from kilometers to "interactions". One
 should be able to redraw the whole system based on that, and to apply Crux to
 solves the system. Now how to actually define this metric ? Let's try with the
-following definition of distance : \begin{equation} \label{definition-distance}
+following definition of distance :
+
+
+$\forall A,B \in S$
+\begin{equation} \label{definition-distance}
     d(A,B) = \frac{1}{ \mathrm{\#\ messages\ between\ A\ and\ B\ per\ unit\ of\ time} } 
 \end{equation}
+where $S$ is the set of nodes in the system.
 
-\begin{itemize}
-\item $d(A,B) = 0  \Leftrightarrow A = B$
-\item $d(A,B) \geq 0$
-\item $d(A,B) = d(B,A)$
-\item \color{red} $d(A, C) \leq d(A,B) + d(B,C)$ \color{black}
-\end{itemize}
-\color{red} TODO cite metric space \color{black}
-
-Interestingly the interaction metric follow this property. Indeed for the
+Interestingly this quantity as the property of a distance but not a metric \cite{Greenhoe2016}.  Indeed for the
 first, we define that the number of messages that one node send to itself is
 infinite. Second the number of messages is positive meaning that the distance
 will always be positive. Third the interactions are counted as symmetric (if
 $A$ is sending a message to $B$ we count that as an interaction between $A$ and
 $B$). Actually the triangle inequality is not respected and that is a problem
 indeed one should notice that if $A$ is close to $B$ and $B$ to $C$ but it is
-possible that $A$ and $C$ never interacts therefore are "far from each other". 
+possible that $A$ and $C$ never interacts therefore are "far from each other".  
+
+\paragraph{Properties}
+The properties of a metric are $1, 2, 4$ which implies $3$. The properties of a distance is $1,2,3$ but not necerrary $4$  \cite{Greenhoe2016}. In the case of the interaction distance \autoref{definition-distance}, $4$ is not respected.
+
+$\forall A,B \in S$
+\begin{enumerate}
+\item $d(A,B) = 0  \Leftrightarrow A = B$
+\item $d(A,B) \geq 0$
+\item $d(A,B) = d(B,A)$
+ \color{red} \item$d(A, C) \leq d(A,B) + d(B,C)$ \color{black}
+\end{enumerate}
 
 \paragraph{Example :  CFF Distance}
 A parallel can be made with the CFF distance. Indeed in some case it is much
@@ -1246,13 +1253,14 @@ than taking a bus from $A$ to $C$ [\autoref{fig:CFF-map}][\autoref{fig:CFF-NewDi
 \label{fig:CFF-NewDistances}
 \end{figure}
 
+The fact that this new quantity is a distance and not a metric does not create a problem in our case. Indeed all nodes are considering directly their distance to all the other nodes in the system. When using the pings, nodes were required to compute their pings to any other node in the system. Replacing that with the interaction distance does not change anything. Triangle inequality could be useful it one was trying to find a route from $A$ to $B$ and was considering to pass per different other nodes to arrive to its goal. In our case this is not the case, the hypothesis is that nodes have a one-to-one communication system. Therefore it's only required to know the distance between any pair of points.
 
 \subsection{Finding Meaning}
-In order to understand better what means this metric, the standard case is
-considered. We want to understand what is mean to move with that new metric as
+In order to understand better what means this distance, some examples are
+considered. We want to understand what is mean to move with that new distance as
 well as joining and leaving the system. 
 
-\paragraph{Movements for Nodes With Interaction Distance}
+\paragraph{Movements for Nodes with Interaction Distance}
 It is easier to understand what it means to move in that space by looking to
 the relative distance between nodes. Imagine that node $A$ get closer to node
 $B$ but away from $C$ in that space. That means that the interactions between
@@ -1266,12 +1274,12 @@ nodes.
 
 \paragraph{Churning nodes with Interaction distance}
 If a node churn and stop answering the other, this can be interpreted as a
-movement in the interaction space. It equivalent at if the churning nodes moved
+movement in the interaction space. It is equivalent as if the churning nodes moved
 to infinity.  
 
 \paragraph{"Regions" With Interaction Distance} \label{par:section-example}
-The concept of the region is harder to conceive with that new notion of
-distance. It might be useful to use the parallel with the CFF, let's imagine a
+The concept of the "region" is harder to conceive with that new notion of
+distance. It might be useful to use the parallel with the CFF \autoref{fig:CFF-NewDistances}, let's imagine a
 node at EPFL and try to conceptualize to what might correspond the equivalent
 of "local", "regional" and "global regions". The "local" region might be
 depicted with what places can be reached within 15 min of public
@@ -1284,7 +1292,7 @@ Changing the distance from the regular one to interactions might have some
 implication on the property that we want to keep in the system. 
 
 \paragraph{Partition Resistance}
-For partition resistance actually even more than preserving working region
+Actually even more than preserving working regions
 composed of geographically close nodes it might be more interesting to preserve
 the set of nodes that have a lot of interactions. As this might be the nodes
 that are doing the most operations of the system. This justifies the use of
@@ -1300,12 +1308,13 @@ for a client.
 \subsection{Protocol}
 The protocol is the same as the one described in Locarno Treaties
 \autoref{Locarno}. The only difference is that the distance is changed by the
-new metric \autoref{definition-distance}. The computation of the number of
+new distance \autoref{definition-distance}. The computation of the number of
 messages is done in the following way : Each node keep the track of the count
 of messages it receives from other nodes between epochs, and post the results
 at the beginning of the next epoch instead of the pings. Each node is able then
 to compute the new distance, and the algorithm for regions can be used
-directly.
+directly. In the first epoch, as nodes did not had the time to interacts a lot with each other, pings are used instead of the interaction distance.
+
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Possible Improvements} \label{chap:Possible Improvements}
@@ -1394,7 +1403,7 @@ declared position, which is then checked by a committee of checkers. The
 security analysis of this improvement was done as well. But the implementation
 was not made due to time reasons. 
 
-A third improvement called \textit{Space/Time Interaction Metric} was proposed
+A third improvement called \textit{Space/Time Interaction Distance} was proposed
 as well. The idea of this improvement was to change the notion of locality,
 from the regular interpretation of \textit{distance} to a new one. With this
 new interpretation, nodes that are interacting a lot are viewed as closed. And
@@ -1404,10 +1413,11 @@ other as a node which is moving towards infinity.
 
 %% TODO add amelioration 
 
-%% TODO add implementation
-
-%% TODO Mention the core results and why as well as how your system
+%% Implementation + Mention the core results and why as well as how your system
 %advances the status quo.
+The implementation of the simple version of the control plane, the first and the third Strawman was made in Go. It was done using the Cothority Framework and based on an existing code base from Cristina Basescu. The evaluation was made on Deterlab. This works enhance Nyle by proposing a control plane, which is necessary as the system of nodes that will run Nyle is not supposed to be really stable. It should be possible for node to leave, join and move in the system, which is made possible by the proposed control plane. Other applications that are based on CRUX \cite{Basescu2014} might consider to use this work to ensure that nodes can move or churn.
+
+It was a pleasure for me to do this work. Working with locality preserving blockchains allowed me to dive into the blockchain world and to discover a lot of new technologies. Working with the Cothority Framework was an interesting experience and it sharpened my programming skills by understanding more of the concurrency. I found that the logic of decentralized and distributed systems are complex but I find really interesting to develop protocols for these systems. I want to thank my supervisor for the help during the project.
 
 
 \cleardoublepage \phantomsection \addcontentsline{toc}{chapter}{Bibliography}
