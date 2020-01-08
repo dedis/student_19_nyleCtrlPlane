@@ -1230,7 +1230,22 @@ possible that $A$ and $C$ never interacts therefore are "far from each other".
 \paragraph{Example :  CFF Distance}
 A parallel can be made with the CFF distance. Indeed in some case it is much
 faster to take a train from $A$ to $B$ and then to take a train from $B$ to $C$
-than taking a bus from $A$ to $C$. 
+than taking a bus from $A$ to $C$ [\autoref{fig:CFF-map}][\autoref{fig:CFF-NewDistances}] . 
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=450pt]{figures/CFF-map}
+\caption{Map of the train network in Switzerland, line width is proportional to the number of connection per day.}
+\label{fig:CFF-map}
+\end{figure}
+
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=350pt]{figures/CFF-NewDistances}
+\caption{The train network is drawn again, using the regular distance first. In the second time the graph is displayed using the interaction distance as force in a force-directed graph. Ensuring that nodes that are close with regard to the interaction distance are close on the graph.}
+\label{fig:CFF-NewDistances}
+\end{figure}
+
 
 \subsection{Finding Meaning}
 In order to understand better what means this metric, the standard case is
