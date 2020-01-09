@@ -89,6 +89,12 @@ type Service struct {
 
 	PrefixForReadingFile string
 	EpochChan            chan Epoch
+
+	// From Interaction
+	OwnInteractions      map[string]float64
+	DoneInteraction      bool
+	NrInteractionAnswers int
+	CountInteractions    map[string]int
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -742,7 +748,7 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	return nil
 }
 
-// GetRandomName get a random name from the list of Server
+// GetRandomName return a random Name from the list of Servers
 func (s *Service) GetRandomName() string {
 	var names []string
 	s.ServersMtx.Lock()
@@ -774,6 +780,9 @@ func newService(c *onet.Context) (onet.Service, error) {
 		PrefixForReadingFile: dir + "/..",
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
+		CountInteractions:    make(map[string]int),
+		OwnInteractions:      make(map[string]float64),
+		PingDistances:        make(map[string]map[string]float64),
 		// TODO : invesitgate why is blocking with 1
 		// One reason could be that, for one node it get two value, (one for the update one for Consensus)
 		// But that sould not happen
@@ -786,6 +795,8 @@ func newService(c *onet.Context) (onet.Service, error) {
 	s.RegisterProcessorFunc(execReplyHistoryMsgID, s.ExecReplyHistory)
 	s.RegisterProcessorFunc(execReqPingsMsgID, s.ExecReqPings)
 	s.RegisterProcessorFunc(execReplyPingsMsgID, s.ExecReplyPings)
+	s.RegisterProcessorFunc(execReqInteractionsMsgID, s.ExecReqInteractions)
+	s.RegisterProcessorFunc(execReplyInteractionsMsgID, s.ExecReplyInteractions)
 
 	// Register protocol (exec on tree)
 	_, err = s.ProtocolRegister(gpr.Name, gpr.NewGossipProtocol(s.addSignerFromMessage))

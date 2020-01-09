@@ -83,7 +83,7 @@ func (s *Service) Setup(req *InitRequest) {
 	}
 
 	if USE_SPACE_TIME {
-		s.getInteractionDistance()
+		s.GetInteractionDistances()
 	} else {
 		s.getPings(true)
 	}
