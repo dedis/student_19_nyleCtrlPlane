@@ -19,6 +19,7 @@ import (
 )
 
 const USE_LOCARNO = false
+const USE_SPACE_TIME = true
 const NR_LEVELS = 3
 const OPTIMIZED = false
 const OPTTYPE = 1
@@ -81,7 +82,11 @@ func (s *Service) Setup(req *InitRequest) {
 		}
 	}
 
-	s.getPings(true)
+	if USE_SPACE_TIME {
+		s.getInteractionDistance()
+	} else {
+		s.getPings(true)
+	}
 	if USE_LOCARNO {
 		SetLevels(s.Nodes.All, s.getepochOfEntryMap())
 	}
@@ -133,7 +138,7 @@ func (s *Service) getPings(readFromFile bool) {
 			}
 		}
 
-		// wit for ping replies from everyone but myself
+		// wait for ping replies from everyone but myself
 		for s.NrPingAnswers != len(s.Nodes.All)-1 {
 			log.LLvl1(" \033[32m WAITING ------------------------------------------ ", s.NrPingAnswers, len(s.Nodes.All)-1, "\033[39m ")
 			time.Sleep(5 * time.Second)
