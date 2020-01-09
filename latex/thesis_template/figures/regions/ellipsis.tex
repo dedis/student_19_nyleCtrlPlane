@@ -1,0 +1,58 @@
+\documentclass[tikz]{standalone}
+\usepackage{tikz}
+\usepackage{tikz-3dplot}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{3d}
+
+\definecolor{grayUI}{HTML}{DFE6E9}
+\definecolor{blackUI}{HTML}{2d3436}
+\definecolor{blueUI}{HTML}{0984e3}
+\definecolor{orangeUI}{HTML}{e17055}
+
+\begin{document}
+\tdplotsetmaincoords{70}{110}
+\begin{tikzpicture}[tdplot_main_coords]
+\draw[thick,->] (0,0,0) -- (8,0,0) node[anchor=north east]{};
+\draw[thick,->] (0,0,0) -- (0,5,0) node[anchor=north west]{};
+\draw[thick,->] (0,0,0) -- (0,0,5) node[anchor=south]{};
+
+\coordinate (O) at (0,0,0);
+\coordinate (B1) at (0.6,1.5,1.2);
+\coordinate (B2) at (-0.0,0.7,1.8);
+\coordinate (N) at (0.8,0.5,0.8);
+
+\draw[fill=blueUI, opacity=0.2] (B1) circle [radius=1.6];
+\draw[blackUI,densely dotted] (B1) circle [radius=1.6];
+\draw[fill=blueUI,opacity=0.2] (B2) circle [radius=3.6];
+\draw[blackUI,densely dotted] (B2) circle [radius=3.6];
+
+\draw[fill=orangeUI,opacity=0.2] (0.8,0.5,0) circle [radius=0.2];
+\draw[fill=orangeUI,opacity=0.2] (0.8,0.5,0.4) circle [radius=0.4];
+\draw[fill=orangeUI,opacity=0.2] (N) circle [radius=0.8];
+
+\draw[-{>[length=1.5,
+          width=1.5]},line width=0.4pt] (0.8,0.5,0) -- node  [scale=0.18, above,midway]  {$R_{min}$} (0.9,0.7,0);
+
+\draw[blackUI,densely dotted] (0.8,0.5,0) circle [radius=0.2];
+\draw[blackUI,densely dotted] (0.8,0.5,0.4) circle [radius=0.4];
+
+\draw[blackUI,densely dotted] (N) circle [radius=0.8];
+\draw[fill=grayUI] (N) circle [radius=0.15];
+
+
+
+\draw[fill=grayUI] (B1) circle [radius=0.15];
+
+\draw[->] (0.72,0.64,0.8) -- (0.71,1.38,1.2);
+
+
+\draw[-{>[length=1.5,
+          width=1.5]},line width=0.4pt] (B2) -- node  [scale=0.5,above,midway]  {$R_{max}$}  (3.1,-1.1,1.8);
+\draw[fill=grayUI] (B2) circle [radius=0.15];
+
+
+\draw[->] (0.67,0.48,0.8) --(0.13,0.7,1.8);
+
+
+\end{tikzpicture}%
+\end{document}

@@ -355,7 +355,7 @@ so far, including its own level [\autoref{ClusterBunch-Bunch}].
 \end{figure}
 
 \paragraph{Cluster} A cluster is a complementary concept. The cluster of node
-$A$ is defined as the set of other nodes that have $A$ in their bunch [\autoref{ClusterBunch-Cluster}]. 
+$A$ is defined as the set of other nodes that have $A$ in their bunch [\autoref{fig:ClusterBunch-Cluster}]. 
 
 \begin{figure}[!h] 
 \centering
@@ -364,10 +364,17 @@ $A$ is defined as the set of other nodes that have $A$ in their bunch [\autoref{
 \label{fig:ClusterBunch-Cluster}
 \end{figure}
 
+\begin{figure}[!h] 
+\centering
+\includegraphics[width=350pt]{figures/regions/ellipsis}
+\caption{ A node participates in two kind of regions. The ones it creates with a radius from $R_min$ to one that is covering its cluster (orange). And some regions created by the nodes in its cluster, which are covergin him  (blue) .  }
+\label{fig:RegionCreation}
+\end{figure}
+
 The smallest region radius $R_{min}$ is defined for the whole system. Each node
 will construct $ARAs$ around itself starting at $R_{min}$ and doubling the
 radius at each time. It stops at the first $ARA$ that is covering its entire
-cluster. 
+cluster [\autoref{fig:RegionCreation}]. 
 
 By the lottery, most nodes will be level-zero nodes. Therefore their cluster
 supposed to be small, conducting to the creation of a small number of $ARA$s.
