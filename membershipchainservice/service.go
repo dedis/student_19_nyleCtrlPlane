@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
-	"github.com/dedis/student_19_nyleCtrlPlane/getserversprotocol"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
 	"go.dedis.ch/cothority/v3/blscosi/protocol"
 	"go.dedis.ch/kyber/v3/pairing"
@@ -94,7 +93,8 @@ type Service struct {
 	OwnInteractions      map[string]float64
 	DoneInteraction      bool
 	NrInteractionAnswers int
-	CountInteractions    map[string]int
+	CountInteractions    []map[string]int
+	InteractionMtx       sync.Mutex
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -161,6 +161,13 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	}
 	s.ServersMtx.Unlock()
 
+	s.InteractionMtx.Lock()
+	s.CountInteractions = append(s.CountInteractions, make(map[string]int))
+	for _, name := range servers {
+		s.CountInteractions[0][name]++
+	}
+	s.InteractionMtx.Unlock()
+
 	s.e = 0
 	s.storage.Lock()
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
@@ -170,6 +177,10 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
+	s.InteractionMtx.Lock()
+	s.CountInteractions[s.GetEpoch()][ann.Name]++
+	s.InteractionMtx.Unlock()
+
 	s.ServersMtx.Lock()
 	s.Servers[ann.Name] = ann.Server
 	s.ServerIdentityToName[ann.Signer] = ann.Name
@@ -204,31 +215,6 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 // GetEpoch returns the current epoch
 func (s *Service) GetEpoch() Epoch {
 	return s.e
-}
-
-// GetGlobalServers gossips on existing info to get info about all the Servers
-func (s *Service) GetGlobalServers() map[string]*network.ServerIdentity {
-	ro := s.getGlobalRoster()
-
-	nbrNodes := len(ro.List) - 1
-	tree := ro.GenerateNaryTreeWithRoot(nbrNodes, s.ServerIdentity())
-	pi, err := s.CreateProtocol(getserversprotocol.Name, tree)
-	if err != nil {
-		panic(errors.New("Couldn't make new protocol: " + err.Error()))
-	}
-
-	p := pi.(*getserversprotocol.GetServersProtocol)
-	p.Start()
-
-	r := <-p.ConfirmationsChan
-	s.ServersMtx.Lock()
-	for name, si := range r.Servers {
-		s.Servers[name] = si
-	}
-	s.ServersMtx.Unlock()
-
-	return s.Servers
-
 }
 
 // GetSigners gives the registrations that are stored on this node
@@ -343,7 +329,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	}
 
 	ro = ro.NewRosterWithRoot(s.ServerIdentity())
-
+	s.CountTwoMessagesPerNodesInRoster(ro)
 	writeToFile(s.Name+",CreateProofForEpoch,"+strconv.Itoa(len(ro.List))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
 	tree := ro.GenerateNaryTree(len(mbrs))
@@ -438,6 +424,9 @@ func (s *Service) StartNewEpoch() error {
 	}
 
 	s.e = <-s.EpochChan
+	s.InteractionMtx.Lock()
+	s.CountInteractions = append(s.CountInteractions, make(map[string]int))
+	s.InteractionMtx.Unlock()
 
 	log.Lvl1("\033[48;5;33m", s.Name, " Starts Epoch ", s.e, " Successfully.\033[0m")
 
@@ -498,6 +487,7 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSig
 
 	writeToFile(s.Name+",AgreeOnState,"+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
+	s.CountTwoMessagesPerNodesInRoster(rooted)
 	// configure the BlsCosi protocol
 	pi, err := s.CreateProtocol(agreeProtocolName, tree)
 	if err != nil {
@@ -637,6 +627,9 @@ func (s *Service) UpdateHistoryWith(name string) error {
 	sendHistoryTimeOut := 2 * time.Second
 	select {
 	case s.e = <-s.EpochChan:
+		s.InteractionMtx.Lock()
+		s.CountInteractions[s.GetEpoch()][name]++
+		s.InteractionMtx.Unlock()
 		writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 		return err
 	case <-time.After(sendHistoryTimeOut):
@@ -700,6 +693,10 @@ func (s *Service) ExecReqHistory(env *network.Envelope) error {
 		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
 		return errors.New("failed to cast to ReqHistory")
 	}
+	s.InteractionMtx.Lock()
+	s.CountInteractions[s.GetEpoch()][req.SenderName] += 2
+	s.InteractionMtx.Unlock()
+
 	return s.SendHistory(req.SenderIdentity)
 }
 
@@ -713,6 +710,11 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 		log.Error(s.ServerIdentity(), "failed to cast to ReplyHistory")
 		return errors.New("failed to cast to ReplyHistory")
 	}
+
+	s.InteractionMtx.Lock()
+	s.CountInteractions[s.GetEpoch()][req.SenderName]++
+	s.InteractionMtx.Unlock()
+
 	s.ServersMtx.Lock()
 	for k, v := range req.Servers {
 		s.Servers[k] = v
@@ -780,7 +782,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		PrefixForReadingFile: dir + "/..",
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
-		CountInteractions:    make(map[string]int),
+		CountInteractions:    make([]map[string]int, 0),
 		OwnInteractions:      make(map[string]float64),
 		PingDistances:        make(map[string]map[string]float64),
 		// TODO : invesitgate why is blocking with 1
@@ -808,10 +810,6 @@ func newService(c *onet.Context) (onet.Service, error) {
 		return nil, err
 	}
 	_, err = s.ProtocolRegister(agreeProtocolName, AgreeStateProtocol)
-	if err != nil {
-		return nil, err
-	}
-	_, err = s.ProtocolRegister(getserversprotocol.Name, getserversprotocol.NewGetServersProtocol(s.getServers))
 	if err != nil {
 		return nil, err
 	}

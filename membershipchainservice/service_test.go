@@ -116,37 +116,6 @@ func TestRegisterNewSigners(t *testing.T) {
 
 }
 
-func TestGetServer(t *testing.T) {
-	local := onet.NewTCPTest(tSuite)
-
-	// Generate 10 nodes, the first 2 are the first signers
-	nbrNodes := 10
-	hosts, _, _ := local.GenTree(nbrNodes, true)
-	defer local.CloseAll()
-	services := local.GetServices(hosts, MembershipID)
-	for i, s := range services {
-		s.(*Service).Name = "node_" + strconv.Itoa(i)
-	}
-
-	servers := make(map[*network.ServerIdentity]string)
-	compareSet := make(SignersSet)
-
-	// Gives everybody different genesis set and try to reconstruct the whole system
-	for i := 0; i < nbrNodes; i++ {
-		servers[hosts[i].ServerIdentity] = services[i].(*Service).Name
-		compareSet[hosts[i].ServerIdentity.ID] = emptySign
-		services[nbrNodes-i-1].(*Service).SetGenesisSigners(servers)
-	}
-
-	for i := 0; i < nbrNodes; i++ {
-		retServ := services[i].(*Service).GetGlobalServers()
-		for _, serv := range services {
-			assert.Contains(t, retServ, serv.(*Service).Name)
-		}
-	}
-
-}
-
 func TestExecHistoryRequestAndReply(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 	nbrNodes := 2

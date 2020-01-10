@@ -67,6 +67,7 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 		}
 	}
 
+	s.CountTwoMessagesPerNodesInRoster(rooted)
 	// start the protocol
 	log.Lvl3("Cosi Service starting up root protocol")
 	if err = p.Start(); err != nil {

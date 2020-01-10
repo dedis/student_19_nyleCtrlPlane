@@ -92,6 +92,7 @@ type ReplyPings struct {
 
 // ReqHistory is use to request info about the current version
 type ReqHistory struct {
+	SenderName     string
 	SenderIdentity *network.ServerIdentity
 }
 
