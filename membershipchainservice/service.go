@@ -346,7 +346,12 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
 
+	const baseCommunication = 200 * time.Millisecond
+	nbNodes := len(ro.List)
+	gossipTimeOut := baseCommunication * time.Duration(nbNodes) * 2
+
 	p := pi.(*gpr.GossipRegistationProtocol)
+	p.TimeOut = gossipTimeOut
 	p.Msg = gpr.Announce{
 		Name:   s.Name,
 		Server: s.ServerIdentity(),
@@ -357,9 +362,13 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	p.Start()
 
-	<-p.ConfirmationsChan
-	return nil
-
+	select {
+	case <-p.ConfirmationsChan:
+		return nil
+	case <-time.After(gossipTimeOut * 10):
+		log.LLvl1(s.Name, " got a TimeOut in the Gossip Protocol")
+		return fmt.Errorf("%v got a TimeOut in the Gossip Protocol", s.Name)
+	}
 }
 
 // GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.

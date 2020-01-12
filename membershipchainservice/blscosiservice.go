@@ -30,8 +30,6 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	}
 	// generate the tree
 	nNodes := len(req.Roster.List)
-	//s.Threshold = nNodes / 4
-	//s.NSubtrees = 2
 
 	writeToFile(s.Name+", SignatureRequest, "+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
@@ -61,6 +59,7 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	}
 
 	if s.NSubtrees > 0 {
+		log.LLvl1(" TOO FEW SUBTREES")
 		err = p.SetNbrSubTree(s.NSubtrees)
 		if err != nil {
 			p.Done()

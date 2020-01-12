@@ -495,7 +495,6 @@ func TestFailingBLSCOSI(t *testing.T) {
 	}
 
 	wg.Wait()
-
 }
 
 func TestFailingProtobufEncode(t *testing.T) {

@@ -11,6 +11,8 @@ node will only use the `Handle`-methods, and not call `Start` again.
 */
 
 import (
+	"time"
+
 	"go.dedis.ch/onet/v3"
 )
 
@@ -25,6 +27,7 @@ type GossipRegistationProtocol struct {
 	announceChan      chan announceWrapper
 	repliesChan       chan []replyWrapper
 	ConfirmationsChan chan int
+	TimeOut           time.Duration
 }
 
 // Check that *TemplateProtocol implements onet.ProtocolInstance
@@ -34,9 +37,11 @@ var _ onet.ProtocolInstance = (*GossipRegistationProtocol)(nil)
 func NewGossipProtocol(addSigners AddSignersCallback) func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	return func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 		t := &GossipRegistationProtocol{
-			TreeNodeInstance:  n,
-			ConfirmationsChan: make(chan int, 100),
+			TreeNodeInstance: n,
+			// buffered channel does not block
+			ConfirmationsChan: make(chan int, 1),
 			addSigners:        addSigners,
+			TimeOut:           200 * time.Millisecond,
 		}
 		if err := n.RegisterChannels(&t.announceChan, &t.repliesChan); err != nil {
 			return nil, err
@@ -68,20 +73,24 @@ func (p *GossipRegistationProtocol) Dispatch() error {
 	}
 	p.SendToChildren(&ann.Announce)
 
-	replies := <-p.repliesChan
-	for _, r := range replies {
-		nConf += r.Confirmations
+	select {
+	case replies := <-p.repliesChan:
+		for _, r := range replies {
+			nConf += r.Confirmations
+		}
+		if !p.IsRoot() {
+			return p.SendToParent(&Reply{nConf})
+		}
+
+		p.ConfirmationsChan <- nConf
+	case <-time.After(p.TimeOut):
+		p.ConfirmationsChan <- 0
 	}
 
-	if !p.IsRoot() {
-		return p.SendToParent(&Reply{nConf})
-	}
-	p.ConfirmationsChan <- nConf
 	return nil
 }
 
 // Shutdown close the cahan at the end of the protocol
 func (p *GossipRegistationProtocol) Shutdown() error {
-	close(p.ConfirmationsChan)
 	return nil
 }
