@@ -44,19 +44,413 @@
 @string{Oakland="IEEE International Symposium on Security and Privacy"}
 @string{PST="IEEE Conference on Privacy, Security, and Trust"}
 
-@inproceedings{dinesh20oakland,
-  author = {Sushant Dinesh and Nathan Burow and Dongyan Xu and Mathias Payer},
-  title = {{RetroWrite: Statically Instrumenting COTS Binaries for Fuzzing and Sanitization}},
-  year = {2020},
-  booktitle = Oakland,
-  keywords = {conference},
+@article{Basescu2014,
+abstract = {Distributed systems achieve scalability by distributing load across
+    many machines, but wide-area deployments can introduce worst-case response
+        latencies proportional to the network's diameter. Crux is a general
+        framework to build locality-preserving distributed systems, by
+        transforming an existing scalable distributed algorithm A into a new
+        locality-preserving algorithm ALP, which guarantees for any two clients
+        u and v interacting via ALP that their interactions exhibit worst-case
+        response latencies proportional to the network latency between u and v.
+        Crux builds on compact-routing theory, but generalizes these techniques
+        beyond routing applications. Crux provides weak and strong consistency
+        flavors, and shows latency improvements for localized interactions in
+        both cases, specifically up to several orders of magnitude for
+        weakly-consistent Crux (from roughly 900ms to 1ms). We deployed on
+        PlanetLab locality-preserving versions of a Memcached distributed
+        cache, a Bamboo distributed hash table, and a Redis publish/subscribe.
+        Our results indicate that Crux is effective and applicable to a variety
+        of existing distributed algorithms.}, archivePrefix = {arXiv},
+arxivId = {1405.0637},
+author = {Basescu, Cristina and Nowlan, Michael F. and Nikitin, Kirill and
+    Faleiro, Jose M. and Ford, Bryan}, eprint = {1405.0637},
+month = {06},
+title = {{Crux: Locality-Preserving Distributed Services}},
+url = {http://arxiv.org/abs/1405.0637},
+year = {2014}
+}
+@article{Hanke2018,
+abstract = {The DFINITY blockchain computer provides a secure, performant and
+    flexible consensus mechanism. At its core, DFINITY contains a decentralized
+        randomness beacon which acts as a verifiable random function (VRF) that
+        produces a stream of outputs over time. The novel technique behind the
+        beacon relies on the existence of a unique-deterministic,
+    non-interactive, DKG-friendly threshold signatures scheme. The only known
+        examples of such a scheme are pairing-based and derived from BLS. The
+        DFINITY blockchain is layered on top of the DFINITY beacon and uses the
+        beacon as its source of randomness for leader selection and leader
+        ranking. A "weight" is attributed to a chain based on the ranks of the
+        leaders who propose the blocks in the chain, and that weight is used to
+        select between competing chains. The DFINITY blockchain is layered on
+        top of the DFINITY beacon and uses the beacon as its source of
+        randomness for leader selection and leader ranking blockchain is
+        further hardened by a notarization process which dramatically improves
+        the time to finality and eliminates the nothing-at-stake and selfish
+        mining attacks. DFINITY consensus algorithm is made to scale through
+        continuous quorum selections driven by the random beacon. In practice,
+    DFINITY achieves block times of a few seconds and transaction finality
+        after only two confirmations. The system gracefully handles temporary
+        losses of network synchrony including network splits, while it is
+        provably secure under synchrony.}, archivePrefix = {arXiv},
+arxivId = {1805.04548},
+author = {Hanke, Timo and Movahedi, Mahnush and Williams, Dominic},
+eprint = {1805.04548},
+title = {{DFINITY Technology Overview Series, Consensus System}},
+url = {http://arxiv.org/abs/1805.04548},
+year = {2018}
+}
+@article{Kogias2016,
+abstract = {While showing great promise, Bitcoin requires users to wait tens of
+    minutes for transactions to commit, and even then, offering only
+        probabilistic guarantees. This paper introduces ByzCoin, a novel
+        Byzantine consen-sus protocol that leverages scalable collective
+        signing to commit Bitcoin transactions irreversibly within seconds.
+        ByzCoin achieves Byzantine consensus while preserv-ing Bitcoin's open
+        membership by dynamically form-ing hash power-proportionate consensus
+        groups that rep-resent recently-successful block miners. ByzCoin
+        em-ploys communication trees to optimize transaction com-mitment and
+        verification under normal operation while guaranteeing safety and
+        liveness under Byzantine faults, up to a near-optimal tolerance of f
+        faulty group members among 3 f + 2 total. ByzCoin mitigates double
+        spend-ing and selfish mining attacks by producing collectively signed
+        transaction blocks within one minute of trans-action submission.
+        Tree-structured communication fur-ther reduces this latency to less
+        than 30 seconds. Due to these optimizations, ByzCoin achieves a
+        throughput higher than Paypal currently handles, with a confirma-tion
+        latency of 15-20 seconds.}, archivePrefix = {arXiv},
+arxivId = {1602.06997},
+author = {Kogias, Eleftherios Kokoris and Jovanovic, Philipp and Gailly, Nicolas and Khoffi, Ismail and Gasser, Linus and Ford, Bryan and Kokoris-Kogias, Eleftherios and Epfl, Bryan Ford},
+eprint = {1602.06997},
+isbn = {978-1-931971-32-4},
+journal = {Proceedings of the 25th USENIX Security Symposium},
+title = {{Enhancing Bitcoin Security and Performance with Strong Consistency via Collective Signing}},
+url = {https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/kogias},
+year = {2016}
+}
+@article{Kokoris-Kogias2017,
+author = {Kokoris-Kogias, Eleftherios and Jovanovic, Philipp and Gasser, Linus and Gailly, Nicolas and Ford, Bryan},
+journal = {IACR Cryptology ePrint Archive},
+pages = {406},
+title = {{OmniLedger: A Secure, Scale-Out, Decentralized Ledger.}},
+url = {https://eprint.iacr.org/2017/406},
+year = {2017}
+}
+@article{Lokhava2019,
+abstract = {International payments are slow and expensive, in part because of
+    multi-hop payment routing through heterogeneous banking systems. Stellar is
+        a new global payment network that can directly transfer digital money
+        anywhere in the world in seconds. The key innovation is a secure
+        transaction mechanism across untrusted intermediaries, using a new
+        Byzantine agreement protocol called SCP. With SCP, each institution
+        specifies other institutions with which to remain in agreement; through
+        the global interconnectedness of the financial system, the whole
+        network then agrees on atomic transactions spanning arbitrary
+        institutions, with no sol-vency or exchange-rate risk from intermediary
+        asset issuers or market makers. We present SCP's model, protocol, and
+        formal verification; describe the Stellar payment network; and finally
+        evaluate Stellar empirically through benchmarks and our experience with
+        several years of production use.}, author = {Lokhava, Marta and Losa,
+            Giuliano and Mazi{\`{e}}res, David and Hoare, Graydon and Barry,
+            Nicolas and Gafni, Eli and Jove, Jonathan and Malinowsky, Rafa{\l}
+            and McCaleb, Jed},
+doi = {10.1145/3341301.3359636},
+isbn = {9781450368735},
+keywords = {acm reference format,bft,blockchain,david mazi{\`{e}}res,eli gafni,giuliano losa,graydon hoare,jed mc-,jonathan jove,marta lokhava,nicolas barry,payments,quorums,rafa{\l} malinowsky},
+pages = {80--96},
+title = {{Fast and secure global payments with Stellar}},
+year = {2019}
+}
+@article{Nakamoto2009,
+abstract = {A purely peer-to-peer version of electronic cash would allow online
+    payments to be sent directly from one party to another without going
+        through a financial institution. Digital signatures provide part of the
+        solution, but the main benefits are lost if a trusted third party is
+        still required to prevent double-spending. We propose a solution to the
+        double-spending problem using a peer-to-peer network. The network
+        timestamps transactions by hashing them into an ongoing chain of
+        hash-based proof-of-work, forming a record that cannot be changed
+        without redoing the proof-of-work. The longest chain not only serves as
+        proof of the sequence of events witnessed, but proof that it came from
+        the largest pool of CPU power. As long as a majority of CPU power is
+        controlled by nodes that are not cooperating to attack the network,
+    they'll generate the longest chain and outpace attackers. The network
+        itself requires minimal structure. Messages are broadcast on a best
+        effort basis, and nodes can leave and rejoin the network at will,
+    accepting the longest proof-of-work chain as proof of what happened while
+        they were gone.}, author = {Nakamoto, Satoshi},
+month = {03},
+title = {{Bitcoin: A Peer-to-Peer Electronic Cash System}},
+url = {https://bitcoin.org/bitcoin.pdf},
+year = {2009}
+}
+@article{Thorup2005,
+abstract = {Abstract. Let G = (V, E) be an undirected weighted graph with |V| =
+    n and |E| = m. Let k ≥ 1 be an integer. We show that G = (V, E) can be
+        preprocessed in O(kmn 1/k) expected time, constructing a data structure
+        of size O(kn 1+1/k), such that any subsequent distance query can be
+        answered, approximately, in O(k) time. The approximate distance
+        returned is of stretch at most 2k - 1, that is, the quotient obtained
+        by dividing the estimated distance by the actual distance lies between
+        1 and 2k - 1. A 1963 girth conjecture of Erdo″s, implies that
+        fl(n'+1/*) space is needed in the worst case for any real stretch
+                 strictly smaller than 2k + 1. The space requirement of our
+                 algorithm is, therefore, essentially optimal. The most
+                 impressive feature of our data structure is its constant query
+                 time, hence the name "oracle". Previously, data structures
+                 that used only O(n 1+1/k) space had a query time of n(n 1/k).
+                 Our algorithms are extremely simple and easy to implement
+                 efficiently. They also provide faster constructions of sparse
+                 spanners of weighted graphs, and improved tree covers and
+                 distance labelings of weighted or unweighted graphs.
+                 {\textcopyright} 2005 ACM.}, author = {Thorup, Mikkel and
+                 Zwick, Uri},
+doi = {10.1145/1044731.1044732},
+isbn = {1581133499},
+issn = {00045411},
+journal = {Journal of the ACM},
+keywords = {Approximate distance oracles, spanners,Distance labelings,Distance queries,Distances,Shortest paths},
+number = {1},
+pages = {1--24},
+title = {{Approximate distance oracles}},
+volume = {52},
+year = {2005}
+}
+@article{Wang2019,
+abstract = {Cryptocurrencies have provided a promising infrastructure for
+pseudonymous online payments. However, low throughput has significantly
+hindered the scalability and usability of cryptocurrency systems for increasing
+numbers of users and transactions. Another obstacle to achieving scalability is
+the requirement for every node to duplicate the communication, storage, and
+state representation of the entire network. In this paper, we introduce the
+Asynchronous Consensus Zones, which scales blockchain system linearly without
+compromising decentralization or security. We achieve this by running multiple
+independent and parallel instances of single-chain consensus systems termed as
+zones. The consensus happens independently within each zone with minimized
+communication, which partitions the workload of the entire network and ensures
+a moderate burden for each individual node as the network grows. We propose
+eventual atomicity to ensure transaction atomicity across zones, which achieves
+the efficient completion of transactions without the overhead of a two-phase
+commit protocol. Additionally, we propose Chu-ko-nu mining to ensure the
+effective mining power in each zone to be at the same level of the entire
+network, making an attack on any individual zone as hard as that on the full
+network. Our experimental results show the effectiveness of our work: on a
+testbed including 1,200 virtual machines worldwide to support 48,000 nodes, our
+system delivers 1,000× throughput and 2,000× capacity over the Bitcoin and
+Ethereum networks.}, author = {Wang, Jiaping and Wang, Hao},
+isbn = {978-1-931971-49-2},
+journal = {Proceedings of the 16th USENIX Symposium on Networked Systems Design and Implementation (NSDI '19)},
+title = {{Monoxide: Scale out Blockchains with Asynchronous Consensus Zones}},
+url = {https://www.usenix.org/conference/nsdi19/presentation/wang-jiaping},
+year = {2019}
+}
+@article{Yin2018,
+abstract = {We present HotStuff, a leader-based Byzantine fault-tolerant
+replication protocol for the partially synchronous model. Once network
+communication becomes synchronous, HotStuff enables a correct leader to drive
+the protocol to consensus at the pace of actual (vs. maximum) network delay--a
+property called responsiveness--and with communication complexity that is
+linear in the number of replicas. To our knowledge, HotStuff is the first
+partially synchronous BFT replication protocol exhibiting these combined
+properties. HotStuff is built around a novel framework that forms a bridge
+between classical BFT foundations and blockchains. It allows the expression of
+other known protocols (DLS, PBFT, Tendermint, Casper), and ours, in a common
+framework. Our deployment of HotStuff over a network with over 100 replicas
+achieves throughput and latency comparable to that of BFT-SMaRt, while enjoying
+linear communication footprint during leader failover (vs. quadratic with
+BFT-SMaRt).}, archivePrefix = {arXiv},
+arxivId = {1803.05069},
+author = {Yin, Maofan and Malkhi, Dahlia and Reiter, Michael K. and Gueta, Guy Golan and Abraham, Ittai},
+eprint = {1803.05069},
+pages = {1--23},
+title = {{HotStuff: BFT Consensus in the Lens of Blockchain}},
+url = {http://arxiv.org/abs/1803.05069},
+year = {2018}
+}
+@article{Zhao2004,
+abstract = {We present Tapestry, a peer-to-peer overlay routing infrastructure
+    offering efficient, scalable, location-independent routing of messages
+        directly to nearby copies of an object or service using only localized
+        resources. Tapestry supports a generic decentralized object location
+        and routing applications programming interface using a self-repairing,
+    soft-state-based routing layer. This paper presents the Tapestry
+        architecture, algorithms, and implementation. It explores the behavior
+        of a Tapestry employment on PlanetLab, a global testbed of
+        approximately 100 machines. Experimental results show that Tapestry
+        exhibits stable behavior and performance as an overlay, despite the
+        instability of the underlying network layers. Several widely
+        distributed applications have been implemented on Tapestry,
+    illustrating its utility as a deployment infrastructure.}, author = {Zhao,
+        Ben Y. and Huang, Ling and Stribling, Jeremy and Rhea, Sean C. and
+            Joseph, Anthony D. and Kubiatowicz, John D.},
+doi = {10.1109/JSAC.2003.818784},
+issn = {07338716},
+journal = {IEEE Journal on Selected Areas in Communications},
+keywords = {Overlay networks,Peer-to-peer (P2P),Service deployment,Tapestry},
+number = {1},
+pages = {41--53},
+title = {{Tapestry: A resilient global-scale overlay for service deployment}},
+volume = {22},
+year = {2004}
+}
+@article{Ford2019,
+abstract = {Consensus protocols for asynchronous networks are usually complex
+    and inefficient, leading practical systems to rely on synchronous
+        protocols. This paper attempts to simplify asynchronous consensus by
+        building atop a novel threshold logical clock abstraction, which
+        enables upper layers to operate as if on a synchronous network. This
+        approach yields an asynchronous consensus protocol for fail-stop nodes
+        that may be simpler and more robust than Paxos and its leader-based
+        variants, requiring no common coins and achieving consensus in a
+        constant expected number of rounds. The same approach can be
+        strengthened against Byzantine failures by building on well-established
+        techniques such as tamper-evident logging and gossip, accountable state
+        machines, threshold signatures and witness cosigning, and verifiable
+        secret sharing. This combination of existing abstractions and threshold
+        logical clocks yields a modular, cleanly-layered approach to building
+        practical and efficient Byzantine consensus, distributed key
+        generation, time, timestamping, and randomness beacons, and other
+        critical services.}, archivePrefix = {arXiv},
+arxivId = {1907.07010},
+author = {Ford, Bryan},
+eprint = {1907.07010},
+title = {{Threshold Logical Clocks for Asynchronous Distributed Coordination and Consensus}},
+url = {http://arxiv.org/abs/1907.07010},
+year = {2019}
 }
 
-@misc{basescu2014crux,
-    title={Crux: Locality-Preserving Distributed Services},
-    author={Cristina Basescu and Michael F. Nowlan and Kirill Nikitin and Jose M. Faleiro and Bryan Ford},
-    year={2014},
-    eprint={1405.0637},
-    archivePrefix={arXiv},
-    primaryClass={cs.DC}
+@article{Sierro2019,
+author = {Sierro, Maxime and Ford, Bryan and Basescu, Cristina and Cong, Kelong},
+title = {{Locality-Preserving Blockchain Implementation}},
+url = {https://github.com/dedis/student{\_}19{\_}nylechain/blob/master/report/report.pdf},
+year = {2019}
 }
+@article{Kall2019,
+author = {Kall, Sabrina and Ford, Bryan and Basescu, Cristina and Cong, Kelong},
+title = {{Know-Thy-Neighbour : Approximate}},
+url = {https://github.com/dedis/student{\_}19{\_}proof-of-loc/blob/master/report/Dedis{\_}Semester{\_}Project.pdf},
+year = {2019}
+}
+@article{Michel2019,
+author={Michel, Guillaume and Ford, Bryan and Basescu, Cristina},
+title={{CRUX InterPlanetary File System}},
+url={https://github.com/dedis/student{\_}19{\_}cruxIPFS},
+year={2019},
+}
+@article{Katz-bassett2006,
+author = {Katz-bassett, Ethan and John, John P and Anderson, Thomas},
+isbn = {1595935614},
+keywords = {delay measurements,geolocation,network topology,route measure},
+title = {{Towards IP Geolocation Using Delay and Topology Measurements Categories and Subject Descriptors}},
+year = {2006}
+}
+@article{Abley2006,
+author = {Abley, J. and Lindqvis, K.},
+pages = {1--24},
+title = {{Operation of anycast services}},
+url = {https://tools.ietf.org/html/rfc4786},
+year = {2006}
+}
+@article{Lamport2000,
+author = {Lamport, Leslie},
+number = {May 1998},
+title = {{The Part-Time Parliament}},
+volume = {2},
+year = {2000}
+}
+@article{Castro1999,
+author = {Castro, Miguel and Liskov, Barbara},
+number = {February},
+pages = {1--14},
+title = {{Practical Byzantine Fault Tolerance}},
+year = {1999}
+}
+@inproceedings{Boneh2018,
+abstract = {We construct new multi-signature schemes that provide new
+    functionality. Our schemes are designed to reduce the size of the Bitcoin
+        blockchain, but are useful in many other settings where
+        multi-signatures are needed. All our constructions support both
+        signature compression and public-key aggregation. Hence, to verify that
+        a number of parties signed a common message m, the verifier only needs
+        a short multi-signature, a short aggregation of their public keys, and
+        the message m. We give new constructions that are derived from Schnorr
+        signatures and from BLS signatures. Our constructions are in the plain
+        public key model, meaning that users do not need to prove knowledge or
+        possession of their secret key.}, address = {Cham},
+author = {Boneh, Dan and Drijvers, Manu and Neven, Gregory},
+booktitle = {Advances in Cryptology -- ASIACRYPT 2018},
+editor = {Peyrin, Thomas and Galbraith, Steven},
+isbn = {978-3-030-03329-3},
+pages = {435--464},
+publisher = {Springer International Publishing},
+title = {{Compact Multi-signatures for Smaller Blockchains}},
+year = {2018}
+}
+@article{Syta2016,
+author = {Ewa Syta and Philipp Jovanovic and Eleftherios Kokoris Kogias and Nicolas Gailly and Linus Gasser and Ismail Khoffi and Michael J. Fischer and Bryan Ford},
+title = {Scalable Bias-Resistant Distributed Randomness},
+howpublished = {Cryptology ePrint Archive, Report 2016/1067},
+year = {2016},
+note = {\url{https://eprint.iacr.org/2016/1067}},
+}
+
+@article{Seibert2014, 
+author={J. {Seibert} and S. {Becker} and C. {Nita-Rotaru} and R. {State}}, 
+journal={IEEE/ACM Transactions on Networking}, 
+title={Newton: Securing Virtual Coordinates by Enforcing Physical Laws}, 
+year={2014}, 
+volume={22}, 
+number={3}, 
+pages={798-811}, 
+keywords={computer network security;learning (artificial intelligence);virtual
+    coordinate systems;decentralized VCS;Newton;physical laws;arbitrary
+        hosts;node cooperation;compromised nodes;malicious nodes;insider
+        attackers;machine learning;Vivaldi coordinate systems;PlanetLab
+        testbed;Distributed systems;physical laws;security;virtual coordinate
+        systems (VCSs)}, doi={10.1109/TNET.2013.2264725}, 
+ISSN={1558-2566}, 
+month={06},}
+
+@article{wood2014ethereum,
+  title={Ethereum: A secure decentralised generalised transaction ledger},
+  author={Wood, Gavin and others},
+  journal={Ethereum project yellow paper},
+  volume={151},
+  number={2014},
+  pages={1--32},
+  year={2014}
+}
+
+@article{Borge2017,
+author = {Borge, Maria and Kokoris-kogias, Eleftherios and Jovanovic, Philipp and Gasser, Linus and Gailly, Nicolas and Ford, Bryan},
+keywords = {-proof-of-personhood,blockchain,cryptocurrency,stake},
+title = {{Proof-of-Personhood : Redemocratizing Permissionless Cryptocurrencies}},
+url = {https://zerobyte.io/publications/2017-BKJGGF-pop.pdf},
+year = {2017}
+}
+
+@article{Greenhoe2016,
+abstract = {Metric spaces provide a framework for analysis and have several very useful properties. Many of these properties follow in part from the triangle inequality. However, there are several applications in which the triangle inequality does not hold but in which we may still like to perform analysis. This paper investigates what happens if the triangle inequality is removed all together, leaving what is called a distance space, and also what happens if the triangle inequality is replaced with a much more general two parameter relation, which is herein called the "power triangle inequality". The power triangle inequality represents an uncountably large class of inequalities, and includes the triangle inequality, relaxed triangle inequality, and inframetric inequality as special cases. The power triangle inequality is defined in terms of a function that is herein called the "power triangle function". The power triangle function is itself a power mean, and as such is continuous and monotone with respect to its exponential parameter, and also includes the operations of maximum, minimum, mean square, arithmetic mean, geometric mean, and harmonic mean as special cases.},
+author = {Greenhoe, D.},
+doi = {10.15330/cmp.8.1.51-82},
+file = {:Users/arnaudpannatier/Documents/EPFL/Master{\_}Thesis{\_}side{\_}repo/bibliography/1610.07594.pdf:pdf},
+issn = {2075-9827},
+journal = {Carpathian Mathematical Publications},
+keywords = {arithmetic mean,distance space,geometric mean,harmonic,inframetric,maximum,mean,means square,metric space,minimum,power mean,quasi-metric space,relaxed triangle inequality,semimetric space,triangle inequality},
+number = {1},
+title = {{Properties of distance spaces with power triangle inequalities}},
+volume = {8},
+year = {2016}
+}
+
+@article{Mokadem2015,
+abstract = {Replicating for performance constitutes an important issue in large-scale data management systems. In this context, a significant number of replication strategies have been proposed for data grid systems. Some works classified these strategies into static vs. dynamic or centralised vs. decentralised or client vs. server initiated strategies. Very few works deal with a replication strategy classification based on the role of these strategies when building a replica management system. In this paper, we propose a new replication strategy classification based on objective functions of these strategies. Also, each replication strategy is designed according to the data grid topology for which it was proposed. We point out the impact of the topology on replication performance although most of these strategies have been proposed for a hierarchical grid topology. We also study the impact of some factors on performance of these strategies, e.g. access pattern, bandwidth consumption and storage capacity.},
+author = {Mokadem, Riad and Hameurlain, Abdelkader},
+doi = {10.4028},
+file = {:Users/arnaudpannatier/Documents/EPFL/Master{\_}Thesis{\_}side{\_}repo/bibliography/Mokadem{\_}12933.pdf:pdf},
+title = {{Data replication strategies with performance objective in data grid systems: a survey}},
+url = {http://dx.doi.org/10.1504/IJGUC.2015.066395},
+year = {2015}
+}
+
+

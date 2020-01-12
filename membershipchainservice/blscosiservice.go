@@ -25,13 +25,11 @@ var (
 
 // SignatureRequest treats external request to this service.
 func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, error) {
-	if s.Cycle.GetCurrentPhase() != REGISTRATION {
+	if s.Cycle.GetCurrentPhase() != REGISTRATION || s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS {
 		return nil, errors.New("Registration was not made in time")
 	}
 	// generate the tree
 	nNodes := len(req.Roster.List)
-	//s.Threshold = nNodes / 4
-	//s.NSubtrees = 2
 
 	writeToFile(s.Name+", SignatureRequest, "+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 
@@ -61,6 +59,7 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	}
 
 	if s.NSubtrees > 0 {
+		log.LLvl1(" TOO FEW SUBTREES")
 		err = p.SetNbrSubTree(s.NSubtrees)
 		if err != nil {
 			p.Done()

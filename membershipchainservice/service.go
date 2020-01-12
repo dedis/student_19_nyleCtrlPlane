@@ -25,7 +25,7 @@ import (
 )
 
 // For Blscosi
-const protocolTimeout = 20 * time.Hour
+const protocolTimeout = 20 * time.Second
 
 var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
@@ -340,13 +340,18 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	writeToFile(s.Name+",CreateProofForEpoch,"+strconv.Itoa(len(ro.List))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
-	tree := ro.GenerateBinaryTree()
+	tree := ro.GenerateNaryTree(len(mbrs))
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
 
+	const baseCommunication = 200 * time.Millisecond
+	nbNodes := len(ro.List)
+	gossipTimeOut := baseCommunication * time.Duration(nbNodes) * 2
+
 	p := pi.(*gpr.GossipRegistationProtocol)
+	p.TimeOut = gossipTimeOut
 	p.Msg = gpr.Announce{
 		Name:   s.Name,
 		Server: s.ServerIdentity(),
@@ -357,25 +362,29 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	p.Start()
 
-	<-p.ConfirmationsChan
-	return nil
-
+	select {
+	case <-p.ConfirmationsChan:
+		return nil
+	case <-time.After(gossipTimeOut * 10):
+		log.LLvl1(s.Name, " got a TimeOut in the Gossip Protocol")
+		return fmt.Errorf("%v got a TimeOut in the Gossip Protocol", s.Name)
+	}
 }
 
 // GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
 func (s *Service) GetConsencusOnNewSigners() error {
 
 	if s.Cycle.GetCurrentPhase() != EPOCH {
-		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-3*time.Second, "s to Get the Consencus")
-		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - 3*time.Second)
+		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-TIME_FOR_CONSENCUS, "s to Get the Consencus")
+		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - TIME_FOR_CONSENCUS)
 	}
-	//timeCons := time.Now()
-	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
+	timeCons := time.Now()
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
 		return err
 	}
-	//log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
 	// Agree on Signers
 	_, err = s.AgreeOnState(ro, SIGNERSMSG)
 	if err != nil {
@@ -418,6 +427,7 @@ func (s *Service) StartNewEpoch() error {
 		time.Sleep(s.Cycle.GetTimeTillNextEpoch())
 	}
 	if s.e != s.Cycle.GetEpoch() {
+		log.Lvl1("\033[48;5;1m", s.Name, " Does not start Epoch ", s.e, " as the clock says it is ", s.Cycle.GetEpoch(), ".\033[0m")
 		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch())
 	}
 
@@ -618,10 +628,20 @@ func (s *Service) UpdateHistoryWith(name string) error {
 	s.ServersMtx.Unlock()
 
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
-	s.e = <-s.EpochChan
-	writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
-	return err
-
+	sendHistoryTimeOut := 2 * time.Second
+	select {
+	case s.e = <-s.EpochChan:
+		writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
+		return err
+	case <-time.After(sendHistoryTimeOut):
+		newName := "node_0"
+		if s.Name == "node_0" {
+			newName = "node_1"
+		}
+		log.LLvl1(name, "HAS CHURN AFTER REQUEST OF ", s.Name, " UPDATING WITH ", newName, " ------------@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+		err := s.UpdateHistoryWith(newName)
+		return err
+	}
 }
 
 // SendHistory send my version of History to the given SI
@@ -722,6 +742,7 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	return nil
 }
 
+// GetRandomName get a random name from the list of Server
 func (s *Service) GetRandomName() string {
 	var names []string
 	s.ServersMtx.Lock()
