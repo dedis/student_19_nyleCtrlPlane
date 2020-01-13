@@ -19,7 +19,7 @@ import (
 )
 
 const USE_LOCARNO = false
-const USE_SPACE_TIME = true
+const USE_SPACE_TIME = false
 const NR_LEVELS = 3
 const OPTIMIZED = false
 const OPTTYPE = 1

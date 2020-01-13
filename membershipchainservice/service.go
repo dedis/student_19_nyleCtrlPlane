@@ -24,7 +24,7 @@ import (
 )
 
 // For Blscosi
-const protocolTimeout = 20 * time.Second
+const protocolTimeout = 20 * time.Minute
 
 var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
@@ -57,7 +57,6 @@ type Service struct {
 	storage *storage
 	e       Epoch
 	Proof   *gpr.SignatureResponse
-	Cycle   Cycle
 
 	// All services maintain a list of the servers it heard of.
 	// Helps recreate the roster for each epoch
@@ -95,6 +94,11 @@ type Service struct {
 	NrInteractionAnswers int
 	CountInteractions    []map[string]int
 	InteractionMtx       sync.Mutex
+
+	//For Timing
+	Cycle               Cycle
+	LastEpochDur        time.Duration
+	LastRegistrationDur time.Duration
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -146,8 +150,8 @@ func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, erro
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
-	s.Cycle.Sequence = []time.Duration{REGISTRATION_DUR, EPOCH_DUR}
-	s.Cycle.StartTime = time.Now()
+	s.Cycle.Set()
+	log.LLvl1(s.Name, "is set ..", s.Cycle)
 
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 	s.ServersMtx.Lock()
@@ -171,7 +175,6 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	s.storage.Signers[0] = signers
 	s.storage.Unlock()
-	log.LLvl1(s.Name, "is set ..")
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
@@ -287,6 +290,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
 	}
+	startTime := time.Now()
 
 	log.Lvl1(s.Name, " is creating proof for Epoch : ", e)
 	if s.e != e-1 {
@@ -357,11 +361,14 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	select {
 	case <-p.ConfirmationsChan:
+		log.LLvl1("\033[51;5;33m", s.Name, "'s Registration took", time.Now().Sub(startTime), " \033[0m")
+		s.LastRegistrationDur = time.Now().Sub(startTime)
 		return nil
 	case <-time.After(gossipTimeOut * 10):
 		log.LLvl1(s.Name, " got a TimeOut in the Gossip Protocol")
 		return fmt.Errorf("%v got a TimeOut in the Gossip Protocol", s.Name)
 	}
+
 }
 
 // GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
@@ -423,7 +430,7 @@ func (s *Service) StartNewEpoch() error {
 		log.Lvl1("\033[48;5;1m", s.Name, " Does not start Epoch ", s.e, " as the clock says it is ", s.Cycle.GetEpoch(), ".\033[0m")
 		return fmt.Errorf("%s : Its not the time for epoch %d. The clock says its %d", s.Name, s.e, s.Cycle.GetEpoch())
 	}
-
+	startTime := time.Now()
 	s.e = <-s.EpochChan
 	s.InteractionMtx.Lock()
 	s.CountInteractions = append(s.CountInteractions, make(map[string]int))
@@ -464,12 +471,14 @@ func (s *Service) StartNewEpoch() error {
 	}
 	// Wait that all the other services have set up.
 	time.Sleep(1 * time.Second)
+
 	_, err = s.AgreeOnState(ro, PINGSMSG)
 	if err != nil {
 		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
 		return err
 	}
-	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully.\033[0m")
+	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully. It took", time.Now().Sub(startTime), " \033[0m")
+	s.LastEpochDur = time.Now().Sub(startTime)
 	return err
 }
 
@@ -760,7 +769,7 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 		s.EpochChan <- s.e
 	}
 
-	log.LLvl1(s.Name, "is done updating.")
+	log.LLvl1("\033[51;5;33m", s.Name, "is done updating. It remains ", s.Cycle.GetTimeTillNextEpoch(), " before the next Epoch \033[0m")
 	return nil
 }
 
@@ -804,6 +813,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		// But that sould not happen
 		EpochChan: make(chan Epoch, 3),
 	}
+	s.Cycle.Set()
 	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
 
 	// Register function from one service to another
