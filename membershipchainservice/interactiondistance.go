@@ -29,18 +29,21 @@ func (s *Service) GetPingDistances() map[string]map[string]float64 {
 
 func (s *Service) countOwnInteraction() {
 	s.InteractionMtx.Lock()
+	str := s.Name + ":    - "
 	for _, node := range s.Nodes.All {
-		if node.ServerIdentity.String() != s.ServerIdentity().String() {
-			peerName := node.Name
-
+		peerName := node.Name
+		if peerName != s.Name {
+			str += node.Name + ","
 			if _, ok := s.CountInteractions[s.GetEpoch()-1][peerName]; !ok {
 				s.CountInteractions[s.GetEpoch()-1][peerName] = 1
 			}
-
 			s.OwnInteractions[peerName] = 1.0 / float64(s.CountInteractions[s.GetEpoch()-1][peerName]) * 1000
 		}
 	}
+	s.OwnInteractions[s.Name] = 0
+	str += s.Name + ","
 	s.InteractionMtx.Unlock()
+	//log.LLvl1(str)
 }
 
 // GetInteractionDistances measure the intraction distance between the services and all the other nodes
@@ -63,22 +66,17 @@ func (s *Service) GetInteractionDistances() {
 	}
 	s.PingMapMtx.Unlock()
 
-	log.LLvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), "finished Interaction own meas with len", len(s.OwnInteractions))
-
 	// Count sending
 	s.InteractionMtx.Lock()
 	for _, n := range s.Nodes.All {
-		log.LLvl2(n, n.ServerIdentity)
 		s.CountInteractions[s.GetEpoch()][n.Name]++
 	}
 	s.InteractionMtx.Unlock()
 
 	// ask for Interaction from others
 	for _, node := range s.Nodes.All {
-		if node.Name != s.Nodes.GetServerIdentityToName(s.ServerIdentity()) {
-			log.LLvl1(s.Name, " is Sending to ", node.Name)
-
-			e := s.SendRaw(node.ServerIdentity, &ReqInteractions{SenderName: s.Nodes.GetServerIdentityToName(s.ServerIdentity())})
+		if s.Name != node.Name {
+			e := s.SendRaw(node.ServerIdentity, &ReqInteractions{SenderName: s.Name})
 			if e != nil {
 				log.LLvl1("\033[94m Error ? : ", e, "\033[39m ")
 				panic(e)
@@ -89,23 +87,21 @@ func (s *Service) GetInteractionDistances() {
 	// wait for ping replies from everyone but myself
 	for s.NrInteractionAnswers != len(s.Nodes.All)-1 {
 		log.LLvl1(s.Name, " \033[32m  is WAITING ------------------------------------------ ", s.NrInteractionAnswers, len(s.Nodes.All)-1, "\033[39m ")
-		time.Sleep(5 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
-	log.LLvl1(s.Name, " \033[32m  is SUCCEEDING ------------------------------------------ ", s.NrInteractionAnswers, len(s.Nodes.All)-1, s.PingDistances, "\033[39m ")
+	s.NrInteractionAnswers = 0
 
 	// check that there are enough pings
 	if len(s.PingDistances) < len(s.Nodes.All) {
 		log.Lvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), " too few pings 1", len(s.PingDistances), len(s.Nodes.All))
 
 	}
-	for _, m := range s.PingDistances {
+	for nodeName, m := range s.PingDistances {
 		if len(m) < len(s.Nodes.All) {
 			log.Lvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), " too few pings 2", len(m), len(s.Nodes.All))
-			log.LLvl1(m)
+			log.LLvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), nodeName, m)
 		}
 	}
-
-	log.LLvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), "has all pings, starting tree gen")
 
 }
 
@@ -132,7 +128,9 @@ func (s *Service) ExecReqInteractions(env *network.Envelope) error {
 
 	// wait for pings to be finished
 	for !s.DoneInteraction {
-		time.Sleep(5 * time.Second)
+		log.LLvl1(s.Name, "is waiting for interactions to answer to", req.SenderName)
+		time.Sleep(50 * time.Millisecond)
+
 	}
 
 	reply := ""
@@ -141,6 +139,7 @@ func (s *Service) ExecReqInteractions(env *network.Envelope) error {
 	for peerName, pingTime := range s.OwnInteractions {
 		reply += myName + " " + peerName + " " + fmt.Sprintf("%f", pingTime) + "\n"
 	}
+	//log.Lvl1(s.Name, req.SenderName, s.Nodes.All)
 	requesterIdentity := s.Nodes.GetByName(req.SenderName).ServerIdentity
 
 	// I recieve a request and I answer
@@ -168,6 +167,9 @@ func (s *Service) ExecReplyInteractions(env *network.Envelope) error {
 	s.InteractionMtx.Unlock()
 
 	s.PingMapMtx.Lock()
+
+	//log.LLvl1(s.Name, "\n_ _ _ _ _ _ _ _ _ _ _ _ _ \n", req.Interactions)
+
 	lines := strings.Split(req.Interactions, "\n")
 	for _, line := range lines {
 		if line != "" {

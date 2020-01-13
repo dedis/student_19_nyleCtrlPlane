@@ -30,8 +30,10 @@ func TestIfGetInteractionDistanceIsUpdatingPingDistances(t *testing.T) {
 	}
 
 	for _, s := range services {
+
 		k := 0
 		for _, v := range services {
+
 			s.(*Service).Nodes.All[k] = &gentree.LocalityNode{}
 			s.(*Service).Nodes.All[k].Name = v.(*Service).Name
 			s.(*Service).Nodes.ServerIdentityToName[v.(*Service).ServerIdentity().ID] = v.(*Service).Name
@@ -59,7 +61,14 @@ func TestIfGetInteractionDistanceIsUpdatingPingDistances(t *testing.T) {
 	// Running consensus - pick a random leader in the previous committee
 	leaderID := rand.Intn(2)
 	services[leaderID].(*Service).GetConsencusOnNewSigners()
-	time.Sleep(500 * time.Millisecond)
+
+	time.Sleep(1500 * time.Millisecond)
+	for _, s := range services {
+		s.(*Service).e = 1
+		s.(*Service).InteractionMtx.Lock()
+		s.(*Service).CountInteractions = append(s.(*Service).CountInteractions, make(map[string]int))
+		s.(*Service).InteractionMtx.Unlock()
+	}
 
 	var wg sync.WaitGroup
 	for i := 0; i < nbrNodes; i++ {

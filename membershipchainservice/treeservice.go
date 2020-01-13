@@ -36,11 +36,9 @@ func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+"/utils/NodesFiles/nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
 
-	i := 0
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
-		s.Nodes.All[i].ServerIdentity = k
-		i++
+		s.Nodes.All[gentree.NodeNameToInt(v)].ServerIdentity = k
 	}
 
 	for _, myNode := range s.Nodes.All {

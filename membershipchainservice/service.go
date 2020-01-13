@@ -162,13 +162,11 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	s.ServersMtx.Unlock()
 
 	s.InteractionMtx.Lock()
-	s.CountInteractions = append(s.CountInteractions, make(map[string]int))
 	for _, name := range servers {
 		s.CountInteractions[0][name]++
 	}
 	s.InteractionMtx.Unlock()
 
-	s.e = 0
 	s.storage.Lock()
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	s.storage.Signers[0] = signers
@@ -295,6 +293,9 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		log.LLvl1(s.ServerIdentity(), "is having an error")
 		return fmt.Errorf("Cannot register for epoch %d, as system is at epoch %d", e-1, s.e)
 	}
+
+	// Reset for the next epoch
+	s.DoneInteraction = false
 
 	// Get proof from the signer of epoch e-1
 	msg := []byte("Register me !")
@@ -628,6 +629,12 @@ func (s *Service) UpdateHistoryWith(name string) error {
 	select {
 	case s.e = <-s.EpochChan:
 		s.InteractionMtx.Lock()
+		if len(s.CountInteractions) <= int(s.GetEpoch()) {
+			// TODO : refactor
+			for len(s.CountInteractions) <= int(s.GetEpoch()) {
+				s.CountInteractions = append(s.CountInteractions, make(map[string]int))
+			}
+		}
 		s.CountInteractions[s.GetEpoch()][name]++
 		s.InteractionMtx.Unlock()
 		writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
@@ -649,7 +656,11 @@ func (s *Service) SendHistory(si *network.ServerIdentity) error {
 		return fmt.Errorf("%v is asked to send History to itself", s.Name)
 	}
 
-	log.LLvl1(s.ServerIdentity(), " is sending History to ", si)
+	if name, ok := s.ServerIdentityToName[si.ID]; ok {
+		log.LLvl1(s.Name, "-", s.ServerIdentity(), " is sending History to ", si, "-", name)
+	} else {
+		log.LLvl1(s.Name, "-", s.ServerIdentity(), " is sending History to new SI :", si)
+	}
 
 	s.storage.Lock()
 	// Sending directely a []SignerSet is not working,
@@ -682,6 +693,7 @@ func (s *Service) SendHistory(si *network.ServerIdentity) error {
 	if e != nil {
 		panic(e)
 	}
+	//log.LLvl1(s.Name, "Finish sending to ", si, "with error : ", e)
 	return e
 
 }
@@ -712,7 +724,9 @@ func (s *Service) ExecReplyHistory(env *network.Envelope) error {
 	}
 
 	s.InteractionMtx.Lock()
-	s.CountInteractions[s.GetEpoch()][req.SenderName]++
+	if len(s.CountInteractions) != 0 && s.GetEpoch() != 0 {
+		s.CountInteractions[s.GetEpoch()-1][req.SenderName]++
+	}
 	s.InteractionMtx.Unlock()
 
 	s.ServersMtx.Lock()
@@ -788,7 +802,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		// TODO : invesitgate why is blocking with 1
 		// One reason could be that, for one node it get two value, (one for the update one for Consensus)
 		// But that sould not happen
-		EpochChan: make(chan Epoch, 2),
+		EpochChan: make(chan Epoch, 3),
 	}
 	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
 
@@ -818,6 +832,9 @@ func newService(c *onet.Context) (onet.Service, error) {
 		log.Error(err)
 		return nil, err
 	}
+
+	s.CountInteractions = append(s.CountInteractions, make(map[string]int))
+	s.e = 0
 
 	return s, nil
 }
