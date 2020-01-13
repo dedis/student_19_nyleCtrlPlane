@@ -4,7 +4,7 @@ import numpy as np
 
 seed(1.0)
 
-max_size_system = 50
+max_size_system = 101
 system_width = 300
 
 local_movement = 0.2

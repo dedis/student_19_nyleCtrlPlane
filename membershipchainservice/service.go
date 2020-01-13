@@ -469,13 +469,18 @@ func (s *Service) StartNewEpoch() error {
 	if s.Name == "node_0" {
 		writeToFile(fmt.Sprintf("%v", s.GraphTree), "Data/maps_graphTree_"+s.Name+"_epoch"+strconv.Itoa(int(s.e))+".txt")
 	}
-	// Wait that all the other services have set up.
-	time.Sleep(1 * time.Second)
 
-	_, err = s.AgreeOnState(ro, PINGSMSG)
-	if err != nil {
-		log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
-		return err
+	randSrc := rand.New(rand.NewSource(10))
+	leaderID := randSrc.Intn(len(ro.List))
+
+	if s.Name == "node_"+strconv.Itoa(leaderID) {
+		// Wait that all the other services have set up.
+		time.Sleep(1 * time.Second)
+		_, err = s.AgreeOnState(ro, PINGSMSG)
+		if err != nil {
+			log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
+			return err
+		}
 	}
 	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully. It took", time.Now().Sub(startTime), " \033[0m")
 	s.LastEpochDur = time.Now().Sub(startTime)

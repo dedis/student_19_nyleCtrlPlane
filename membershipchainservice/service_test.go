@@ -1,6 +1,7 @@
 package membershipchainservice
 
 import (
+	"fmt"
 	rand "math/rand"
 	"strconv"
 	"sync"
@@ -332,13 +333,16 @@ func TestNewEpoch(t *testing.T) {
 
 }
 func TestWholeSystemOverFewEpochs(t *testing.T) {
-	//t.Skip("A lot of function are not implemented for now")
-	nbrNodes := 20
-	nbrEpoch := Epoch(10)
+	nbrNodes := 50
+	nbrEpoch := Epoch(20)
 	nbFirstSigners := 4
+
+	rmFile("Data/messages.txt")
+	rmFile("Data/storage.txt")
+	rmFile("Data/change_time.txt")
 	writeToFile("Name,Function,nb_messages,epoch", "Data/messages.txt")
 	writeToFile("Name,Function,storage,epoch", "Data/storage.txt")
-	joiningPerEpoch := int(0.1 * float64(nbrNodes))
+	joiningPerEpoch := int(1.0 / float64(nbrEpoch) * float64(nbrNodes))
 
 	local := onet.NewTCPTest(tSuite)
 
@@ -370,8 +374,46 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 	for e := Epoch(1); e < nbrEpoch; e++ {
 		log.LLvl1("\033[48;5;42mStart of Epoch ", e, "\033[0m ")
 
+		var maxRegistrationDur, maxEpochDur time.Duration
 		for i := 0; i < joiningPerEpoch*(int(e)+1); i++ {
-			log.LLvl1("Service : ", services[i].(*Service).Name, " : ", services[i].(*Service).ServerIdentity())
+			s := services[i].(*Service)
+			log.LLvl1("Service : ", s.Name, " : ", s.ServerIdentity())
+			if s.LastRegistrationDur > maxRegistrationDur {
+				maxRegistrationDur = s.LastRegistrationDur
+			}
+			if s.LastEpochDur > maxEpochDur {
+				maxEpochDur = s.LastEpochDur
+			}
+		}
+
+		willChangeRegistration := REGISTRATION_DUR-maxRegistrationDur < MARGIN_FOR_CYCLE
+		willChangeEpoch := EPOCH_DUR-maxEpochDur < MARGIN_FOR_CYCLE
+
+		if willChangeRegistration || willChangeEpoch {
+			for i := 0; i < nbrNodes; i++ {
+				s := services[i].(*Service)
+				s.Cycle.CheckPoint()
+			}
+		}
+
+		if willChangeRegistration {
+			REGISTRATION_DUR = maxRegistrationDur + 10*MARGIN_FOR_CYCLE
+			log.LLvl1("\033[48;5;47mChange Registration to ", REGISTRATION_DUR, "\033[0m ")
+			writeToFile(fmt.Sprintf("Change Registration, %v", REGISTRATION_DUR), "Data/change_time.txt")
+		}
+		if willChangeEpoch {
+			EPOCH_DUR = maxEpochDur + 10*MARGIN_FOR_CYCLE
+			log.LLvl1("\033[48;5;47mChange Epoch to ", EPOCH_DUR, "\033[0m ")
+			writeToFile(fmt.Sprintf("Change Epoch, %v", EPOCH_DUR), "Data/change_time.txt")
+
+		}
+
+		if willChangeRegistration || willChangeEpoch {
+			for i := 0; i < nbrNodes; i++ {
+				s := services[i].(*Service)
+				s.Cycle.Set()
+				log.LLvl1(s.Name, s.Cycle)
+			}
 		}
 
 		log.LLvl1("\033[48;5;43mRegistration : ", e, " for ", joiningPerEpoch*(int(e)+1), " nodes\033[0m ")

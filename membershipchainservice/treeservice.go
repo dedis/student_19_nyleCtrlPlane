@@ -200,7 +200,7 @@ func (s *Service) getPings(readFromFile bool) {
 		}
 	} else {
 
-		if len(s.Nodes.All) > 50 {
+		if len(s.Nodes.All) > 100 {
 			panic("This file was not generated")
 		}
 		// read from file lines of form "ping node_19 node_7 = 32.317"
