@@ -5,7 +5,18 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+
+	"go.dedis.ch/onet/v3/log"
 )
+
+func rmFile(fileStr string) {
+	// delete file
+	var err = os.Remove(fileStr)
+	if err != nil {
+		return
+	}
+	log.Lvl3("==> done deleting file", fileStr)
+}
 
 func writeToFile(str, fileStr string) {
 	file, _ := os.OpenFile(fileStr, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
@@ -18,9 +29,9 @@ func writeToFile(str, fileStr string) {
 
 func getMemoryUsage(m map[string]map[string]float64) string {
 	size := reflect.TypeOf(m).Size()
-	for x := range m {
+	for _, x := range m {
 		size += reflect.TypeOf(x).Size()
-		for y := range x {
+		for _, y := range x {
 			size += reflect.TypeOf(y).Size()
 		}
 	}

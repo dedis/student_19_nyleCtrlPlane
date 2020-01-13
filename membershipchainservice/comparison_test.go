@@ -20,6 +20,8 @@ func TestNodesWantingToJoin(t *testing.T) {
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
 	nbFirstSigners := 4
+	rmFile("Data/messages.txt")
+	rmFile("Data/storage.txt")
 	writeToFile("Name,Function,nb_messages,epoch", "Data/messages.txt")
 	writeToFile("Name,Function,storage,epoch", "Data/storage.txt")
 
@@ -62,7 +64,7 @@ func TestNodesWantingToJoin(t *testing.T) {
 
 	}
 	wg.Wait()
-
+	rmFile("Data/comparison_join.txt")
 	writeToFile("Name,Registration,Time,epoch", "Data/comparison_join.txt")
 	for i, b := range alreadyIn {
 		if b {
@@ -209,6 +211,8 @@ func TestNodesChurning(t *testing.T) {
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
 	nbFirstSigners := nbrNodes
+	rmFile("Data/messages.txt")
+	rmFile("Data/storage.txt")
 	writeToFile("Name,Function,nb_messages,epoch", "Data/messages.txt")
 	writeToFile("Name,Function,storage,epoch", "Data/storage.txt")
 
@@ -249,6 +253,7 @@ func TestNodesChurning(t *testing.T) {
 	}
 	wg.Wait()
 
+	rmFile("Data/comparison_churn.txt")
 	writeToFile("Name,Registration,Time,Epoch", "Data/comparison_churn.txt")
 	for i, b := range stillIn {
 		if b {
