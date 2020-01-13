@@ -1,8 +1,10 @@
 package membershipchainservice
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -102,6 +104,17 @@ func (s *Service) GetInteractionDistances() {
 			log.LLvl1(s.Nodes.GetServerIdentityToName(s.ServerIdentity()), nodeName, m)
 		}
 	}
+
+	file, _ := os.Create("Data/SpaceTime/Distances-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
+	w := bufio.NewWriter(file)
+	w.WriteString("Name1,Name2,Distances\n")
+	for n1, m := range s.PingDistances {
+		for n2, d := range m {
+			w.WriteString(n1 + "," + n2 + "," + fmt.Sprintf("%.2f", d) + "\n")
+		}
+	}
+	w.Flush()
+	file.Close()
 
 }
 
