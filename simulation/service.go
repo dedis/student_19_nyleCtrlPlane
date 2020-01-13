@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	nylechain "github.com/dedis/student_19_nyleCtrlPlane"
@@ -78,6 +79,8 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
+	mbrSer.REGISTRATION_DUR = 10 * time.Second
+
 	size := len(config.Roster.List)
 	nbrFirstSigners := 4
 

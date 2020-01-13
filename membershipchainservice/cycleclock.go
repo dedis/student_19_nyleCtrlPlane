@@ -4,10 +4,10 @@ import "time"
 
 type Phase int
 
-// Const needed
-const (
-	REGISTRATION = iota
-	EPOCH
+// const needed
+var (
+	REGISTRATION       = Phase(0)
+	EPOCH              = Phase(1)
 	REGISTRATION_DUR   = 5 * time.Second
 	EPOCH_DUR          = 2 * time.Second
 	TIME_FOR_CONSENCUS = 2 * time.Second
