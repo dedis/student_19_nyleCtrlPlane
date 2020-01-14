@@ -54,7 +54,18 @@
 
 \maketitle 
 
+\acknowledgments{I want to give a special thanks to my supervisor Cristina Basescu for the precious help during the Master Thesis. Sometimes starting in a new field such as distributed and decentralized systems require a certain level of abstraction and the advice provided during the weekly meetings allowed me to have a good understanding of the subject.
+\\ I would also like to thank Prof. Bryan Ford for the supervision of this work. And the external expert, \color{red} External expert \color{black} for their involvement in the corrections. \\
+It was a pleasure for me to have the chance of working on this Master Thesis during the same time as Bastian Nanchen. The master's thesis can sometimes feel like a solitary journey, and it was nice to be able to rely on a friend during this time. \\
+I want to thank Marion Bourqui for her support on a daily basis, especially during the last three weeks of the master's thesis where the work was the most intense.  
+ }
+
+
+\makeacks
+
 \maketoc
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Introduction} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1359,6 +1370,9 @@ at the beginning of the next epoch instead of the pings. Each node is able then
 to compute the new distance, and the algorithm for regions can be used
 directly. In the first epoch, as nodes did not have the time to interact a lot
 with each other, pings are used instead of the interaction distance.
+
+\subsection{Drawback}
+This new distance might have a lot of interesting properties, but the major drawback is that it can change a lot from one epoch to the next. Two examples can be seen in [\autoref{fig:SpaceTime-Random}] and [\autoref{fig:SpaceTime-Locarno}], where the new definition of the distance was used, and a map of the system was displayed using a force-directed graph drawing was used to take in account the distance between the nodes. It is interesting to notice that only using the control plane without having an underlying system has for consequence that most nodes have the same number of interaction. Leading to a regular distribution in space. The only nodes that have less interaction are the nodes that are joining the system during this epoch, and they are farther away from the other. As the distance change more often, it might lead to more region transformations. But if the underlying system is working in a stable manner, one can expect that the number of interaction between two nodes stays more or less stable, which might correct this drawback.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
