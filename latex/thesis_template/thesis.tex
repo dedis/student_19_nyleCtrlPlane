@@ -541,7 +541,7 @@ plane is global.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 This part describes the design of the Control Plane, which has the mission
 to solve the problem of node insertion, deletion and movement inside the
-system.
+system. A first version of the control plane is designed, and then it is improved by a series of Strawman models.
 
 \section{Problem definition}
 %%%%%%%%%%%%%% Problem definition
@@ -563,6 +563,15 @@ round-trip-time is correlated with the distance between two nodes. This is the
 case for the Internet network \cite{Seibert2014}. This is required as the locality component use that hypotheses to estimates distances with pings. On this result, we build the
 locality properties of the system. 
 
+\subsection{Threat Model}
+Attacks on the system can be made internally (from malicious nodes) or
+externally by delaying the interaction between nodes or intercepting and
+changing messages. We give the precise portion of malicious nodes that
+this protocol can handle. In this threat model, malicious nodes are regular
+nodes that decide to act against the system. In particular, malicious nodes
+have only access to limited computational power, and they cannot break the
+cryptographic primitives. 
+
 
 %%%% mostly copied from
 % https://docs.google.com/document/d/1xz1jTphKqxxkAucdh_oOqsFXH147Cjlzcnjmt-yx-f8/edit#heading=h.aq4k1vxbt0t0
@@ -582,14 +591,14 @@ is described in detail below.
 \begin{figure}[!h]
 \centering
 \includegraphics[width=400pt]{figures/Nyle_components}
-\caption{List of modules of Nyle. This works concerns the components in blue}.
+\caption{List of modules of Nyle. This works concerns the components in blue.}
 \label{fig:modules}
 \end{figure}
 
 \subsection{Membership Component}
 
-At each epoch, a contract containing a summary of all participants for the
-current epoch is created. It is based on registration, which can be made during
+At each epoch, a list of all participants for the
+current epoch is created and it is signed by the participants of the previous epoch. It is based on registration, which is made during
 the previous epoch. Registration use \textit{endorsement} (for example solution
 to a proof-of-work problem). This system is global. Nodes can ask the
 participants of the system to know the identity of other nodes. For a new contract to be validated, it should be signed by the majority of the nodes of the previous
@@ -599,9 +608,11 @@ epoch.
 
 The role of the locality component is to give all pairwise distances between
 nodes of the system. We assume it already exists (distance oracle), or it can
-be computed by nodes. In the first model, the metric that is used as a distance
+be computed by nodes. In this protocol, the metric that is used as a distance
 is latency, and all pairwise-latencies are computed between each node and every
-node agree on them via consensus. 
+node agree on them via consensus.
+
+We also assume the existence of a control function that is able to assert the validity of the distances based on the latencies. 
  
 \subsection{Region Component} This component is used to create and update
 regions. This part is based on CRUX. At each epoch, CRUX is run based on
@@ -623,8 +634,7 @@ requests as it is aware of the nodes location and region assignment. It is
 in charge of answering the request for nodes assignment and nodes location. 
 
 \begin{figure}[!h] 
-\centering
-\includegraphics[width=400pt]{figures/Nyle_controlflow}
+\includegraphics[width=450pt]{figures/Nyle_controlflow}
 \caption{General Control Flow of Nyle. }
 \label{fig:controlflow}
 \end{figure}
@@ -635,7 +645,7 @@ At each epoch, nodes can join if they manage to get approval from the members
 of the previous epoch. The distance oracle requires many resources: every
 node measure pings to every other nodes and consensus is made on that
 information. The region component in this model is simple: based on the
-registration, and the pings, CRUX is run at each epoch. Redrawing the map of
+registration, and the pings, CRUX is run at each epoch, redrawing the map of
 the entire system. 
 
 \subsection{Membership Protocol}
@@ -651,7 +661,7 @@ This section describes the membership protocol [\autoref{fig:registrationprotoco
 The system goes through some cycles (called an epoch) of two different phases :
 the registration period and the live period. The first period is there
 to manage the participants of the current epoch, and the underlying system
-(e.q. a crucified-blockchain) is run during the live period. Assume
+(e.q. a cruxified-blockchain) is run during the live period. Assume
 that each node has a synchronised wall-clock which gives the time of the
 different periods.
 
@@ -660,7 +670,7 @@ the participants of the current epoch, which are called the \textit{admission
 committee}. Assume that a set of genesis participants, which are the first
  \textit{admission committee}, exists.
 
-\paragraph{Registration Period}
+\paragraph{Registration Period.}
 If a node wants to register for the next epoch, it has to send the following
 information to the admission committee : a \textit{name}, a \textit{public key}, and an
  \textit{endorsement} (for example solution to a proof-of-work problem) and ask for a
@@ -676,11 +686,11 @@ threshold-signatures for all the participants for the next epoch. At the end of
 the registration period, the admission committee reaches a consensus on the
 new participants, by threshold-signing the list of the members.  
 
-\paragraph{Live Period}
+\paragraph{Live Period.}
 At the beginning of the live period, one member of the admission committee sends the threshold-signed contract that lists the participants to the current
 members. If one of the participants did not receive the list, it could ask any
 member of the admission committee to have it. After that propagation, the
-admission committee can retire, and the member of the current epoch becomes the
+admission committee can retire, and the members of the current epoch become the
 new admission committee. Then members of the new epoch compute the
 distances between each other. Participants will as well draw a level from
 unpredictable, bias-resistant public randomness source. They reach then
@@ -696,8 +706,8 @@ authority that accepts admission is running. Registration period and live
 period can, therefore, be superposed [\autoref{fig:registrationprotocol}], which
 permits to have a system running at every time. 
 
-\subsection{Threshold-Signing Admission}
-To get an admission, a node that wants to join for the next system use the
+\subsection{Threshold-Signing Registration}
+To get an admission, a node that wants to join for the next phase uses the
 BlsCoSi protocol \cite{Boneh2018}. It generates a tree with him as
 the root and the admission committee as nodes in the tree. Each node of the
 admission committee has the choice of signing or rejecting the admission
@@ -736,7 +746,7 @@ it is based on the information created during the consensus on the participants
 just before drawing the regions. 
 
 \FloatBarrier
-\section{Discussion}
+\section{Details}
 \subsection{Advantages}
 This simple version of the control plane is solving the problem of node
 insertion, churn and nodes movement in the system. A comparison is made
@@ -773,7 +783,7 @@ register for the next epoch and therefore are removed from the system [\autoref{
 \end{figure}
 
 \subsubsection{Adaptation to Node Movements}
-Nodes can move as well if the regions are only drawn at the beginning of the
+Nodes can move as well or the latencies between different nodes can change. If the regions are only drawn at the beginning of the
 system. Then it's possible that after a while, many nodes have migrated from
 where they were at the time that the regions were drawn. This might be a
 problem. Indeed, the purpose of the replication was to ensure that in case of a
@@ -784,6 +794,8 @@ the system leading to failing regions that should be on the same side of the
 partition. The control plane solves this problem as the regions are recreated at
 each epoch, taking account of the movement of the nodes. Increasing the
 partition resistance, with the movement of nodes.
+
+
 
 \subsection{Drawbacks}
 This control plane is simple and reaches its objective, but it requires many
@@ -836,16 +848,6 @@ every node run the algorithm for region creation and arrives in the same
 regions. But this can be much information to store.
 
 \section{Security Analysis}
-
-\subsection{Threat Model}
-Attacks on the system can be made internally (from malicious nodes) or
-externally by delaying the interaction between nodes or intercepting and
-changing messages. We give the precise portion of malicious nodes that
-this protocol can handle. In this threat model, malicious nodes are regular
-nodes that decide to act against the system. In particular, malicious nodes
-have only access to limited computational power, and they cannot break the
-cryptographic primitives. 
-
 \subsection{Network Attacks} 
 \subsubsection{Man-in-the-middle attacks} \label{MitM}
 The messages exchanged during the protocol are listed in the following table [\autoref{tab:messages-table}].

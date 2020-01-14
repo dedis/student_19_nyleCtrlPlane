@@ -73,7 +73,7 @@ func TestNodesWantingToJoin(t *testing.T) {
 	}
 	startTime := time.Now()
 
-	for e := Epoch(1); e < nbrEpoch; e++ {
+	for e := Epoch(1); e <= nbrEpoch; e++ {
 
 		log.LLvl1("\033[48;5;42mStart of Epoch ", e, " after:  ", int64(time.Now().Sub(startTime)/time.Millisecond), "\033[0m ")
 
@@ -112,6 +112,7 @@ func TestNodesWantingToJoin(t *testing.T) {
 			if b {
 				wg.Add(1)
 				go func(idx int) {
+					writeToFile(fmt.Sprintf("%v,Wants As Usual,%v,%v", services[idx].(*Service).Name, int64(time.Now().Sub(startTime)/time.Millisecond), e), "Data/comparison_join.txt")
 					assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(e))
 					if !alreadyWritten[idx] {
 						writeToFile(fmt.Sprintf("%v,Manage Normally,%v,%v", services[idx].(*Service).Name, int64(time.Now().Sub(startTime)/time.Millisecond), e), "Data/comparison_join.txt")
