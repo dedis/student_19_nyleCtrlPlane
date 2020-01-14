@@ -110,6 +110,7 @@ type ReplyHistory struct {
 type SignatureRequest struct {
 	Message []byte
 	Roster  *onet.Roster
+	Epoch   Epoch
 }
 
 // State describes the state of one node

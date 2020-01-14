@@ -101,6 +101,11 @@ func TestNodesWantingToJoin(t *testing.T) {
 						log.LLvl1(s.Name, "is trying to update")
 						name := s.GetRandomName()
 						assert.NoError(t, s.UpdateHistoryWith(name))
+
+					}
+					if s.Cycle.GetCurrentPhase() != REGISTRATION {
+						log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
+						time.Sleep(s.Cycle.GetTimeTillNextCycle() + 100*time.Millisecond)
 					}
 					wg.Done()
 				}(i)
@@ -113,7 +118,8 @@ func TestNodesWantingToJoin(t *testing.T) {
 				wg.Add(1)
 				go func(idx int) {
 					writeToFile(fmt.Sprintf("%v,Wants As Usual,%v,%v", services[idx].(*Service).Name, int64(time.Now().Sub(startTime)/time.Millisecond), e), "Data/comparison_join.txt")
-					assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(e))
+					err := services[idx].(*Service).CreateProofForEpoch(e)
+					log.LLvl1("Error in create proof", err)
 					if !alreadyWritten[idx] {
 						writeToFile(fmt.Sprintf("%v,Manage Normally,%v,%v", services[idx].(*Service).Name, int64(time.Now().Sub(startTime)/time.Millisecond), e), "Data/comparison_join.txt")
 						alreadyWritten[idx] = true

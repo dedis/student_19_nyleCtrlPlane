@@ -25,7 +25,9 @@ var (
 
 // SignatureRequest treats external request to this service.
 func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, error) {
-	if s.Cycle.GetCurrentPhase() != REGISTRATION || s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS {
+	//if s.Cycle.GetCurrentPhase() != REGISTRATION || s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS {
+	if s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS || s.e >= req.Epoch {
+		log.LLvl1("s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS", s.Cycle.GetTimeTillNextEpoch(), TIME_FOR_CONSENCUS, s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS, "s.e >= req.Epoch", s.e >= req.Epoch, s.e, req.Epoch)
 		return nil, errors.New("Registration was not made in time")
 	}
 	// generate the tree

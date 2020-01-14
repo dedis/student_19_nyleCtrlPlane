@@ -23,6 +23,7 @@
 \usepackage{float}
 \usepackage{titlesec}
 \usepackage{capt-of}
+\usepackage{cleveref}
 
 %dashed line
 \usepackage{array}
@@ -150,9 +151,7 @@ is one problem that one wants to avoid in Nyle. Therefore the regions should be
 adapted with the movement of the nodes. 
 
 %% Related Work Is Insufficient
- CRUX \cite{Basescu2014} is the basis of most of this work, which introduces an algorithm that allows creating regions based on compact graph theory. 
-Chapter \ref{chap:Background} describes this algorithm in more detail.  This work uses the existing code base for CRUX
- in Go. A first work on Nyle \cite{Sierro2019} proposes aC first
+ CRUX \cite{Basescu2014} is the basis of most of this work, which introduces an algorithm that allows creating regions based on compact graph theory. \Cref{chap:Background} describes this algorithm in more detail.  This work uses the existing code base for CRUX in Go. A first work on Nyle \cite{Sierro2019} proposes aC first
 implementation of Nyle building on the top CRUX \cite{Basescu2014} but focusing
 directly on how to improve the storage of the transactions and the tree
 structure of the regions. This work builds directly upon the existing work, but
@@ -162,7 +161,7 @@ efficiently the location of a node. And second,  to assert if nodes were lying a
 location where they claimed to be. There is a current work by Guillaume
 Michel on the Interplanetary-File System (IPFS) \cite{Michel2019} that is
 based on CRUX as well but with the purpose to create a locality-aware overlay
-to speed the system up. However, it is not directly related to blockchains. The next chapter \autoref{chap:RelatedWork} describes the rest
+to speed the system up. However, it is not directly related to blockchains. The next \Cref{chap:RelatedWork} describes the rest
 of the related work. 
 These works are mostly orthogonal to the current approach: some other solutions to speed
 the validation of transaction are Bitcoin \cite{Nakamoto2009}, Byzcoin
@@ -172,12 +171,12 @@ they don't use the concept of the locality for this purpose.
 
 %% Description of the Approach
 Here is the structure of this work: first, a simple version of
-the control plane was designed  in Chapter \ref{chap:Design}, which splits the time
+the control plane was designed  in \Cref{chap:Design}, which splits the time
 into epochs and take as an assumption that the system remains fixed during one
 epoch. This work proposes and discuss a protocol, and gives his threat analysis.
 Based on its implementation and performance analysis, some drawbacks are put
 into light. Then a series of strawman models try to correct some of these
-drawbacks and are analyzed as well in Chapter \ref{chap:Improvements}. The first one
+drawbacks and are analyzed as well in \Cref{chap:Improvements}. The first one
 is called "Locarno Treaties" and will try to keep the system coherent from one
 epoch to the next. The next one is called "Fog of the war", and try to reduce
 the need for communication between nodes. The last and the most complex
@@ -245,7 +244,7 @@ partition-resistant blockchain system created by this means.
 
 This work is directly related to the locality-preserving algorithms developed
 in CRUX \cite{Basescu2014} and compact-graph algorithms \cite{Thorup2005}.
-These are described in detail in \autoref{chap:Background}. There is a class of
+These are described in detail in \Cref{chap:Background}. There is a class of
 algorithm that uses the idea of locality differently. For example, Geo-DNS
 \cite{Katz-bassett2006} or IP Anycast \cite{Abley2006} use the locality to
 shorten the path for the packets, connecting the servers via the closest path.
@@ -765,7 +764,7 @@ plane, node insertion is possible at the beginning of every epoch
 \centering
 \includegraphics[width=450pt]{figures/JoinSubplots}
 \caption{The simple control plane allows nodes to join the system. The left plot
- represents the case with a fixed control plane where nodes cannot join. The ticks are placed at the start of epochs. }
+ represents the case with a fixed control plane where nodes cannot join. The ticks are placed at the start of epochs. Some registrations are refused for the next epoch as they started too late. In this tests, nodes that are not passing the registration wait a bit to ask for a new registration. The waiting time is really short, as the registration are possible at anytime due to the superposition of the live period and the registration period. }
  \label{fig:insertion-comparision}
 \end{figure}
 
@@ -800,7 +799,7 @@ partition resistance, with the movement of nodes.
 \subsection{Drawbacks}
 This control plane is simple and reaches its objective, but it requires many
 resources. Some of the drawbacks of this approach are listed below. 
-Some answers to these drawbacks are proposed in \autoref{chap:Improvements}.  
+Some answers to these drawbacks are proposed in \Cref{chap:Improvements}.  
 
 \subsubsection{Control Plane is global}
 If the system is replicated in all the regions, the control plane itself is
@@ -1114,7 +1113,7 @@ But this attack seems to cost a lot of resources and coordination for the
 attacker to generate a small overhead on the size of the participants. Some
 defence mechanisms can be set up to ensure that levels are geographically
 distributed over the whole system, they are described in more details in
-\autoref{chap:Possible Improvements}.
+\Cref{chap:Possible Improvements}.
 
 \subsubsection{Quantifying the Effect of Locarno Treaties}
 The goal of the new protocol is to keep most regions and region assignment
@@ -1530,7 +1529,7 @@ faster than \autoref{eq:ARAmax}. This could create an unmanageable overhead.
 Therefore one needs to have higher-level nodes in the middle of levels 0 nodes.
 This justifies the attack on levels that could be done by malicious nodes as
 described in \autoref{sec:ControlePlane-Threat-Model}. And the solution
-proposed in \autoref{chap:Possible Improvements}.
+proposed in \Cref{chap:Possible Improvements}.
 
 \subsection{Problem With Too Many Different Levels} Similarly consider the case
 where we have $N$ nodes and each is at a different level from $0$ to $N-1$. By

@@ -286,10 +286,10 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
 func (s *Service) CreateProofForEpoch(e Epoch) error {
-	if s.Cycle.GetCurrentPhase() != REGISTRATION {
+	/*if s.Cycle.GetCurrentPhase() != REGISTRATION {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
-	}
+	}*/
 	startTime := time.Now()
 
 	log.Lvl1(s.Name, " is creating proof for Epoch : ", e)
@@ -323,7 +323,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 	ro := onet.NewRoster(mbrs)
 
-	buf, err := s.SignatureRequest(&SignatureRequest{Message: msg, Roster: ro})
+	buf, err := s.SignatureRequest(&SignatureRequest{Message: msg, Roster: ro, Epoch: e})
 	if err != nil {
 		return err
 	}
