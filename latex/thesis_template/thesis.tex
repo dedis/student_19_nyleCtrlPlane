@@ -956,11 +956,11 @@ happen if the distribution of levels is not controlled.
 \chapter{Improvements} \label{chap:Improvements} %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This section proposes some improvements to the simple control plane protocol. They
-are supposed to address the drawbacks of the simple protocol, and each improvement
-is illustrated in a Strawman model. Finally, an advanced
-version of the control plane that uses a region creation algorithm based on
-time/space graphs is proposed. 
+This section proposes some improvements to the simple control plane protocol.
+They are supposed to address the drawbacks of the simple protocol, and each
+improvement is illustrated in a Strawman model. Finally, an advanced version of
+the control plane that uses a region creation algorithm based on time/space
+graphs is proposed. 
 
 \section{Strawman 1 : Locarno Treaties} \label{Locarno}
 
@@ -968,7 +968,8 @@ time/space graphs is proposed.
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Redrawing}
 \caption{Redrawing the levels at each epoch can lead to very different version
- of the system. This is what is improved by the Locarno Treaties.} \label{fig:LocarnoTreaties-Redrawing}
+    of the system. This is what is improved by the Locarno Treaties.}
+    \label{fig:LocarnoTreaties-Redrawing}
 \end{figure}
 
 Following the First World War, it was decided that the borders of Germany
@@ -977,22 +978,21 @@ idea of this Strawman model is to do the same by limiting modifications of
 regions from one epoch to the next. The idea is to use a deterministic set of
 rules, based on the ping, the registrations and the map of the previous epoch
 to create the map of the current epoch using the fewest modifications possible.
-Registration is still global, and each node has all the information about
-the memberships of every node. Then from one epoch to another, the purpose is to keep as many unchanged regions as possible. The obvious idea to reach this
-goal is to let the nodes keep their levels from one epoch to the next. However,
-this introduces some overhead problems.
-These are described in the next section.
+Registration is still global, and each node has all the information about the
+memberships of every node. Then from one epoch to another, the purpose is to
+keep as many unchanged regions as possible. The obvious idea to reach this goal
+is to let the nodes keep their levels from one epoch to the next. However, this
+introduces some overhead problems.  These are described in the next section.
 
-\subsection{Rebalancing the Levels} \label{rebalancing}
-Conserving the levels is the way to go, but maintaining levels can lead to
-unbalanced systems. Consider a system with 200 Nodes at epoch 1, with the
-repartition given in \autoref{example-lottery}. If from epoch 1 to epoch 2,
-100 level-0 nodes leave the system. The remaining system would contain 80
-level-0 nodes instead of 90. 
+\subsection{Rebalancing the Levels} \label{rebalancing} Conserving the levels
+is the way to go, but maintaining levels can lead to unbalanced systems.
+Consider a system with 200 Nodes at epoch 1, with the repartition given in
+\autoref{example-lottery}. If from epoch 1 to epoch 2, 100 level-0 nodes leave
+the system. The remaining system would contain 80 level-0 nodes instead of 90. 
 
 Unbalanced systems can lead to various problems. Some examples are given in
 \autoref{app:unbalanced-levels}. The lottery process presented in
-\autoref{sec:common-tools}, is slightly modified in this section to allow the
+\autoref{sec:common-tools} is slightly modified in this section to allow the
 adaptation of the levels. The total number of participants $N$ in the system is
 known after the registration, and as the probability $P$ is given, it is
 straightforward to compute the expected number of nodes that one should have at
@@ -1005,26 +1005,33 @@ draw deterministically from the registration list and the public source of
 randomness. The highest level goes to the node, which has drawn the highest
 random number. Levels are given according to the drawing in descending
 order. Each node that stays in the system keeps its random number from when
-it joined the system and new nodes get fresh random numbers. This does not guarantee that nodes will keep exactly the same levels but, most of the time, it will be the case.
+it joined the system, and new nodes get fresh random numbers. This does not
+guarantee that nodes keep exactly the same levels, but, most of the time, it
+will be the case.
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=400pt]{figures/Lottery-Locarno}
-\caption{Sketch of the new method for drawing the levels. The fill property of each node represents
- the number that was drawn from 0 (black) to 1 (white).}
+\caption{Sketch of the new method for drawing the levels. The fill property of
+    each node represents the number that was drawn from 0 (black) to 1
+    (white).}
  \label{fig:sketch-new-levels}
 \end{figure}
 
-
 \subsection{Motivation for Keeping the Levels} This section describes the
-reasons for keeping the levels. It is useful to look in detail at what are the consequences of
-the movement of a given node on a given fixed node, to understand what are the effects on the
-global system. Then some precise examples
-of the evolution of the system are treated as well. The hypothesis in this analysis is that the nodes keep the same levels using the new lottery, this is assumed to make things simple. But we have to keep in mind that the lottery process might allow nodes to change levels for keeping the system balanced.
+reasons for keeping the levels. It is useful to look in detail at what are the
+consequences of the movement of a given node on a given fixed node, to
+understand what are the effects on the global system. Then some precise
+examples of the evolution of the system are treated as well. The hypothesis in
+this analysis is that the nodes keep the same levels using the new lottery;
+this is assumed to make things simple. But we have to keep in mind that the
+lottery process might allow nodes to change levels for keeping the system
+balanced.
 
 \subsubsection{Effects for a Fixed Node} The point of view of one node that
-stays fixed in the system is considered, the goal is that the node can keep most of
-its region assignments. Other nodes might join, leave or move, and this can result in a changes either in its cluster or in its bunch. 
+stays fixed in the system is considered, the goal is that the node can keep
+most of its region assignments. Other nodes might join, leave or move, and this
+can result in changes either in its cluster or in its bunch. 
 [\autoref{fig:LocarnoTreaties-Leaving-cluster}]. 
 
 \paragraph{Nodes Leaving the Cluster} This can shrink the cluster of the fixed
@@ -1033,17 +1040,19 @@ whole cluster, this might lead to the deletion of some regions. This does not
 change the region assignment, and the nodes can still keep the replicated system
 of the previous epoch running. 
 
-
 \paragraph{Nodes Joining the Cluster} On the contrary, if nodes join the
 cluster of the fixed node, this might lead to the creation of an additional
 region to cover these extra nodes. The node then replicates its system to
-the newly created regions. So the fixed node will keep the regions it created, which was the goal, and eventually add some to cover its cluster.  By design, these joining nodes could be part of the bunch of the fixed node as well but this case is treated in another paragraph.
+the newly created regions. So the fixed node keeps the regions it created,
+which was the goal, and eventually add some to cover its cluster.  By design,
+these joining nodes could be part of the bunch of the fixed node as well, but
+this case is treated in another paragraph.
 
 \paragraph{Nodes Leaving the Bunch} Nodes participate in all the regions in
 their bunch. Eventually, they participate in a region that covers the
 whole system. If a node left the system in the bunch, this leads to a region
-centered around a point that is not in the system anymore, and this assignment might
-be forgotten. 
+centered around a point that is not in the system anymore, and this assignment
+might be forgotten. 
 
 From a fixed node, if another node leaves its bunch, it can have an effect to
 add other nodes in its bunch, leading to more region assignment. And in some
@@ -1063,16 +1072,16 @@ system was treated. The other nodes have yet to be reviewed. The
 question is how to integrate moving or joining in the system while keeping the
 system balanced. 
 
-\paragraph{High-Level Moving Node} Assume that going from Epoch $i$ to $i+1$,
+\paragraph{High-Level Moving Node} Assume that going from epoch $i$ to $i+1$,
 one of a relatively high-level node has gone from one place to the other end of
-the system. As nodes can keep their level, it changes some of the
-assignments, but most of the regions are maintained. 
+the system. As nodes can keep their level, it changes some of the assignments,
+but most of the regions are maintained. 
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Moving}
-\caption{A moving high-level node keeping its levels is changing assignments of other
- nodes but keep the same regions. }
+\caption{A moving high-level node keeping its levels is changing assignments of
+    other nodes but keep the same regions. }
 \label{fig:LocarnoTreaties-Moving}
 \end{figure}
 
@@ -1084,7 +1093,8 @@ data from one region to another. This communication overhead is reduced in
 that situation. 
 
 \paragraph{Low-Level Moving Node}
-The consequences of a low-level moving node are less important than a high-level moving node as most of the other nodes won't have it in their bunch.
+The consequences of a low-level moving node are less important than a
+high-level moving node as most of the other nodes won't have it in their bunch.
 
 \paragraph{Levels of Joining Nodes}
 One can think that the levels of joining nodes might have a big influence on the
@@ -1114,45 +1124,68 @@ assignment which follows the new algorithm described in \autoref{rebalancing}.
 
 \subsection{Threat Model}
 
-Attackers can target the new lottery process. If one malicious node 
-decide to attack the system alone, it does not create too disastrous consequences, as it is
-presented in \autoref{sec:ControlePlane-Threat-Model}. Another attack could be
-that malicious nodes exit and reenter the system at each epoch until they
+Attackers can target the new lottery process. If one malicious node decides to
+attack the system alone, it does not create too disastrous consequences, as it
+is presented in \autoref{sec:ControlePlane-Threat-Model}. Another attack could
+be that malicious nodes exit and reenter the system at each epoch until they
 manage to get a good number from the lottery. Then when it achieves to get a
-right level, they collectively move to one side of the system leaving good nodes
-all at level-0 in the middle of the system. This creates a slight overhead
-for the good nodes as the region’s assignment increase for the level-0 nodes.
-But this attack seems to cost a lot of resources and coordination for the
-attacker to generate a small overhead on the size of the participants. Some
+right level, they collectively move to one side of the system leaving good
+nodes all at level-0 in the middle of the system. This creates a slight
+overhead for the good nodes as the region’s assignment increase for the level-0
+nodes.  But this attack seems to cost a lot of resources and coordination for
+the attacker to generate a small overhead on the size of the participants. Some
 defence mechanisms can be set up to ensure that levels are geographically
 distributed over the whole system, they are described in more details in
 \Cref{chap:Possible Improvements}.
 
 \subsubsection{Quantifying the Effect of Locarno Treaties}
-The goal of the new protocol is to keep most regions and region assignements
+The goal of the new protocol is to keep most regions and region assignments
 following the evolution of the system. A detailed comparison is made. The
 system starts with a fixed number of nodes and evolves with nodes moving,
 leaving and entering the system. A quantity is chosen to evaluate the
 difference between the system from one epoch to the next. The quantity is
 defined as follows: the list of participants in the system is taken sorted by
-name. The bunch and cluster are seen as a set of nodes. The number of difference between a set A and a set B is defined as follow : 
+name. The bunch and cluster are seen as a set of nodes. The number of
+difference between a set A and a set B is defined as follow :
 \begin{equation}
 \# \textrm{Diff}(A,B) = \#(A \cup B - A \cap B )
 \end{equation}
-where $\#$ means the number of element in the set.
-Then for each node, the number of difference between their bunch and cluster at epoch $i$ and their bunch and cluster at epoch $i+1$ is computed. If a new node enters the system, the difference are computed between their bunch and
-cluster and an empty set. Same if a node leaves the system. The idea is
-that with this new protocol, the total number of differences should be reduced.
-The results of the experiment can be seen in [\autoref{fig:LocarnoTreaties-differences}]. They are averaged on 100 different experiments for each lottery. The number of nodes at a given epoch is kept constant to ensure that the experiment are comparable. The system start with 4 nodes and then, 2 additional nodes are joining at each epoch. The following model for the nodes is taken: The size of the system is $(300, 300)$. Each node will start at a uniformly random position in the system. Then, at each epoch, every node have a probability of $20\%$ to make a local movement, and a probability of $10\%$ to be teleported at another place in the system. A local movement will change the current position $(X,Y)$ by adding to X and Y two different uniformly random numbers between $(-10, 10)$. A teleportation set the position of a given node to another random position in the system. The pings between two nodes are defined as a linear function of the distance. The maps and details of one given experiment are given in \autoref{app:LocarnoTreaties-data}.
+where $\#$ means the number of elements in the set.
+
+Then for each node, the number of difference between their bunch and cluster at
+epoch $i$ and their bunch and cluster at epoch $i+1$ is computed. If a new node
+enters the system, the differences between their bunch and cluster and an empty
+set are computed. Same if a node leaves the system. The idea is that with this
+new protocol, the total number of differences should be reduced.  The results
+of the experiment can be seen in [\autoref{fig:LocarnoTreaties-differences}].
+They are averaged on 100 different experiments for each lottery. The number of
+nodes at a given epoch is kept constant to ensure that the experiments are
+comparable. The system starts with 4 nodes and then, 2 additional nodes are
+joining at each epoch. The following model for the nodes is taken: The size of
+the system is $(300, 300)$. Each node starts at a uniformly random position in
+the system. Then, at each epoch, every node has a probability of $20\%$ to make
+a local movement, and a probability of $10\%$ to be teleported at another place
+in the system. A local movement changes the current position $(X ,Y)$ by adding
+to X and Y two different uniformly random numbers between $(-10, 10)$.
+Teleportation sets the position of a given node to another random position in
+the system. The pings between two nodes are defined as a linear function of the
+distance. The maps and details of one given experiment are given in
+\autoref{app:LocarnoTreaties-data}.
 
 \begin{figure}[!h] \centering
   \includegraphics[width=400pt]{figures/LocarnoTreaties-differences}
   \caption{Graph of the number of differences between maps from one epoch to
   the next using the random level assignments or the one defined in Locarno
   Treaties. Maps and details of the system are given in
-\autoref{app:LocarnoTreaties-data}. } \label{fig:LocarnoTreaties-differences} \end{figure}
+\autoref{app:LocarnoTreaties-data}. } \label{fig:LocarnoTreaties-differences}
+\end{figure}
 
-The figure shows that globally the Locarno Lottery leads to less difference from one epoch to the next. However, the results of the random lottery seems to have less variance. This might be due to the teleportation factor, as if nodes move too much, the system becomes equivalent to the random lottery. But overall, this small amelioration led to the reduction of the differences from one epoch to the next.
+The figure shows that globally the Locarno Lottery leads to less difference
+from one epoch to the next. However, the results of the random lottery seem to
+have less variance. This might be due to the teleportation factor as if nodes
+move too much, the system becomes equivalent to the random lottery. But
+overall, this small amelioration led to the reduction of the differences from
+one epoch to the next.
 
 \section{Strawman 2 : Fog of the War} \label{sec:Fog-of-the-war}
 
