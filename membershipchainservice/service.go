@@ -26,6 +26,8 @@ import (
 // For Blscosi
 const protocolTimeout = 20 * time.Minute
 
+var WAITING_FOR_REGISTRATION = true
+
 var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
 // MembershipID is used for tests
@@ -286,10 +288,10 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
 func (s *Service) CreateProofForEpoch(e Epoch) error {
-	/*if s.Cycle.GetCurrentPhase() != REGISTRATION {
+	if s.Cycle.GetCurrentPhase() != REGISTRATION && WAITING_FOR_REGISTRATION {
 		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
 		time.Sleep(s.Cycle.GetTimeTillNextCycle())
-	}*/
+	}
 	startTime := time.Now()
 
 	log.Lvl1(s.Name, " is creating proof for Epoch : ", e)

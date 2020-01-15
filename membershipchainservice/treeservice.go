@@ -34,7 +34,15 @@ var execReplyPingsMsgID network.MessageTypeID
 func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
-	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+"/utils/NodesFiles/nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
+
+	//subfolder
+	readline, _ := ReadFileLineByLine("folder_str")
+	subfolder := readline()
+	folderStr := "/utils/NodesFiles/"
+	folderStr += subfolder + "/"
+
+	log.LLvl1("Reading from : ", s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
+	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
 
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
@@ -203,8 +211,17 @@ func (s *Service) getPings(readFromFile bool) {
 		if len(s.Nodes.All) > 100 {
 			panic("This file was not generated")
 		}
+
+		//subfolder
+		readline, _ := ReadFileLineByLine("folder_str")
+		subfolder := readline()
+		folderStr := "/utils/PingsFiles/"
+		folderStr += subfolder
+
+		log.LLvl1("Reading pings from ", s.PrefixForReadingFile+folderStr+"/pings"+strconv.Itoa(len(s.Nodes.All)))
+
 		// read from file lines of form "ping node_19 node_7 = 32.317"
-		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + "/utils/PingsFiles/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
+		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + folderStr + "/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
 		if err != nil {
 			panic(fmt.Sprintf("Cannot read file for ping /utils/PingsFiles/pings%v", len(s.Nodes.All)))
 		}
@@ -240,12 +257,20 @@ func (s *Service) getPings(readFromFile bool) {
 
 func (s *Service) genTrees(RandomLevels bool, Levels int, Optimized bool, OptimisationLevel int, OptType int, pingDist map[string]map[string]float64) {
 	folderStr := "Data/"
+
+	//subfolder
+	readline, _ := ReadFileLineByLine("folder_str")
+	subfolder := readline()
+
+	folderStr += subfolder + "/"
+
 	if RandomLevels {
 		folderStr += "Random/"
 	} else {
 		folderStr += "Locarno/"
 	}
 
+	log.LLvl1("Writing maps to : ", folderStr+"gentree-"+s.Nodes.GetServerIdentityToName(s.ServerIdentity())+"-epoch"+strconv.Itoa(int(s.e)))
 	file3, _ := os.Create(folderStr + "gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
 	w3 := bufio.NewWriter(file3)
 	w3.WriteString("Name,Level,X,Y,cluster,bunch\n")
