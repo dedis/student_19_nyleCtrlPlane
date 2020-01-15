@@ -4,7 +4,7 @@
 % project reports Template's Author: Mathias Payer <mathias.payer@epfl.ch>
 % Thesis's Author : Arnaud Pannatier <arnaud.pannatier@epfl.ch>
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[a4paper,11pt,twoside,openright]{report}
+\documentclass[a4paper,11pt,twoside=semi,openright]{report}
 \usepackage{emptypage}
 % Options: MScThesis, BScThesis, MScProject, BScProject
 \usepackage[MScThesis]{EPFLreport} \usepackage{xspace}
@@ -976,9 +976,7 @@ time/space graphs is proposed.
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Redrawing}
 \caption{Redrawing the levels at each epoch can lead to very different version
- of the system. This is what is improved by the Locarno Treaties. Shrinking
- regions are depicted in red, growing regions in green and similar region in
- black.} \label{fig:LocarnoTreaties-Redrawing}
+ of the system. This is what is improved by the Locarno Treaties.} \label{fig:LocarnoTreaties-Redrawing}
 \end{figure}
 
 Following the First World War, it was decided that the borders of Germany
@@ -986,11 +984,11 @@ should remain fixed. The Locarno Treaties defined some of these borders. The
 idea of this Strawman model is to do the same by limiting modifications of
 regions from one epoch to the next. The idea is to use a deterministic set of
 rules, based on the ping, the registrations and the map of the previous epoch
-to create the map of the current epoch using the fewer modifications possible.
+to create the map of the current epoch using the fewest modifications possible.
 Registration is still global, and each node has all the information about
-the memberships of every node. Then from one epoch to another, the purpose is to keep as many regions as possible. The obvious idea to reach this
+the memberships of every node. Then from one epoch to another, the purpose is to keep as many unchanged regions as possible. The obvious idea to reach this
 goal is to let the nodes keep their levels from one epoch to the next. However,
-some small differences should be introduced to avoid some problems.
+this introduces some overhead problems.
 These are described in the next section.
 
 \subsection{Rebalancing the Levels} \label{rebalancing}
@@ -1015,7 +1013,7 @@ draw deterministically from the registration list and the public source of
 randomness. The highest level goes to the node, which has drawn the highest
 random number. Levels are given according to the drawing in descending
 order. Each node that stays in the system keeps its random number from when
-it joined the system and new nodes get fresh random numbers. 
+it joined the system and new nodes get fresh random numbers. This does not guarantee that nodes will keep exactly the same levels but, most of the time, it will be the case.
 
 \begin{figure}[!h] 
 \centering
@@ -1030,25 +1028,24 @@ it joined the system and new nodes get fresh random numbers.
 reasons for keeping the levels. It is useful to look in detail at what are the consequences of
 the movement of a given node on a given fixed node, to understand what are the effects on the
 global system. Then some precise examples
-of the evolution of the system are treated as well. 
+of the evolution of the system are treated as well. The hypothesis in this analysis is that the nodes keep the same levels using the new lottery, this is assumed to make things simple. But we have to keep in mind that the lottery process might allow nodes to change levels for keeping the system balanced.
 
 \subsubsection{Effects for a Fixed Node} The point of view of one node that
 stays fixed in the system is considered, the goal is that the node can keep most of
-its region assignments. Other nodes might join, leave or move, and this can result in a change either in its cluster or in its bunch. However, additional effects can
-come from the level rebalancing
+its region assignments. Other nodes might join, leave or move, and this can result in a changes either in its cluster or in its bunch. 
 [\autoref{fig:LocarnoTreaties-Leaving-cluster}]. 
 
 \paragraph{Nodes Leaving the Cluster} This can shrink the cluster of the fixed
 node. As the regions created by a given node stops when the radius covers the
 whole cluster, this might lead to the deletion of some regions. This does not
 change the region assignment, and the nodes can still keep the replicated system
-of the previous epoch running. But additional effects can come from the level
-rebalancing. 
+of the previous epoch running. 
+
 
 \paragraph{Nodes Joining the Cluster} On the contrary, if nodes join the
 cluster of the fixed node, this might lead to the creation of an additional
 region to cover these extra nodes. The node then replicates its system to
-the newly created regions. But most of the regions remain the same.
+the newly created regions. So the fixed node will keep the regions it created, which was the goal, and eventually add some to cover its cluster.  By design, these joining nodes could be part of the bunch of the fixed node as well but this case is treated in another paragraph.
 
 \paragraph{Nodes Leaving the Bunch} Nodes participate in all the regions in
 their bunch. Eventually, they participate in a region that covers the
@@ -1062,9 +1059,8 @@ cases, to more nodes in its cluster, leading to region growth.
 
 \begin{figure}[!h] \centering
   \includegraphics[width=300pt]{figures/LocarnoTreaties-Leaving-cluster}
-  \caption{A leaving node is changing assignments of other nodes but keep the
-  same regions. Shrinking regions are depicted in red, growing regions in
-  green and same region in black. }
+  \caption{A leaving node changes assignments of other nodes but keeps the
+  same regions. }
 \label{fig:LocarnoTreaties-Leaving-cluster} \end{figure}
 
 \paragraph{Nodes joining the Bunch} If nodes are joining in a bunch, this leads
@@ -1084,8 +1080,7 @@ assignments, but most of the regions are maintained.
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Moving}
 \caption{A moving high-level node keeping its levels is changing assignments of other
- nodes but keep the same regions. Shrinking regions are depicted in red,
- growing regions in green and similar region in black. }
+ nodes but keep the same regions. }
 \label{fig:LocarnoTreaties-Moving}
 \end{figure}
 
@@ -1096,27 +1091,28 @@ region. If the levels are changed, communication might be needed to transfer
 data from one region to another. This communication overhead is reduced in
 that situation. 
 
+\paragraph{Low-Level Moving Node}
+The consequences of a low-level moving node are less important than a high-level moving node as most of the other nodes won't have it in their bunch.
+
 \paragraph{Levels of Joining Nodes}
 One can think that the levels of joining nodes might have a big influence on the
 system; this part tries to illustrate what might happen. The joining nodes can
 lead to the growth of one region or the creation
 of regions. The effects of the level of joining nodes are illustrated in
-[\autoref{fig:LocarnoTreaties-Insertion-close}][\autoref{fig:LocarnoTreaties-Insertion-close}].
+[\autoref{fig:LocarnoTreaties-Insertion-close}][\autoref{fig:LocarnoTreaties-Insertion-far}].
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Insertion-close}
 \caption{Keeping the same level leads to smaller changes when a node enter the
- system. Shrinking regions are depicted in red, growing regions in green and
- same region in black.} \label{fig:LocarnoTreaties-Insertion-close}
+ system close to other nodes. } \label{fig:LocarnoTreaties-Insertion-close}
 \end{figure}
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=300pt]{figures/LocarnoTreaties-Insertion-far}
 \caption{Keeping the same level leads to smaller changes when a node enter the
- system. Shrinking regions are depicted in red, growing regions in green and
- same region in black.} \label{fig:LocarnoTreaties-Insertion-far}
+ system from far away. } \label{fig:LocarnoTreaties-Insertion-far}
 \end{figure}
 
 \subsection{Protocol}
@@ -1147,19 +1143,22 @@ system starts with a fixed number of nodes and evolves with nodes moving,
 leaving and entering the system. A quantity is chosen to evaluate the
 difference between the system from one epoch to the next. The quantity is
 defined as follows: the list of participants in the system is taken sorted by
-name. Then for each node, their bunch and cluster are compared. Each
-difference is counted, if a new node enters the system, their bunch and
-cluster count as a difference. Same if a node leaves the system. The idea is
+name. The bunch and cluster are seen as a set of nodes. The number of difference between a set A and a set B is defined as follow : 
+\begin{equation}
+\# \textrm{Diff}(A,B) = \#(A \cup B - A \cap B )
+\end{equation}
+where $\#$ is defined as the number of element in the set.
+Then for each node, the number of difference between their bunch and cluster at epoch $i$ and their bunch and cluster at epoch $i+1$ is computed. If a new node enters the system, the difference are computed between their bunch and
+cluster and an empty set. Same if a node leaves the system. The idea is
 that with this new protocol, the total number of differences should be reduced.
-The results of the experiment can be seen in [FIG.
-\autoref{fig:LocarnoTreaties-differences}]. Maps of the system are given in
-\autoref{app:LocarnoTreaties-data}.
+The results of the experiment can be seen in [FIG. \autoref{fig:LocarnoTreaties-differences}]. They are averaged on \color{red} X \color{black} different experiments. The number of nodes at a given epoch is kept constant to ensure that the experiment are comparable. The system start with 4 nodes and then, 2 additional nodes are joining at each epoch. The following model for the nodes is taken: The size of the system is $(300, 300)$. Each node will start at a uniformly random position in the system. Then, at each epoch, every node have a probability of $20\%$ to make a local movement, and a probability of $10\%$ to be teleported at another place in the system. A local movement will change the current position $(X,Y)$ by adding to X and Y two different uniformly random numbers between $-10, 10$. A teleportation set the position of a given node to another random position in the system. The pings between two nodes are defined as a linear function of the distance. The maps and details of one given experiment are given in \autoref{app:LocarnoTreaties-data}.
 
 \begin{figure}[!h] \centering
   \includegraphics[width=300pt]{figures/LocarnoTreaties-differences}
   \caption{Graph of the number of differences between maps from one epoch to
   the next using the random level assignments or the one defined in Locarno
-  Treaties. } \label{fig:LocarnoTreaties-differences} \end{figure}
+  Treaties. Maps and details of the system are given in
+\autoref{app:LocarnoTreaties-data}. } \label{fig:LocarnoTreaties-differences} \end{figure}
 
 \section{Strawman 2 : Fog of the War} \label{sec:Fog-of-the-war}
 
