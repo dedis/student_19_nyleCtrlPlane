@@ -1196,14 +1196,16 @@ real-time strategy video game, where each player have its view of the
 system, based on where he is now (light), where he was in the past but cannot
 see now (fog) and what he has not already seen (dark)
 [\autoref{fig:fog-of-the-war}]. Each player view evolves through space and
-time accordingly. In the context of the game, the advantage of this view is
-that it hides the adversarial strategy. In the context of our system, this view
+time accordingly.
+
+In the context of the game, the advantage of this view is
+that it hides the adversarial strategy. Indeed each player can move his troops and the only information about that that another player can have is if he has himself a unit in the same region. In the context of our system, this view
 hides most of the information that is not relevant to one node but allows it
 to perform its operation without the storage and communication overhead. 
 
 The design of this Strawman is the following. Each node declares a
 position during the registration, and other nodes compute their bunch and
-cluster according to this declared position. Each node will, therefore, be able
+cluster according to this declared position. This is different to the first protocol were each node announced his pings to every other node in the system. Each node will, therefore, be able
 to compute their bunch and cluster based on these declared positions. A random committee of checkers is elected after
 the registration process to ensure
 the correctness of the system. These checkers perform some tests (pinging other
@@ -1218,7 +1220,7 @@ nodes of one region) and publish the results.
 
 \subsection{Purpose : Reducing the Need of the Consensus on Distances}
 The protocols presented in the Simple Control Plane protocol and the Locarno
-Treaties still need a consensus on the distances between all nodes in the system.
+Treaties still needs consensus on the distances between all nodes in the system.
 This can be cumbersome as the number of nodes increases in the system in $O(N^2)$, where $N$ is the number of nodes. Consensus
 might become too costly for that reason.
 
@@ -1243,23 +1245,21 @@ The protocol is mostly the same as the simple control plane protocol
 the pings which are now replaced by a declared distance, which is announced
 before the level assignments,  and a round of checks and announce of the checks. 
 
-\subsection{Threat Model}
+\subsection{Attack on Protocol}
 Another question can be, what are we supposed to do with a node that is not
 passing the tests? First, it is important to notice that it won't change the
 view that all nodes have of the system, as nodes use the declared distance
-to compute their bunch and cluster. But one node could use that system to keep
-its level and virtually go to a strategic place where it can unbalance the
+to compute their bunch and cluster. If used with the Locarno Lottery, a malicious node could use that system to declare a fake position and virtually go to a strategic place where it can unbalance the
 system. This is what one may want to avoid. 
 
-There are three approaches to this problem, the first is to exclude the node
+Two different approaches are considered to solve this problem, the first is to exclude the malicious node
 from the system, but it might lead to the redrawing of a certain number of
 regions. Another strategy could be to define the position of the faulty node
 with an approximation based on the ping. If we have the position of the other
 nodes and we fix the location of the unknown faulty node, one might do
 that by computing the intersection between the circles based on the pings. This
 triangulation strategy [\autoref{fig:triangulation_strategy}] can block one
-faulty node to reach the desired position. 
-
+faulty node to reach the desired position. This strategy is imperfect for two reasons, first the Internet suffers from triangle inequality violations \cite{Lumezanu2009}, and second it is possible that the circles based on the pings does not intersect at the same point. In that case, one have to consider what could be the position which satisfies the most of the constraints that are given. But this was not designed due to time reason. An analysis of the triangle inequality violations was made by Pantea Karimi in another project \cite{PanteaKarimi2019}.
 \begin{figure}[!h] \centering
   \includegraphics[width=300pt]{figures/triangulation_strategy}
   \caption{Triangulation can be used to reassign the position of a faulty
@@ -1268,13 +1268,14 @@ faulty node to reach the desired position.
 \end{figure}
 
 As nodes can announce a position, which is checked in priority by close
-nodes, with this protocol if there is a sufficient number of malicious nodes,
-they can declare that they all live in a neighbouring region and valid each other.
+nodes, with this protocol, if there is a sufficient number of malicious nodes,
+they can declare that they all live in a neighbouring region and validate each other.
+This means that regions with a majority of malicious nodes could be created. But that was already allowed with the other protocols. This means as well that these nodes participates in regions, from which they are actually far away. Thus this will break the latency assumption of one region. 
 There is no simple solution to this problem, but that fact has no essential consequences
 on the system so it seems to be an acceptable weakness.
 
-\section{Introducing the Space/Time Interaction distance}
-One of the principal reasons to split the system based on the locality is
+\section{Discussion : Space/Time Interaction distance}
+One of the principal reasons to split the system based on locality is
 because of most regular transactions between people are local. Therefore one
 wants to ensure that in case of a global partition, most of the transactions
 can still be processed flawlessly. The first idea for the locality was the
@@ -1282,7 +1283,9 @@ following. As there should be more interaction in local regions, they can be pro
 real goal is to maintain the interactions between the nodes. In that case,
 the space metric is used to get an insight into the number of interactions
 between nodes. And this is a reasonable approximation, but it might be worth it
-to use these interactions directly. 
+to try to quantify these interactions directly. 
+
+This goes in an orthogonal direction that the first goal of CRUX and Nyle. Indeed this part does not tries to create regions based on the latency or the availability, but on the concept of interaction between nodes. This could help if cross-region interactino are creating some overhead, and this can be the case depending on the underlying system. With the new proposed distance, nodes that interacts ofter would be put in small regions.
 
 \subsection{Interactions as a Distance on Space/Time Graphs}
 
@@ -1290,10 +1293,10 @@ If one wants to leverage the locality of interactions to build regions, it
 might be worth it to investigate the following case. Imagine that some nodes
 $A$ and $B$ interact often, but they are not part of the same local
 region. By design, there is a bigger region in which they interact, and each of
-these interactions should pass by this bigger region. One property that might
+these interactions should pass through this bigger region. One property that might
 be useful is that these frequent interactions should have an impact on the
 system leading to the creation or update of a region to include the interacting nodes. If the
-metric that defines distance is changed from kilometers to "interactions". One
+metric that defines distance is changed from kilometers (or milliseconds if pings are used to approximate distance) to "interactions". One
 should be able to redraw the whole system based on that and to apply Crux to
 create regions. Now how to define this metric? Let's try with the
 following definition of distance :
@@ -1305,11 +1308,11 @@ $\forall A, B \in S$
 \end{equation}
 Where $S$ is the set of nodes in the system.
 
-It is intersting to note that this quantity is the property of a distance but not of a metric
+It is intersting to note that this quantity has the property of a distance but not of a metric
 \cite{Greenhoe2016}. The properties of a metric and distances are listed below.
-Indeed for the first, if we define that the number of messages that one node
+Indeed for the first property, if we define that the number of messages that one node
 sends to itself is infinite, the distance from one node to itself would be
-zero. Second, the number of messages is positive meaning that the distance is always positive. Third, the interactions are counted as symmetric (if $A$ is
+zero. For the second property, the number of messages is positive meaning that the distance is always positive. For the third, the interactions are counted as symmetric (if $A$ is
 sending a message to $B$ we count that as an interaction between $A$ and $B$).
 But for the fourth, the triangle inequality is not respected, and that is a
 problem indeed one should notice that if $A$ is close to $B$ and $B$ to $C$ but
@@ -1328,8 +1331,8 @@ $\forall A,B \in S$
  \color{red} \item$d(A, C) \leq d(A,B) + d(B,C)$ \color{black}
 \end{enumerate}
 
-\paragraph{Example : CFF Distance}
-A parallel can be made with the CFF distance. Indeed in some cases, it is much
+\paragraph{Example : Swiss rail network}
+A parallel can be made with the Swiss rail network. Indeed in some cases, it is much
 faster to take a train from $A$ to $B$ and then to take a train from $B$ to $C$
 than taking a bus from $A$ to $C$ [\autoref{fig:CFF-map}][\autoref{fig:CFF-NewDistances}] . 
 
@@ -1337,16 +1340,16 @@ than taking a bus from $A$ to $C$ [\autoref{fig:CFF-map}][\autoref{fig:CFF-NewDi
 \centering
 \includegraphics[width=450pt]{figures/mapCFF}
 \caption{Map of the train network in Switzerland, line width is proportional to
- the number of connections per day. This map was done using a Python API \cite{MapBox} and is based on public data \cite{OpenData}. } \label{fig:CFF-map}
+ the number of connections per day. Three criteria were held for the selection of the cities: size, if they are a capital, and my own preferences. There is an edge between two cities if there is a direct connection in the dataset. This map was done using a Python API \cite{MapBox} and is based on public data \cite{OpenData}. } \label{fig:CFF-map}
 \end{figure}
 
 \begin{figure}[!h] 
 \centering
 \includegraphics[width=350pt]{figures/CFF-NewDistances}
 \caption{The train network is drawn again, using the regular distance first. In
- the second time, the graph is displayed using the interaction distance as
+ the second figure, the graph is displayed using the interaction distance as
  force in a force-directed graph. Ensuring that nodes that are close with
- regard to the interaction distance are close on the graph.}
+ regard to the interaction distance are close on the graph.  Three criteria were held for the selection of the cities: size, if they are a capital, and my own preferences. There is an edge between two cities if there is a direct connection in the dataset.}
  \label{fig:CFF-NewDistances}
 \end{figure}
 
@@ -1358,7 +1361,7 @@ interaction distance does not change anything. Triangle inequality could be
 useful if one was trying to find a path from $A$ to $B$ and was considering
 going by different other nodes to arrive at its goal. In our case, this is not
 the case, and the hypothesis is that nodes have a one-to-one communication system.
-Therefore it's only required to know the distance between any pair of points.
+Therefore it's only required to know the distance between any pair of points to be able to draw a map of the system. Indeed if nodes are given levels, and every node knows the pairwise distance to every other nodes, then it is possible to compute the bunch and cluster of every node.
 
 \subsection{Finding Meaning}
 To understand better what this distance means, some examples are
@@ -1384,7 +1387,7 @@ to infinity.
 
 \paragraph{"Regions" With Interaction Distance} \label{par:section-example}
 The concept of the "region" is harder to conceive with that new notion of
-distance. It might be useful to use the parallel with the CFF
+distance. It might be useful to use the parallel with the Swiss rail network
 \autoref{fig:CFF-NewDistances}, let's imagine a node at EPFL and try to
 conceptualize what might correspond to the equivalent of "local", "regional" and "global regions". The "local" region might be depicted with what places can
 be reached within 15 min of public transportation. As the frequency of some lines, e.g. the metro, are much higher than some bus lines, the place that are reachable by this means of transportation would be considered as local. At the regional level, it might be what
@@ -1417,7 +1420,7 @@ of messages it receives from other nodes between epochs, and post the results
 at the beginning of the next epoch instead of the pings. Each node is able then
 to compute the new distance, and the algorithm for regions can be used
 directly. In the first epoch, as nodes did not have the time to interact a lot
-with each other, pings are used instead of the interaction distance.
+with each other, the map of the system will be very regular with the same distance between each node. One assumes that because of the underlying system, nodes will start to interact more with a small subset of other nodes, creating an ensemble of nodes that are close, upon which the local regions are created.
 
 \subsection{Drawback}
 This new distance might have a lot of interesting properties, but the major drawback is that it can change a lot from one epoch to the next. Two examples can be seen in [\autoref{fig:SpaceTime-Random}] and [\autoref{fig:SpaceTime-Locarno}], where the new definition of the distance was used, and a map of the system was displayed using a force-directed graph drawing was used to take into account the distance between the nodes. It is interesting to notice that only using the control plane without having an underlying system has for consequence that most nodes have the same number of interactions. It is leading to to a regular distribution in space. The only nodes that have less interaction are the nodes that are joining the system during this epoch, and they are farther away from the other. As the distance change more often, it might lead to more region transformations. But if the underlying system is working in a stable manner, one can expect that the number of interactions between two nodes stays more or less stable, which might correct this drawback.
@@ -1443,8 +1446,8 @@ generation of regions with special meaning. For example, it could make sense to
 create a region that is corresponding to precise geographical areas. This could
 allow the client to know where its transactions are validated precisely. For
 example, it could mean more to him to know that his transaction is validated in
-Swiss and Western Europe but not yet globally than knowing that its transaction
-is validated in some local area but not globally. 
+Swistzerland and Western Europe but not yet globally than knowing that its transaction
+is validated in some local area but not globally. It should be immediate to implement it, in the form of an API that accept a description of a region and that match it to nodes that are inside the described region at the moment. 
 
 One of the assumptions that were taken is that the distribution of the levels
 would be geographically distributed at random. That is the case since the
@@ -1456,21 +1459,27 @@ to compute the density of levels per region and to detect if it is more or less
 the same. If it diverges too much, a fall back to random attribution of levels
 could be applied. 
 
+For the sake of completeness, it is important to say that an adaptative approach for the control plane was considered. It was not using epochs, but adapting the regions directly when nodes were performing an action (joining, leaving, moving). The related works can be found in this files \cite{ArnaudPannatier2019}, \cite{ArnaudPannatierWorks2019}. It was not easy to make this idea work, because if one want that every node in the system have the same maps, each time that an action is detected it should be communicated to every other nodes, which was not manageable. 
+
 \section{Roadmap}
 Of course, this work is just a small part of what is left to do to have the first
-version of Nyle. Here is a list of what is to implement to have the first version
-of Nyle and description of the current progress.
+version of Nyle control plane. Here is a list of what is to implement to have the first version
+of Nyle control plane and description of the current progress.
 
 \begin{itemize} 
 \item Based on the location through time and space of nodes, build regions.
 (Done in this work)
-\item In each of the region of the regions build a Blockchain. (Could use an
- existing one.)
-\item Use the transaction validation to give info on the validated region. (To
+\item Use the transaction validation to give info on the validated region. This could be done in the form of an API, a client could query some nodes to see if its transaction was already validated in a given region. And giving updates each time another region has accepted his transaction. (To
 do) 
 \item Dealing with moving actors. (Done in this work)
 \item Manage the transfer of data from one epoch to the next (To do)
-\item Dealing with double-spending issues. (To do)
+\end{itemize}
+
+Here are some steps that are required for the Data Plane of Nyle. 
+\begin{itemize} 
+\item In each of the region of the regions build a Blockchain. (Could use an
+ existing one.)
+ \item Dealing with double-spending issues. (To do)
 (if a node spends the same coin in different regions). 
 \end{itemize}
 
@@ -1540,10 +1549,7 @@ systems.
 
 \cleardoublepage \phantomsection \addcontentsline{toc}{chapter}{Bibliography}
 
-
-
 \printbibliography
-
 
 \let\savecleardoublepage\cleardoublepage
 \let\cleardoublepage\clearpage 
@@ -1810,8 +1816,8 @@ Total   & 47 & 1'732 & 3'279 & 7'241 \\
 \toprule
 \textbf{Number of}    & \textbf{Total} \\ \midrule
  Commits & 192 \\ \hdashline
- Coffees & 274 \\ \hdashline
-Days & 89 \\ \hdashline
+ Coffees & 276 \\ \hdashline
+Days & 90 \\ \hdashline
 Graphs & 28 \\
 \midrule
 \bottomrule
