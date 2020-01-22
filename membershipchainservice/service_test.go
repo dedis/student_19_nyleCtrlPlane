@@ -333,8 +333,8 @@ func TestNewEpoch(t *testing.T) {
 
 }
 func TestWholeSystemOverFewEpochs(t *testing.T) {
-	nbrNodes := 20
-	nbrEpoch := Epoch(10)
+	nbrNodes := 50
+	nbrEpoch := Epoch(20)
 	nbFirstSigners := 4
 
 	rmFile("Data/messages.txt")
