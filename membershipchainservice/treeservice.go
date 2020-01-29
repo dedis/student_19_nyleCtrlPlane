@@ -36,10 +36,12 @@ func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 
 	//subfolder
-	readline, _ := ReadFileLineByLine("folder_str")
+	readline, err := ReadFileLineByLine("folder_str")
 	subfolder := readline()
 	folderStr := "/utils/NodesFiles/"
-	folderStr += subfolder + "/"
+	if err == nil {
+		folderStr += subfolder + "/"
+	}
 
 	log.LLvl1("Reading from : ", s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
 	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
@@ -208,16 +210,17 @@ func (s *Service) getPings(readFromFile bool) {
 		}
 	} else {
 
-		if len(s.Nodes.All) > 100 {
+		if len(s.Nodes.All) > 500 {
 			panic("This file was not generated")
 		}
 
 		//subfolder
-		readline, _ := ReadFileLineByLine("folder_str")
+		readline, err := ReadFileLineByLine("folder_str")
 		subfolder := readline()
-		folderStr := "/utils/PingsFiles/"
-		folderStr += subfolder
-
+		folderStr := "/utils/PingsFiles"
+		if err == nil {
+			folderStr += "/" + subfolder
+		}
 		log.LLvl1("Reading pings from ", s.PrefixForReadingFile+folderStr+"/pings"+strconv.Itoa(len(s.Nodes.All)))
 
 		// read from file lines of form "ping node_19 node_7 = 32.317"
@@ -259,10 +262,12 @@ func (s *Service) genTrees(RandomLevels bool, Levels int, Optimized bool, Optimi
 	folderStr := "Data/"
 
 	//subfolder
-	readline, _ := ReadFileLineByLine("folder_str")
+	readline, err := ReadFileLineByLine("folder_str")
 	subfolder := readline()
 
-	folderStr += subfolder + "/"
+	if err == nil {
+		folderStr += subfolder + "/"
+	}
 
 	if RandomLevels {
 		folderStr += "Random/"

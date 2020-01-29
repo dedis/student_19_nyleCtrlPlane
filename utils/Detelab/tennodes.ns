@@ -2,7 +2,7 @@ set ns [new Simulator]
 source tb_compat.tcl
 
 set server_total 10
-set server_delay 0ms
+set server_delay 10ms
 set lanstr ""
 
 # There is no real benefit for modifying this for a special case of 1 client

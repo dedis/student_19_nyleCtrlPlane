@@ -23,6 +23,8 @@ import (
 	"go.dedis.ch/protobuf"
 )
 
+const START_EPOCH = false
+
 // For Blscosi
 const protocolTimeout = 20 * time.Minute
 
@@ -74,20 +76,20 @@ type Service struct {
 	suite     pairing.Suite
 
 	// From Crux
-	Nodes             gentree.LocalityNodes
-	GraphTree         GraphTrees
-	BinaryTree        map[string][]*onet.Tree
-	alive             bool
-	Distances         map[*gentree.LocalityNode]map[*gentree.LocalityNode]gentree.Compact
-	PingDistances     map[string]map[string]float64
-	ShortestDistances map[string]map[string]float64
-	OwnPings          map[string]float64
-	DonePing          bool
-	PingMapMtx        sync.Mutex
-	PingAnswerMtx     sync.Mutex
-	NrPingAnswers     int
-
+	Nodes                gentree.LocalityNodes
+	GraphTree            GraphTrees
+	BinaryTree           map[string][]*onet.Tree
+	alive                bool
+	Distances            map[*gentree.LocalityNode]map[*gentree.LocalityNode]gentree.Compact
+	PingDistances        map[string]map[string]float64
+	ShortestDistances    map[string]map[string]float64
+	OwnPings             map[string]float64
+	DonePing             bool
+	PingMapMtx           sync.Mutex
+	PingAnswerMtx        sync.Mutex
+	NrPingAnswers        int
 	PrefixForReadingFile string
+	PrefixForWritingFile string
 	EpochChan            chan Epoch
 
 	// From Interaction
@@ -115,45 +117,78 @@ type storage struct {
 
 // SetGenesisSignersRequest handles requests for the function
 func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetGenesisSignersReply, error) {
+	s.e = 0
+	s.storage.Lock()
+	s.storage.Signers = make([]SignersSet, 0)
+	s.storage.Unlock()
 	s.SetGenesisSigners(req.Servers)
 	return &SetGenesisSignersReply{}, nil
 }
 
 //ExecEpochRequest handles requests for the function
 func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, error) {
-	var err error
+	dir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	rmFile(dir + "/" + s.PrefixForReadingFile + "/Data" + s.PrefixForWritingFile + "/Timing/" + s.Name + ".txt")
+	writeToFile("Function,DeltaT,startTime", dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
+	startTime := time.Now()
 	if s.e != req.Epoch-1 {
 		err = s.UpdateHistoryWith(s.GetRandomName())
 		if err != nil {
 			return nil, err
 		}
 	}
-
+	writeToFile(fmt.Sprintf("ExecEpochRequest - 2 - AfterUpdate, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
+	log.LLvl1("WRITING TO OS : ", dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Throughput/"+s.Name+".txt,  ------------------------------------------")
 	err = s.CreateProofForEpoch(req.Epoch)
 	if err != nil {
-		return nil, err
+		log.LLvl3("ERROR IN CREATE PROOF : ", err)
+		writeToFile(s.Name+",False,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Throughput/"+s.Name+".txt")
+	} else {
+		writeToFile(s.Name+",True,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Throughput/"+s.Name+".txt")
 	}
 
-	// TODO change with a random leader
-	if s.Name == "node_0" {
-		err = s.GetConsencusOnNewSigners()
+	if START_EPOCH {
+		// TODO change with a random leader
+		if s.Name == "node_0" {
+			err = s.GetConsencusOnNewSigners()
+			if err != nil {
+				return nil, err
+			}
+		}
+		err = s.StartNewEpoch()
 		if err != nil {
 			return nil, err
 		}
+		log.LLvl1("PASSS: ", s.Name, "is ending epoch", s.e)
 	}
-	err = s.StartNewEpoch()
+	return &ExecEpochReply{}, nil
+}
+
+// ExecWriteSigners handles writing request
+func (s *Service) ExecWriteSigners(req *ExecWriteSigners) (*ExecWriteSignersReply, error) {
+	dir, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	log.LLvl1("PASSS: ", s.Name, "is ending epoch", s.e)
+	signRep := s.GetSigners(1)
+	names, err := s.GetNamesFromSignerSet(signRep.Set)
+	if err != nil {
+		panic(err)
+	}
+	writeToFile("Joined,Epoch", dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/SignerSet"+s.Name+".txt")
+	for _, name := range names {
+		writeToFile(name+","+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/SignerSet"+s.Name+".txt")
+	}
 
-	return &ExecEpochReply{}, nil
+	return &ExecWriteSignersReply{}, nil
 }
 
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
 	s.Cycle.Set()
-	log.LLvl1(s.Name, "is set ..", s.Cycle)
 
 	s.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 	s.ServersMtx.Lock()
@@ -177,6 +212,7 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 	s.storage.Signers[0] = signers
 	s.storage.Unlock()
+	log.LLvl1(s.Name, "is set ..", s.Cycle)
 }
 
 func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
@@ -207,6 +243,14 @@ func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.Signatur
 		if e == len(s.storage.Signers) {
 			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
 		}
+
+		if s.e > Epoch(e) {
+			return errors.New(" Error in add signer - Cannot sign for previous epochs ")
+		}
+		if s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS || s.Cycle.GetEpoch() >= Epoch(e) {
+			return errors.New(" Error in add signer - Cannot sign for previous epochs ")
+		}
+
 		s.storage.Signers[Epoch(e)][signer] = *proof
 		s.storage.Unlock()
 		return nil
@@ -283,7 +327,20 @@ func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.Serv
 		mbrs = append(mbrs, si)
 	}
 	return mbrs, nil
+}
 
+// GetNamesFromSignerSet return name from signers set
+func (s *Service) GetNamesFromSignerSet(m SignersSet) ([]string, error) {
+	mbrsIDs := getKeys(m)
+	var mbrs []string
+	for _, mID := range mbrsIDs {
+		name, ok := s.ServerIdentityToName[mID]
+		if !ok {
+			return nil, errors.New("Server Identity not found in ServerIdentityToName")
+		}
+		mbrs = append(mbrs, name)
+	}
+	return mbrs, nil
 }
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
@@ -339,13 +396,17 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	s.CountTwoMessagesPerNodesInRoster(ro)
 	writeToFile(s.Name+",CreateProofForEpoch,"+strconv.Itoa(len(ro.List))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
-	tree := ro.GenerateNaryTree(len(mbrs))
+	subTrees := len(mbrs)
+	if subTrees > 80 {
+		subTrees = 20
+	}
+	tree := ro.GenerateNaryTree(subTrees)
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
 
-	const baseCommunication = 200 * time.Millisecond
+	const baseCommunication = 50 * time.Millisecond
 	nbNodes := len(ro.List)
 	gossipTimeOut := baseCommunication * time.Duration(nbNodes) * 2
 
@@ -362,9 +423,12 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	p.Start()
 
 	select {
-	case <-p.ConfirmationsChan:
-		log.LLvl1("\033[51;5;33m", s.Name, "'s Registration took", time.Now().Sub(startTime), " \033[0m")
+	case numConf := <-p.ConfirmationsChan:
+		log.LLvl1("\033[51;5;33m", s.Name, "'s Registration took", time.Now().Sub(startTime), "Recieved", numConf, "/", nbNodes, " Confirmations\033[0m")
 		s.LastRegistrationDur = time.Now().Sub(startTime)
+		if numConf != nbNodes {
+			return fmt.Errorf("Create Proof recieved only %v confirmations out of %v", numConf, nbNodes)
+		}
 		return nil
 	case <-time.After(gossipTimeOut * 10):
 		log.LLvl1(s.Name, " got a TimeOut in the Gossip Protocol")
@@ -438,7 +502,7 @@ func (s *Service) StartNewEpoch() error {
 	s.CountInteractions = append(s.CountInteractions, make(map[string]int))
 	s.InteractionMtx.Unlock()
 
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Epoch ", s.e, " Successfully.\033[0m")
+	log.Lvl1("\033[48;5;33m", s.Name, " Starts Epoch ", s.e, " Successfully. It took", time.Now().Sub(startTime), "\033[0m")
 
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
@@ -478,6 +542,7 @@ func (s *Service) StartNewEpoch() error {
 	if s.Name == "node_"+strconv.Itoa(leaderID) {
 		// Wait that all the other services have set up.
 		time.Sleep(1 * time.Second)
+		log.Lvl1("\033[78;5;33m", s.Name, " STARTED AGREEING ON STATE. It took", time.Now().Sub(startTime), " \033[0m")
 		_, err = s.AgreeOnState(ro, PINGSMSG)
 		if err != nil {
 			log.LLvl1("\033[39;5;1m", s.Name, " is not passing the PINGS Agree, Error :   ", err, " \033[0m")
@@ -497,7 +562,13 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSig
 	if rooted == nil {
 		return nil, errors.New("we're not in the roster")
 	}
-	tree := rooted.GenerateNaryTree(nNodes)
+
+	subTrees := nNodes
+	if nNodes > 80 {
+		subTrees = 20
+	}
+
+	tree := rooted.GenerateNaryTree(subTrees)
 	if tree == nil {
 		return nil, errors.New("failed to generate tree")
 	}
@@ -632,18 +703,21 @@ func (s *Service) getepochOfEntryMap() map[string]Epoch {
 
 // UpdateHistoryWith will send an ReqHistory to the service in parameter
 func (s *Service) UpdateHistoryWith(name string) error {
-	log.Lvl1("Updating ", s.Name, "with ", name)
+	log.Lvl3("Updating ", s.Name, "with ", name)
+	startTime := time.Now()
 	s.ServersMtx.Lock()
 	si, ok := s.Servers[name]
 	if !ok {
 		return fmt.Errorf("%s is not aware of server named %s", s.ServerIdentity(), name)
 	}
 	s.ServersMtx.Unlock()
+	writeToFile(fmt.Sprintf("UpdateHistoryWith - 1 - ServerLock, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
 
 	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
-	sendHistoryTimeOut := 2 * time.Second
+	sendHistoryTimeOut := 10 * time.Second
 	select {
 	case s.e = <-s.EpochChan:
+		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - Answer, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
 		s.InteractionMtx.Lock()
 		if len(s.CountInteractions) <= int(s.GetEpoch()) {
 			// TODO : refactor
@@ -653,9 +727,11 @@ func (s *Service) UpdateHistoryWith(name string) error {
 		}
 		s.CountInteractions[s.GetEpoch()][name]++
 		s.InteractionMtx.Unlock()
+		writeToFile(fmt.Sprintf("UpdateHistoryWith - 3 - Answer Processed, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
 		writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 		return err
 	case <-time.After(sendHistoryTimeOut):
+		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - CHURNED, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
 		newName := "node_0"
 		if s.Name == "node_0" {
 			newName = "node_1"
@@ -810,6 +886,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		Timeout:              protocolTimeout,
 		suite:                suite,
 		PrefixForReadingFile: dir + "/..",
+		PrefixForWritingFile: "",
 		Servers:              make(map[string]*network.ServerIdentity),
 		ServerIdentityToName: make(map[network.ServerIdentityID]string),
 		CountInteractions:    make([]map[string]int, 0),
@@ -821,7 +898,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		EpochChan: make(chan Epoch, 3),
 	}
 	s.Cycle.Set()
-	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest))
+	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest, s.ExecWriteSigners))
 
 	// Register function from one service to another
 	s.RegisterProcessorFunc(execReqHistoryMsgID, s.ExecReqHistory)

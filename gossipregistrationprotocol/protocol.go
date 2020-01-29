@@ -61,18 +61,16 @@ func (p *GossipRegistationProtocol) Start() error {
 func (p *GossipRegistationProtocol) Dispatch() error {
 	defer p.Done()
 	nConf := 1
-
 	ann := <-p.announceChan
 	err := p.addSigners(ann.Announce)
 	if err != nil {
-		return err
+		nConf = 0
 	}
 
 	if p.IsLeaf() {
 		return p.SendToParent(&Reply{nConf})
 	}
 	p.SendToChildren(&ann.Announce)
-
 	select {
 	case replies := <-p.repliesChan:
 		for _, r := range replies {
@@ -84,7 +82,7 @@ func (p *GossipRegistationProtocol) Dispatch() error {
 
 		p.ConfirmationsChan <- nConf
 	case <-time.After(p.TimeOut):
-		p.ConfirmationsChan <- 0
+		p.ConfirmationsChan <- nConf
 	}
 
 	return nil

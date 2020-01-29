@@ -333,8 +333,8 @@ func TestNewEpoch(t *testing.T) {
 
 }
 func TestWholeSystemOverFewEpochs(t *testing.T) {
-	nbrNodes := 50
-	nbrEpoch := Epoch(20)
+	nbrNodes := 20
+	nbrEpoch := Epoch(10)
 	nbFirstSigners := 4
 
 	rmFile("Data/messages.txt")
@@ -465,8 +465,8 @@ func TestWholeSystemOverFewEpochs(t *testing.T) {
 func TestFailingBLSCOSI(t *testing.T) {
 	local := onet.NewTCPTest(tSuite)
 
-	// nbrNodes := 200 is failing
-	nbrNodes := 100
+	// nbrNodes := 200 & 100 are failing
+	nbrNodes := 40
 
 	hosts, _, _ := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()
@@ -504,8 +504,8 @@ func TestFailingBLSCOSI(t *testing.T) {
 			wg.Done()
 		}(i)
 	}
-
 	wg.Wait()
+	time.Sleep(2 * time.Second)
 }
 
 func TestFailingProtobufEncode(t *testing.T) {

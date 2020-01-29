@@ -30,6 +30,8 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 		log.LLvl1("s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS", s.Cycle.GetTimeTillNextEpoch(), TIME_FOR_CONSENCUS, s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS, "s.e >= req.Epoch", s.e >= req.Epoch, s.e, req.Epoch)
 		return nil, errors.New("Registration was not made in time")
 	}
+	log.LLvl1("s.Cycle.GetTimeTillNextEpoch() > TIME_FOR_CONSENCUS", s.Cycle.GetTimeTillNextEpoch(), TIME_FOR_CONSENCUS, s.Cycle.GetTimeTillNextEpoch() > TIME_FOR_CONSENCUS, "s.e < req.Epoch", s.e < req.Epoch, s.e, req.Epoch)
+
 	// generate the tree
 	nNodes := len(req.Roster.List)
 
@@ -39,7 +41,12 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	if rooted == nil {
 		return nil, errors.New("we're not in the roster")
 	}
-	tree := rooted.GenerateNaryTree(nNodes)
+	subTrees := nNodes
+	if nNodes > 80 {
+		subTrees = 20
+	}
+
+	tree := rooted.GenerateNaryTree(subTrees)
 	if tree == nil {
 		return nil, errors.New("failed to generate tree")
 	}
@@ -61,7 +68,7 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	}
 
 	if s.NSubtrees > 0 {
-		log.LLvl1(" TOO FEW SUBTREES")
+		log.LLvl1("TOO FEW SUBTREES")
 		err = p.SetNbrSubTree(s.NSubtrees)
 		if err != nil {
 			p.Done()

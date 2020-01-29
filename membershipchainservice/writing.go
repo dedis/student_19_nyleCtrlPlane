@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 
 	"go.dedis.ch/onet/v3/log"
 )
+
+var EXPERIMENT_FOLDER = "/."
 
 func rmFile(fileStr string) {
 	// delete file
@@ -19,10 +22,10 @@ func rmFile(fileStr string) {
 }
 
 func writeToFile(str, fileStr string) {
-	file, _ := os.OpenFile(fileStr, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	os.MkdirAll(filepath.Dir(fileStr), 0777)
+	file, _ := os.OpenFile(fileStr, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
 	w := bufio.NewWriter(file)
-	w.WriteString(str)
-	w.WriteString("\n")
+	w.WriteString(str + "\n")
 	w.Flush()
 	file.Close()
 }
