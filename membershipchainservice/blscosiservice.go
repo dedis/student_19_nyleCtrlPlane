@@ -41,12 +41,8 @@ func (s *Service) SignatureRequest(req *SignatureRequest) (network.Message, erro
 	if rooted == nil {
 		return nil, errors.New("we're not in the roster")
 	}
-	subTrees := nNodes
-	if nNodes > 80 {
-		subTrees = 20
-	}
 
-	tree := rooted.GenerateNaryTree(subTrees)
+	tree := rooted.GenerateNaryTree(nNodes)
 	if tree == nil {
 		return nil, errors.New("failed to generate tree")
 	}

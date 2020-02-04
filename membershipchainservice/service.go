@@ -117,11 +117,20 @@ type storage struct {
 
 // SetGenesisSignersRequest handles requests for the function
 func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetGenesisSignersReply, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	writeToFile("Function,DeltaT,startTime", dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
+	startTime := time.Now()
+
 	s.e = 0
 	s.storage.Lock()
 	s.storage.Signers = make([]SignersSet, 0)
 	s.storage.Unlock()
 	s.SetGenesisSigners(req.Servers)
+	writeToFile(fmt.Sprintf("GenesisSignersRequest - 0 - end, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 	return &SetGenesisSignersReply{}, nil
 }
 
@@ -131,8 +140,7 @@ func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, erro
 	if err != nil {
 		return nil, err
 	}
-	rmFile(dir + "/" + s.PrefixForReadingFile + "/Data" + s.PrefixForWritingFile + "/Timing/" + s.Name + ".txt")
-	writeToFile("Function,DeltaT,startTime", dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
+
 	startTime := time.Now()
 	if s.e != req.Epoch-1 {
 		err = s.UpdateHistoryWith(s.GetRandomName())
@@ -140,14 +148,15 @@ func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, erro
 			return nil, err
 		}
 	}
-	writeToFile(fmt.Sprintf("ExecEpochRequest - 2 - AfterUpdate, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
-	log.LLvl1("WRITING TO OS : ", dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Throughput/"+s.Name+".txt,  ------------------------------------------")
+	writeToFile(fmt.Sprintf("ExecEpochRequest - 2 - AfterUpdate, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
+	log.LLvl1("WRITING TO OS : ", dir+"/"+s.PrefixForReadingFile+"/Data/Throughput/"+s.Name+".txt,  ------------------------------------------")
+	log.LLvl1("................................................................................................", dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 	err = s.CreateProofForEpoch(req.Epoch)
 	if err != nil {
 		log.LLvl3("ERROR IN CREATE PROOF : ", err)
-		writeToFile(s.Name+",False,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Throughput/"+s.Name+".txt")
+		writeToFile(s.Name+",False,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data/Throughput/"+s.Name+".txt")
 	} else {
-		writeToFile(s.Name+",True,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Throughput/"+s.Name+".txt")
+		writeToFile(s.Name+",True,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data/Throughput/"+s.Name+".txt")
 	}
 
 	if START_EPOCH {
@@ -178,9 +187,9 @@ func (s *Service) ExecWriteSigners(req *ExecWriteSigners) (*ExecWriteSignersRepl
 	if err != nil {
 		panic(err)
 	}
-	writeToFile("Joined,Epoch", dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/SignerSet"+s.Name+".txt")
+	writeToFile("Joined,Epoch", dir+"/"+s.PrefixForReadingFile+"/Data/SignerSet"+s.Name+".txt")
 	for _, name := range names {
-		writeToFile(name+","+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/SignerSet"+s.Name+".txt")
+		writeToFile(name+","+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data/SignerSet"+s.Name+".txt")
 	}
 
 	return &ExecWriteSignersReply{}, nil
@@ -391,24 +400,27 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		log.LLvl1(s.Name, " :cannot share proof as it did not manage to get one")
 		return fmt.Errorf("%v cannot share proof as it did not manage to get one", s.Name)
 	}
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	writeToFile(fmt.Sprintf("CreateProofForEpoch - 1 - SignatureRequest, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 
 	ro = ro.NewRosterWithRoot(s.ServerIdentity())
 	s.CountTwoMessagesPerNodesInRoster(ro)
 	writeToFile(s.Name+",CreateProofForEpoch,"+strconv.Itoa(len(ro.List))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 	// Share first to the old signers. That way they will have a view of the global system that they can transmit to the others
-	subTrees := len(mbrs)
-	if subTrees > 80 {
-		subTrees = 20
-	}
-	tree := ro.GenerateNaryTree(subTrees)
+	tree := ro.GenerateNaryTree(len(mbrs))
 	pi, err := s.CreateProtocol(gpr.Name, tree)
 	if err != nil {
 		return errors.New("Couldn't make new protocol: " + err.Error())
 	}
 
-	const baseCommunication = 50 * time.Millisecond
+	const baseCommunication = 200 * time.Millisecond
 	nbNodes := len(ro.List)
+
 	gossipTimeOut := baseCommunication * time.Duration(nbNodes) * 2
+	gossipTimeOut = s.Cycle.GetTimeTillNextEpoch() / 2
 
 	p := pi.(*gpr.GossipRegistationProtocol)
 	p.TimeOut = gossipTimeOut
@@ -426,12 +438,14 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	case numConf := <-p.ConfirmationsChan:
 		log.LLvl1("\033[51;5;33m", s.Name, "'s Registration took", time.Now().Sub(startTime), "Recieved", numConf, "/", nbNodes, " Confirmations\033[0m")
 		s.LastRegistrationDur = time.Now().Sub(startTime)
+		writeToFile(fmt.Sprintf("CreateProofForEpoch - 2 - Gossip, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 		if numConf != nbNodes {
 			return fmt.Errorf("Create Proof recieved only %v confirmations out of %v", numConf, nbNodes)
 		}
 		return nil
-	case <-time.After(gossipTimeOut * 10):
+	case <-time.After(gossipTimeOut * 2):
 		log.LLvl1(s.Name, " got a TimeOut in the Gossip Protocol")
+		writeToFile(fmt.Sprintf("CreateProofForEpoch - 2 - Gossip TimeOut, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 		return fmt.Errorf("%v got a TimeOut in the Gossip Protocol", s.Name)
 	}
 
@@ -471,8 +485,12 @@ func (s *Service) GetConsencusOnNewSigners() error {
 	}
 	s.ServersMtx.Unlock()
 
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	writeToFile(s.Name+",GetConsencusOnNewSigners,"+strconv.Itoa(len(siList))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
-
+	writeToFile(fmt.Sprintf("GetConsencusOnNewSigners - 1 - Consensus, %v, %v", int64(time.Now().Sub(timeCons)/time.Millisecond), timeCons), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 	for _, si := range siList {
 		//log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
 		go func(SI *network.ServerIdentity) {
@@ -483,6 +501,7 @@ func (s *Service) GetConsencusOnNewSigners() error {
 		}(si)
 	}
 	s.EpochChan <- s.e + 1
+	writeToFile(fmt.Sprintf("GetConsencusOnNewSigners - 2 - After Send, %v, %v", int64(time.Now().Sub(timeCons)/time.Millisecond), timeCons), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 	return nil
 }
 
@@ -503,6 +522,11 @@ func (s *Service) StartNewEpoch() error {
 	s.InteractionMtx.Unlock()
 
 	log.Lvl1("\033[48;5;33m", s.Name, " Starts Epoch ", s.e, " Successfully. It took", time.Now().Sub(startTime), "\033[0m")
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	writeToFile(fmt.Sprintf("StartNewEpoch - 1 - Recieve List, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 
 	ro, err := s.getRosterForEpoch(s.e)
 	if err != nil {
@@ -532,6 +556,7 @@ func (s *Service) StartNewEpoch() error {
 	})
 
 	writeToFile(s.Name+",Pings,"+getMemoryUsage(s.PingDistances)+","+strconv.Itoa(int(s.e)), "Data/storage.txt")
+	writeToFile(fmt.Sprintf("StartNewEpoch - 2 - After Setup, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 	if s.Name == "node_0" {
 		writeToFile(fmt.Sprintf("%v", s.GraphTree), "Data/maps_graphTree_"+s.Name+"_epoch"+strconv.Itoa(int(s.e))+".txt")
 	}
@@ -550,6 +575,7 @@ func (s *Service) StartNewEpoch() error {
 		}
 	}
 	log.Lvl1("\033[48;5;33m", s.Name, " Finished Epoch ", s.e, " Successfully. It took", time.Now().Sub(startTime), " \033[0m")
+	writeToFile(fmt.Sprintf("StartNewEpoch - 2 - End Epoch, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 	s.LastEpochDur = time.Now().Sub(startTime)
 	return err
 }
@@ -563,12 +589,7 @@ func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSig
 		return nil, errors.New("we're not in the roster")
 	}
 
-	subTrees := nNodes
-	if nNodes > 80 {
-		subTrees = 20
-	}
-
-	tree := rooted.GenerateNaryTree(subTrees)
+	tree := rooted.GenerateNaryTree(nNodes)
 	if tree == nil {
 		return nil, errors.New("failed to generate tree")
 	}
@@ -703,6 +724,10 @@ func (s *Service) getepochOfEntryMap() map[string]Epoch {
 
 // UpdateHistoryWith will send an ReqHistory to the service in parameter
 func (s *Service) UpdateHistoryWith(name string) error {
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	log.Lvl3("Updating ", s.Name, "with ", name)
 	startTime := time.Now()
 	s.ServersMtx.Lock()
@@ -711,13 +736,13 @@ func (s *Service) UpdateHistoryWith(name string) error {
 		return fmt.Errorf("%s is not aware of server named %s", s.ServerIdentity(), name)
 	}
 	s.ServersMtx.Unlock()
-	writeToFile(fmt.Sprintf("UpdateHistoryWith - 1 - ServerLock, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
+	writeToFile(fmt.Sprintf("UpdateHistoryWith - 1 - ServerLock, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 
-	err := s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
+	err = s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
 	sendHistoryTimeOut := 10 * time.Second
 	select {
 	case s.e = <-s.EpochChan:
-		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - Answer, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
+		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - Answer, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 		s.InteractionMtx.Lock()
 		if len(s.CountInteractions) <= int(s.GetEpoch()) {
 			// TODO : refactor
@@ -727,11 +752,11 @@ func (s *Service) UpdateHistoryWith(name string) error {
 		}
 		s.CountInteractions[s.GetEpoch()][name]++
 		s.InteractionMtx.Unlock()
-		writeToFile(fmt.Sprintf("UpdateHistoryWith - 3 - Answer Processed, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
+		writeToFile(fmt.Sprintf("UpdateHistoryWith - 3 - Answer Processed, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 		writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
 		return err
 	case <-time.After(sendHistoryTimeOut):
-		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - CHURNED, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), s.PrefixForReadingFile+"/Data"+EXPERIMENT_FOLDER+"/Timing/"+s.Name+".txt")
+		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - CHURNED, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
 		newName := "node_0"
 		if s.Name == "node_0" {
 			newName = "node_1"

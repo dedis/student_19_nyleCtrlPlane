@@ -49,8 +49,12 @@ func NewSimulationService(config string) (onet.Simulation, error) {
 func (s *SimulationService) Setup(dir string, hosts []string) (
 	*onet.SimulationConfig, error) {
 	sc := &onet.SimulationConfig{}
+	// TODO : sort
 	if EXP == 2 {
 		s.CreateRoster(sc, hosts, 1500)
+	}
+	if EXP >= 3 {
+		s.CreateRoster(sc, hosts, 1000)
 	} else {
 		s.CreateRoster(sc, hosts, 2000)
 	}
@@ -126,6 +130,78 @@ func RunSystemNormally(roster *onet.Roster, clients []*nylechain.Client) error {
 	return nil
 }
 
+// RunExperiment run a Standard experiment
+func RunExperiment(roster *onet.Roster, clients []*nylechain.Client, runs []int, committee int, reg_duration time.Duration) error {
+	mbrSer.REGISTRATION_DUR = reg_duration
+	if LOCAL {
+		committee = 5
+		runs = []int{10, 20}
+	}
+
+	dir, _ := os.Getwd()
+	add := ""
+	if strings.HasSuffix(dir, "/simulation/build") {
+		add = "../.."
+	}
+	if strings.HasSuffix(dir, "/remote") {
+		add = "."
+	}
+
+	os.MkdirAll(add+"/Data/Throughput/", 0777)
+	file, _ := os.OpenFile(add+"/Data/Throughput.txt", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	w := bufio.NewWriter(file)
+	w.WriteString("Parameters, Committee : " + strconv.Itoa(committee) + " - Time for registration : " + strconv.Itoa(int(mbrSer.REGISTRATION_DUR/time.Millisecond)) + "\n")
+	w.Flush()
+
+	servers := make(map[*network.ServerIdentity]string)
+	for i := 0; i < committee; i++ {
+		si := roster.List[i]
+		servers[si] = GetServerIdentityToName(si, roster)
+		log.LLvl1("Signers 0 : ", si)
+	}
+
+	for _, r := range runs {
+		if r < committee {
+			continue
+		}
+		log.LLvl1("\033[48;5;42mStart Run ", r, "- Committee : ", committee, "Time : ", mbrSer.REGISTRATION_DUR, "\033[0m ")
+		w.WriteString("Start run " + strconv.Itoa(r) + "\n")
+		w.Flush()
+
+		answChan := make(chan int)
+		for i := 0; i < r; i++ {
+			go func(idx int, c chan int) {
+				clients[idx].SetGenesisSignersRequest(roster.List[idx], servers)
+				c <- idx
+			}(i, answChan)
+		}
+
+		totalJobsLeft := r
+		for j := range answChan {
+			totalJobsLeft--
+			log.LLvl1("Node", j, "Terminated. Jobs Left : ", totalJobsLeft)
+			if totalJobsLeft == 0 {
+				break
+			}
+		}
+		close(answChan)
+		var wg sync.WaitGroup
+		for i := 0; i < r; i++ {
+			log.LLvl1("Nodes : node_", i, " : ", roster.List[i])
+			wg.Add(1)
+			go func(idx int) {
+				clients[idx].ExecEpochRequest(roster.List[idx], 1)
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+		clients[0].ExecWriteSigners(roster.List[0], 1)
+		time.Sleep(10 * time.Second)
+	}
+	file.Close()
+	return nil
+}
+
 // RunExperiment1 : Run the system for 1 epoch, with a fixed number of node as a committee
 // and a varying number of joining nodes
 // (example of parameters : committee 100 nodes, joining nodes : 100, 200, 300, ... , 1000)
@@ -133,309 +209,39 @@ func RunExperiment1(roster *onet.Roster, clients []*nylechain.Client) error {
 	committee := 50
 	runs := []int{50, 250, 500, 750, 1000, 1250, 1500, 1750, 2000}
 
-	if LOCAL {
-		committee = 5
-		runs = []int{10, 20}
-	}
-
-	dir, _ := os.Getwd()
-	log.LLvl1("Dir from Node : ", dir)
-
-	add := ""
-	if strings.HasSuffix(dir, "/simulation/build") {
-		add = "../.."
-	}
-	if strings.HasSuffix(dir, "/remote") {
-		add = "."
-	}
-
-	os.Remove(add + "/Data/Throughput.txt")
-	os.RemoveAll(add + "/Data/Throughput/")
-	os.MkdirAll(add+"/Data/Throughput/", 0777)
-	file, _ := os.OpenFile(add+"/Data/Throughput.txt", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	w := bufio.NewWriter(file)
-
-	servers := make(map[*network.ServerIdentity]string)
-	for i := 0; i < committee; i++ {
-		si := roster.List[i]
-		servers[si] = GetServerIdentityToName(si, roster)
-		log.LLvl1("Signers 0 : ", si)
-	}
-
-	for _, r := range runs {
-
-		log.LLvl1("\033[48;5;42mStart Run ", r, "\033[0m ")
-		w.WriteString("Start run " + strconv.Itoa(r) + "\n")
-		w.Flush()
-
-		answChan := make(chan int)
-		for i := 0; i < r; i++ {
-			go func(idx int, c chan int) {
-				log.LLvl1("Sending Gen request to server", idx, roster.List[idx])
-				clients[idx].SetGenesisSignersRequest(roster.List[idx], servers)
-				log.LLvl1("Idx : ", idx, "sends to the channel")
-				c <- idx
-			}(i, answChan)
-		}
-
-		totalJobsLeft := r
-		for j := range answChan {
-			totalJobsLeft--
-			log.LLvl1("Node", j, "Terminated. Jobs Left : ", totalJobsLeft)
-			if totalJobsLeft == 0 {
-				break
-			}
-		}
-		close(answChan)
-		var wg sync.WaitGroup
-		for i := 0; i < r; i++ {
-			log.LLvl1("Nodes : node_", i, " : ", roster.List[i])
-			wg.Add(1)
-			go func(idx int) {
-				clients[idx].ExecEpochRequest(roster.List[idx], 1)
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-		clients[0].ExecWriteSigners(roster.List[0], 1)
-		time.Sleep(10 * time.Second)
-	}
-	file.Close()
-	return nil
+	return RunExperiment(roster, clients, runs, committee, mbrSer.REGISTRATION_DUR)
 }
 
+// RunExperiment2 : Same as 1 but 10 computers instead of 20
+// reduce the number of computer to see if the drop in registration comes from the ressources
 func RunExperiment2(roster *onet.Roster, clients []*nylechain.Client) error {
 	committee := 50
 	runs := []int{50, 250, 500, 750, 1000, 1100}
 
-	if LOCAL {
-		committee = 5
-		runs = []int{10, 20}
-	}
-
-	dir, _ := os.Getwd()
-	log.LLvl1("Dir from Node : ", dir)
-
-	add := ""
-	if strings.HasSuffix(dir, "/simulation/build") {
-		add = "../.."
-	}
-	if strings.HasSuffix(dir, "/remote") {
-		add = "."
-	}
-
-	os.Remove(add + "/Data/Throughput.txt")
-	os.RemoveAll(add + "/Data/Throughput/")
-	os.MkdirAll(add+"/Data/Throughput/", 0777)
-	file, _ := os.OpenFile(add+"/Data/Throughput.txt", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	w := bufio.NewWriter(file)
-
-	servers := make(map[*network.ServerIdentity]string)
-	for i := 0; i < committee; i++ {
-		si := roster.List[i]
-		servers[si] = GetServerIdentityToName(si, roster)
-		log.LLvl1("Signers 0 : ", si)
-	}
-
-	for _, r := range runs {
-
-		log.LLvl1("\033[48;5;42mStart Run ", r, "\033[0m ")
-		w.WriteString("Start run " + strconv.Itoa(r) + "\n")
-		w.Flush()
-
-		answChan := make(chan int)
-		for i := 0; i < r; i++ {
-			go func(idx int, c chan int) {
-				log.LLvl1("Sending Gen request to server", idx, roster.List[idx])
-				clients[idx].SetGenesisSignersRequest(roster.List[idx], servers)
-				log.LLvl1("Idx : ", idx, "sends to the channel")
-				c <- idx
-			}(i, answChan)
-		}
-
-		totalJobsLeft := r
-		for j := range answChan {
-			totalJobsLeft--
-			log.LLvl1("Node", j, "Terminated. Jobs Left : ", totalJobsLeft)
-			if totalJobsLeft == 0 {
-				break
-			}
-		}
-		close(answChan)
-		var wg sync.WaitGroup
-		for i := 0; i < r; i++ {
-			log.LLvl1("Nodes : node_", i, " : ", roster.List[i])
-			wg.Add(1)
-			go func(idx int) {
-				clients[idx].ExecEpochRequest(roster.List[idx], 1)
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-		clients[0].ExecWriteSigners(roster.List[0], 1)
-		time.Sleep(10 * time.Second)
-	}
-	file.Close()
-	return nil
+	return RunExperiment(roster, clients, runs, committee, mbrSer.REGISTRATION_DUR)
 }
 
+// RunExperiment3 : varying the number of node in the committee and see how its affect the throughput
 func RunExperiment3(roster *onet.Roster, clients []*nylechain.Client) error {
-	committee := 10
+	committees := []int{5, 10, 20, 50, 100, 200}
 	runs := []int{50, 250, 500, 750, 1000}
-
-	if LOCAL {
-		committee = 5
-		runs = []int{10, 20}
+	for _, committee := range committees {
+		RunExperiment(roster, clients, runs, committee, mbrSer.REGISTRATION_DUR)
 	}
 
-	dir, _ := os.Getwd()
-	log.LLvl1("Dir from Node : ", dir)
-
-	add := ""
-	if strings.HasSuffix(dir, "/simulation/build") {
-		add = "../.."
-	}
-	if strings.HasSuffix(dir, "/remote") {
-		add = "."
-	}
-
-	os.Remove(add + "/Data" + EXPERIMENT_FOLDER + "/Throughput.txt")
-	os.RemoveAll(add + "/Data" + EXPERIMENT_FOLDER + "/Throughput/")
-	os.MkdirAll(add+"/Data"+EXPERIMENT_FOLDER+"/Throughput/", 0777)
-	file, err := os.OpenFile(add+"/Data"+EXPERIMENT_FOLDER+"/Throughput.txt", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	if err != nil {
-		log.LLvl1("Cannot open the file ", add+"/Data"+EXPERIMENT_FOLDER+"/Throughput.txt")
-		return err
-	}
-	file2, err := os.OpenFile(add+"/Data"+EXPERIMENT_FOLDER+"/Throughput/test.txt", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	if err != nil {
-		log.LLvl1("Cannot open the file ", add+"/Data"+EXPERIMENT_FOLDER+"/Throughput/test.txt")
-		return err
-	}
-	file2.Close()
-	os.Remove(add + "/Data" + EXPERIMENT_FOLDER + "/Throughput/test.txt")
-	w := bufio.NewWriter(file)
-
-	servers := make(map[*network.ServerIdentity]string)
-	for i := 0; i < committee; i++ {
-		si := roster.List[i]
-		servers[si] = GetServerIdentityToName(si, roster)
-		log.LLvl1("Signers 0 : ", si)
-	}
-
-	for _, r := range runs {
-
-		log.LLvl1("\033[48;5;42mStart Run ", r, "\033[0m ")
-		w.WriteString("Start run " + strconv.Itoa(r) + "\n")
-		w.Flush()
-
-		answChan := make(chan int)
-		for i := 0; i < r; i++ {
-			go func(idx int, c chan int) {
-				log.LLvl1("Sending Gen request to server", idx, roster.List[idx])
-				clients[idx].SetGenesisSignersRequest(roster.List[idx], servers)
-				log.LLvl1("Idx : ", idx, "sends to the channel")
-				c <- idx
-			}(i, answChan)
-		}
-
-		totalJobsLeft := r
-		for j := range answChan {
-			totalJobsLeft--
-			log.LLvl1("Node", j, "Terminated. Jobs Left : ", totalJobsLeft)
-			if totalJobsLeft == 0 {
-				break
-			}
-		}
-		close(answChan)
-		var wg sync.WaitGroup
-		for i := 0; i < r; i++ {
-			log.LLvl1("Nodes : node_", i, " : ", roster.List[i])
-			wg.Add(1)
-			go func(idx int) {
-				clients[idx].ExecEpochRequest(roster.List[idx], 1)
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-		clients[0].ExecWriteSigners(roster.List[0], 1)
-	}
-	file.Close()
 	return nil
 }
 
+// RunExperiment4 : As the main supposition is that the duration of the registration is the only factor of refusal. Vary the registration duration to put that effect into light.
 func RunExperiment4(roster *onet.Roster, clients []*nylechain.Client) error {
 	committee := 50
-	runs := []int{50, 250, 500, 750, 1000, 1100}
+	runs := []int{50, 250, 500, 750, 1000}
+	durations := []time.Duration{500 * time.Millisecond, 1 * time.Second, 2 * time.Second, 5 * time.Second, 10 * time.Second, 20 * time.Second}
 
-	if LOCAL {
-		committee = 5
-		runs = []int{10, 20}
+	for _, dur := range durations {
+		RunExperiment(roster, clients, runs, committee, dur)
 	}
 
-	dir, _ := os.Getwd()
-	log.LLvl1("Dir from Node : ", dir)
-
-	add := ""
-	if strings.HasSuffix(dir, "/simulation/build") {
-		add = "../.."
-	}
-	if strings.HasSuffix(dir, "/remote") {
-		add = "."
-	}
-
-	os.Remove(add + "/Data/Throughput.txt")
-	os.RemoveAll("/Data/Throughput/")
-	os.MkdirAll("/Data/Throughput/", 0777)
-	file, _ := os.OpenFile(add+"/Data/Throughput.txt", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	w := bufio.NewWriter(file)
-
-	servers := make(map[*network.ServerIdentity]string)
-	for i := 0; i < committee; i++ {
-		si := roster.List[i]
-		servers[si] = GetServerIdentityToName(si, roster)
-		log.LLvl1("Signers 0 : ", si)
-	}
-
-	for _, r := range runs {
-
-		log.LLvl1("\033[48;5;42mStart Run ", r, "\033[0m ")
-		w.WriteString("Start run " + strconv.Itoa(r) + "\n")
-		w.Flush()
-
-		answChan := make(chan int)
-		for i := 0; i < r; i++ {
-			go func(idx int, c chan int) {
-				log.LLvl1("Sending Gen request to server", idx, roster.List[idx])
-				clients[idx].SetGenesisSignersRequest(roster.List[idx], servers)
-				log.LLvl1("Idx : ", idx, "sends to the channel")
-				c <- idx
-			}(i, answChan)
-		}
-
-		totalJobsLeft := r
-		for j := range answChan {
-			totalJobsLeft--
-			log.LLvl1("Node", j, "Terminated. Jobs Left : ", totalJobsLeft)
-			if totalJobsLeft == 0 {
-				break
-			}
-		}
-		close(answChan)
-		var wg sync.WaitGroup
-		for i := 0; i < r; i++ {
-			log.LLvl1("Nodes : node_", i, " : ", roster.List[i])
-			wg.Add(1)
-			go func(idx int) {
-				clients[idx].ExecEpochRequest(roster.List[idx], 1)
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-		clients[0].ExecWriteSigners(roster.List[0], 1)
-		time.Sleep(10 * time.Second)
-	}
-	file.Close()
 	return nil
 }
 
@@ -448,6 +254,17 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	for i := 0; i < size; i++ {
 		clients = append(clients, nylechain.NewClient())
 	}
+	dir, _ := os.Getwd()
+	add := ""
+	if strings.HasSuffix(dir, "/simulation/build") {
+		add = "../.."
+	}
+	if strings.HasSuffix(dir, "/remote") {
+		add = "."
+	}
+	os.Remove(add + "/Data/Throughput.txt")
+	os.RemoveAll(add + "/Data/Throughput/")
+	os.RemoveAll(add + "/Data/Timing/")
 
 	if EXP == 1 {
 		log.LLvl1("= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =Experiment #1= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =")

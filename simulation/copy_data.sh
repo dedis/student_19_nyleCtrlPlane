@@ -3,6 +3,7 @@ echo "Remove DataBase"
 ssh apannati@users.deterlab.net ssh server-0.NyleMemberGraphs.SAFER sudo find remote -maxdepth 1 -name '*.db' -delete 
 echo "Change Rights"
 ssh apannati@users.deterlab.net ssh server-0.NyleMemberGraphs.SAFER sudo chmod 777 remote/Data/\*/\*.txt
+ssh apannati@users.deterlab.net ssh server-0.NyleMemberGraphs.SAFER sudo chmod 777 remote/Data/\*.txt
 echo "Deleting useless files"
 ssh apannati@users.deterlab.net ssh server-0.NyleMemberGraphs.SAFER sudo rm -rf remote/Data/Random/
 echo "TAR"
@@ -21,5 +22,5 @@ rm data.tar.gz
 ssh apannati@users.deterlab.net ssh server-0.NyleMemberGraphs.SAFER sudo rm -rf remote/Data/Throughput
 ssh apannati@users.deterlab.net ssh server-0.NyleMemberGraphs.SAFER sudo mkdir remote/Data/Throughput
 echo "Archive"
-NUM=`ls Archive/arch* | sed -n 's/Archive\/arch\([0-9]*\)/\1/p' | sort -rh | head -n 1`
+NUM=`ls Archive/arch* | sed -n 's/Archive\/arch\([0-9]*\).txt/\1/p' | sort -rh | head -n 1`
 cp Data/Throughput.txt Archive/arch$((NUM + 1)).txt

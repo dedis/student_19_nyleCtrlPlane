@@ -1,5 +1,5 @@
 Simulation = "TemplateService"
-Servers = 10
+Servers = 20
 Bf = 2000
 Rounds = 1
 CloseWait = 6000
