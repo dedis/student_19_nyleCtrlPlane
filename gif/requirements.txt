@@ -9,7 +9,7 @@ manimlib==0.1.10
 numpy==1.16.4
 opencv-python==3.4.2.17
 pbr==5.4.3
-Pillow==5.2.0
+Pillow==6.2.0
 progressbar==2.5
 pycairo==1.18.1
 pydub==0.23.0
