@@ -260,9 +260,10 @@ func RunExperiment3(roster *onet.Roster, clients []*nylechain.Client) error {
 // RunExperiment4 : As the main supposition is that the duration of the registration is the only factor of refusal. Vary the registration duration to put that effect into light.
 func RunExperiment4(roster *onet.Roster, clients []*nylechain.Client) error {
 	committee := 50
-	runs := []int{50, 250, 500, 750, 1000}
-	//durations := []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 1 * time.Second, 2 * time.Second, 5 * time.Second, 10 * time.Second, 20 * time.Second}
-	durations := []time.Duration{10 * time.Second, 20 * time.Second, 30 * time.Second}
+	// runs := []int{50, 250, 500, 750, 1000}
+	runs := []int{50, 100, 300, 500}
+	durations := []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 1 * time.Second, 2 * time.Second, 5 * time.Second, 10 * time.Second, 20 * time.Second}
+	//durations := []time.Duration{30 * time.Second, 20 * time.Second, 10 * time.Second}
 
 	for _, dur := range durations {
 		RunExperiment(roster, clients, runs, committee, dur)

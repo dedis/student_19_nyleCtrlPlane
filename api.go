@@ -33,6 +33,19 @@ func (c *Client) SetGenesisSignersRequest(dst *network.ServerIdentity, servers m
 	return reply, nil
 }
 
+func (c *Client) SetRegistrationDuration(dst *network.ServerIdentity, dur time.Duration) (*mbrSer.SetDurationReply, error) {
+	serviceReq := &mbrSer.SetDurationRequest{
+		Duration: dur,
+	}
+	reply := &mbrSer.SetDurationReply{}
+	err := c.SendProtobuf(dst, serviceReq, reply)
+	if err != nil {
+		return nil, err
+	}
+	return reply, nil
+
+}
+
 // ExecEpochRequest sends a message to a service to set genesis Request
 func (c *Client) ExecEpochRequest(dst *network.ServerIdentity, e mbrSer.Epoch) (*mbrSer.ExecEpochReply, error) {
 	serviceReq := &mbrSer.ExecEpochRequest{
