@@ -1,10 +1,13 @@
+#! /usr/bin/python
 import os
 from random import random, seed
 import numpy as np
 
-seed(1.0)
+folder_name = [line.strip() for line in open("folder_name")][0]
 
-max_size_system = 50
+seed(float(folder_name))
+
+max_size_system = 101
 system_width = 300
 
 local_movement = 0.2
@@ -23,19 +26,19 @@ print(positions)
 for N in range(1,max_size_system):
     for n in range(1,N):
         if random() < local_movement:
-            positions[n] = (positions[n][0]+random()*20, positions[n][1]+random()*20)
+            positions[n] = (positions[n][0]+(random()*20-10), positions[n][1]+(random()*20-10))
             print("Epoch : ", N, " local movement for node_",n)
         if random() < teleportation:
             positions[n] = (random()*system_width, random()*system_width)
             print("Epoch : ", N, " teleportation for node_",n)
 
-    with open("NodesFiles/nodes"+str(N)+".txt", "w+") as file_node:
+    with open("NodesFiles/"+str(folder_name)+"/nodes"+str(N)+".txt", "w+") as file_node:
         for i, (x,y) in enumerate(positions):
             if i >= N:
                 break
             file_node.write("node_{} {} {}\n".format(i, x,y))
 
-    with open("PingsFiles/pings"+str(N)+".txt", "w+") as file:
+    with open("PingsFiles/"+str(folder_name)+"/pings"+str(N)+".txt", "w+") as file:
         for i in range(N):
             for j in range(i,N):
                 r = 0

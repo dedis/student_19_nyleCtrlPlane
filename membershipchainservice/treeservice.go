@@ -19,6 +19,7 @@ import (
 )
 
 const USE_LOCARNO = false
+const USE_SPACE_TIME = false
 const NR_LEVELS = 3
 const OPTIMIZED = false
 const OPTTYPE = 1
@@ -33,13 +34,21 @@ var execReplyPingsMsgID network.MessageTypeID
 func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.All = make([]*gentree.LocalityNode, len(req.ServerIdentityToName))
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
-	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+"/utils/NodesFiles/nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
 
-	i := 0
+	//subfolder
+	readline, err := ReadFileLineByLine("folder_str")
+	subfolder := readline()
+	folderStr := "/utils/NodesFiles/"
+	if err == nil {
+		folderStr += subfolder + "/"
+	}
+
+	log.LLvl1("Reading from : ", s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
+	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
+
 	for k, v := range req.ServerIdentityToName {
 		s.Nodes.ServerIdentityToName[k.ID] = v
-		s.Nodes.All[i].ServerIdentity = k
-		i++
+		s.Nodes.All[gentree.NodeNameToInt(v)].ServerIdentity = k
 	}
 
 	for _, myNode := range s.Nodes.All {
@@ -81,7 +90,11 @@ func (s *Service) Setup(req *InitRequest) {
 		}
 	}
 
-	s.getPings(true)
+	if USE_SPACE_TIME {
+		s.GetInteractionDistances()
+	} else {
+		s.getPings(true)
+	}
 	if USE_LOCARNO {
 		SetLevels(s.Nodes.All, s.getepochOfEntryMap())
 	}
@@ -133,7 +146,7 @@ func (s *Service) getPings(readFromFile bool) {
 			}
 		}
 
-		// wit for ping replies from everyone but myself
+		// wait for ping replies from everyone but myself
 		for s.NrPingAnswers != len(s.Nodes.All)-1 {
 			log.LLvl1(" \033[32m WAITING ------------------------------------------ ", s.NrPingAnswers, len(s.Nodes.All)-1, "\033[39m ")
 			time.Sleep(5 * time.Second)
@@ -197,11 +210,21 @@ func (s *Service) getPings(readFromFile bool) {
 		}
 	} else {
 
-		if len(s.Nodes.All) > 50 {
+		if len(s.Nodes.All) > 500 {
 			panic("This file was not generated")
 		}
+
+		//subfolder
+		readline, err := ReadFileLineByLine("folder_str")
+		subfolder := readline()
+		folderStr := "/utils/PingsFiles"
+		if err == nil {
+			folderStr += "/" + subfolder
+		}
+		log.LLvl1("Reading pings from ", s.PrefixForReadingFile+folderStr+"/pings"+strconv.Itoa(len(s.Nodes.All)))
+
 		// read from file lines of form "ping node_19 node_7 = 32.317"
-		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + "/utils/PingsFiles/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
+		readLine, err := ReadFileLineByLine(s.PrefixForReadingFile + folderStr + "/pings" + strconv.Itoa(len(s.Nodes.All)) + ".txt")
 		if err != nil {
 			panic(fmt.Sprintf("Cannot read file for ping /utils/PingsFiles/pings%v", len(s.Nodes.All)))
 		}
@@ -237,12 +260,22 @@ func (s *Service) getPings(readFromFile bool) {
 
 func (s *Service) genTrees(RandomLevels bool, Levels int, Optimized bool, OptimisationLevel int, OptType int, pingDist map[string]map[string]float64) {
 	folderStr := "Data/"
+
+	//subfolder
+	readline, err := ReadFileLineByLine("folder_str")
+	subfolder := readline()
+
+	if err == nil {
+		folderStr += subfolder + "/"
+	}
+
 	if RandomLevels {
 		folderStr += "Random/"
 	} else {
 		folderStr += "Locarno/"
 	}
 
+	log.LLvl1("Writing maps to : ", folderStr+"gentree-"+s.Nodes.GetServerIdentityToName(s.ServerIdentity())+"-epoch"+strconv.Itoa(int(s.e)))
 	file3, _ := os.Create(folderStr + "gentree-" + s.Nodes.GetServerIdentityToName(s.ServerIdentity()) + "-epoch" + strconv.Itoa(int(s.e)))
 	w3 := bufio.NewWriter(file3)
 	w3.WriteString("Name,Level,X,Y,cluster,bunch\n")

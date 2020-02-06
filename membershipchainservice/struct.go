@@ -92,6 +92,7 @@ type ReplyPings struct {
 
 // ReqHistory is use to request info about the current version
 type ReqHistory struct {
+	SenderName     string
 	SenderIdentity *network.ServerIdentity
 }
 
@@ -109,6 +110,7 @@ type ReplyHistory struct {
 type SignatureRequest struct {
 	Message []byte
 	Roster  *onet.Roster
+	Epoch   Epoch
 }
 
 // State describes the state of one node

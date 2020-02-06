@@ -8,11 +8,12 @@
 \definecolor{blackUI}{HTML}{2d3436}
 \definecolor{blueUI}{HTML}{0984e3}
 \definecolor{orangeUI}{HTML}{e17055}
+\definecolor{redUI}{HTML}{e74c3c}
 
 \begin{document}
-\tdplotsetmaincoords{70}{110}
+\tdplotsetmaincoords{70}{120}
 \begin{tikzpicture}[tdplot_main_coords]
-\draw[thick,->] (0,0,0) -- (8,0,0) node[anchor=north east]{};
+\draw[thick,->] (0,0,0) -- (6.5,0,0) node[anchor=north east]{};
 \draw[thick,->] (0,0,0) -- (0,5,0) node[anchor=north west]{};
 \draw[thick,->] (0,0,0) -- (0,0,5) node[anchor=south]{};
 
@@ -47,7 +48,9 @@
 \draw[blackUI,densely dotted] (0.8,0.5,0.4) circle [radius=0.4];
 
 \draw[blackUI,densely dotted] (N) circle [radius=0.8];
-\draw[fill=grayUI] (N) circle [radius=0.15];
+\draw[fill=redUI] (N) circle [radius=0.15];
+
+
 
 
 
@@ -62,6 +65,11 @@
 
 
 \draw[->] (0.67,0.48,0.8) --(0.13,0.7,1.8);
+\begin{scope}[canvas is yx plane at z=0, yscale=-1,transform shape,every node/.style={scale=0.4}]
+\node [align=center] (Text) at (N) {$0$};
+\node [align=center] (Text) at (B1) {$0$};
+\node [align=center] (Text) at (B2) {$1$};
+\end{scope}
 
 
 \end{tikzpicture}%

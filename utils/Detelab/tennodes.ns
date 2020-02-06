@@ -1,0 +1,26 @@
+set ns [new Simulator]
+source tb_compat.tcl
+
+set server_total 10
+set server_delay 10ms
+set server_lanstr ""
+
+# There is no real benefit for modifying this for a special case of 1 client
+
+for {set i 0} {$i < $server_total} {incr i} {
+        set server($i) [$ns node]
+          tb-set-hardware $server($i) dl380g3
+          #tb-set-hardware $server($i) MicroCloud
+        tb-set-node-os $server($i) Ubuntu1404-64-STD
+        append server_lanstr "$server($i) "
+}
+
+tb-use-endnodeshaping 1
+set serverlan [$ns make-lan "$server_lanstr" 1000Mb $server_delay]
+
+for {set i 0} {$i < $server_total} {incr i} {
+        tb-set-ip-lan $server($i) $serverlan 10.255.0.[expr {$i + 1}]
+}
+
+$ns rtproto Static
+$ns run 

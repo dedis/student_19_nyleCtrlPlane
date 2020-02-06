@@ -17,9 +17,12 @@ import (
 
 func TestNodesWantingToJoin(t *testing.T) {
 	t.Skip("Skipping Joining Test as sometimes it fails for time reasons")
+	WAITING_FOR_REGISTRATION = false
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
 	nbFirstSigners := 4
+	rmFile("Data/messages.txt")
+	rmFile("Data/storage.txt")
 	writeToFile("Name,Function,nb_messages,epoch", "Data/messages.txt")
 	writeToFile("Name,Function,storage,epoch", "Data/storage.txt")
 
@@ -62,7 +65,7 @@ func TestNodesWantingToJoin(t *testing.T) {
 
 	}
 	wg.Wait()
-
+	rmFile("Data/comparison_join.txt")
 	writeToFile("Name,Registration,Time,epoch", "Data/comparison_join.txt")
 	for i, b := range alreadyIn {
 		if b {
@@ -71,7 +74,7 @@ func TestNodesWantingToJoin(t *testing.T) {
 	}
 	startTime := time.Now()
 
-	for e := Epoch(1); e < nbrEpoch; e++ {
+	for e := Epoch(1); e <= nbrEpoch; e++ {
 
 		log.LLvl1("\033[48;5;42mStart of Epoch ", e, " after:  ", int64(time.Now().Sub(startTime)/time.Millisecond), "\033[0m ")
 
@@ -99,6 +102,11 @@ func TestNodesWantingToJoin(t *testing.T) {
 						log.LLvl1(s.Name, "is trying to update")
 						name := s.GetRandomName()
 						assert.NoError(t, s.UpdateHistoryWith(name))
+
+					}
+					if s.Cycle.GetCurrentPhase() != REGISTRATION {
+						log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextCycle(), "s to register")
+						time.Sleep(s.Cycle.GetTimeTillNextCycle() + 100*time.Millisecond)
 					}
 					wg.Done()
 				}(i)
@@ -110,7 +118,9 @@ func TestNodesWantingToJoin(t *testing.T) {
 			if b {
 				wg.Add(1)
 				go func(idx int) {
-					assert.NoError(t, services[idx].(*Service).CreateProofForEpoch(e))
+					writeToFile(fmt.Sprintf("%v,Wants As Usual,%v,%v", services[idx].(*Service).Name, int64(time.Now().Sub(startTime)/time.Millisecond), e), "Data/comparison_join.txt")
+					err := services[idx].(*Service).CreateProofForEpoch(e)
+					log.LLvl1("Error in create proof", err)
 					if !alreadyWritten[idx] {
 						writeToFile(fmt.Sprintf("%v,Manage Normally,%v,%v", services[idx].(*Service).Name, int64(time.Now().Sub(startTime)/time.Millisecond), e), "Data/comparison_join.txt")
 						alreadyWritten[idx] = true
@@ -209,6 +219,8 @@ func TestNodesChurning(t *testing.T) {
 	nbrNodes := 20
 	nbrEpoch := Epoch(10)
 	nbFirstSigners := nbrNodes
+	rmFile("Data/messages.txt")
+	rmFile("Data/storage.txt")
 	writeToFile("Name,Function,nb_messages,epoch", "Data/messages.txt")
 	writeToFile("Name,Function,storage,epoch", "Data/storage.txt")
 
@@ -249,6 +261,7 @@ func TestNodesChurning(t *testing.T) {
 	}
 	wg.Wait()
 
+	rmFile("Data/comparison_churn.txt")
 	writeToFile("Name,Registration,Time,Epoch", "Data/comparison_churn.txt")
 	for i, b := range stillIn {
 		if b {
