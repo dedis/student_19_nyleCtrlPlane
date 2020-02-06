@@ -19,7 +19,7 @@ import (
 	"go.dedis.ch/onet/v3/network"
 )
 
-const EXP = 8
+const EXP = 88
 const LOCAL = false
 
 var EXPERIMENT_FOLDER = ""
@@ -120,7 +120,7 @@ func RunSystemNormally(roster *onet.Roster, clients []*nylechain.Client) error {
 		clients[i].SetGenesisSignersRequest(roster.List[i], servers)
 	}
 
-	nbrEpoch := mbrSer.Epoch(10)
+	nbrEpoch := mbrSer.Epoch(2)
 	joiningPerEpoch := int(1 / float64(nbrEpoch) * float64(size))
 
 	var wg sync.WaitGroup

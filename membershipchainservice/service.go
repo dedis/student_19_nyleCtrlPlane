@@ -19,7 +19,7 @@ import (
 	"go.dedis.ch/onet/v3/network"
 )
 
-var WAITING_FOR_REGISTRATION = false
+var WAITING_FOR_REGISTRATION = true
 
 // ServiceName is used for registration on the onet.
 const ServiceName = "MemberchainService"

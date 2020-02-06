@@ -72,20 +72,6 @@ func (c *Client) ExecWriteSigners(dst *network.ServerIdentity, e mbrSer.Epoch) (
 	return reply, nil
 }
 
-// SetRegistrationDuration send a request to change a duration
-func (c *Client) SetRegistrationDuration(dst *network.ServerIdentity, dur time.Duration) (*mbrSer.SetDurationReply, error) {
-	serviceReq := &mbrSer.SetDurationRequest{
-		Duration: dur,
-	}
-	reply := &mbrSer.SetDurationReply{}
-	err := c.SendProtobuf(dst, serviceReq, reply)
-	if err != nil {
-		return nil, err
-	}
-	return reply, nil
-
-}
-
 // UpdateForNewNode send a request to update for a new node
 func (c *Client) UpdateForNewNode(dst *network.ServerIdentity, e mbrSer.Epoch) (*mbrSer.UpdateForNewNodeReply, error) {
 	serviceReq := &mbrSer.UpdateForNewNodeRequest{

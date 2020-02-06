@@ -9,7 +9,7 @@ import (
 	"go.dedis.ch/onet/v3/log"
 )
 
-const START_EPOCH = false
+const START_EPOCH = true
 
 // SetGenesisSignersRequest handles requests for the function
 func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetGenesisSignersReply, error) {
