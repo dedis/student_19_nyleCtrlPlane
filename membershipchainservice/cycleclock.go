@@ -10,7 +10,7 @@ type Phase int
 var (
 	REGISTRATION       = Phase(0)
 	EPOCH              = Phase(1)
-	REGISTRATION_DUR   = 4 * time.Second
+	REGISTRATION_DUR   = 10 * time.Second
 	EPOCH_DUR          = 5 * time.Second
 	TIME_FOR_CONSENCUS = 2 * time.Second
 	MARGIN_FOR_CYCLE   = 1 * time.Second

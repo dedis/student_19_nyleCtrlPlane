@@ -2,44 +2,36 @@ package membershipchainservice
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
 	"os"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/dedis/student_19_nyleCtrlPlane/gentree"
 	gpr "github.com/dedis/student_19_nyleCtrlPlane/gossipregistrationprotocol"
-	"go.dedis.ch/cothority/v3/blscosi/protocol"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/onet/v3"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
-	"go.dedis.ch/protobuf"
 )
 
-const START_EPOCH = false
-
-// For Blscosi
-const protocolTimeout = 20 * time.Minute
-
-var WAITING_FOR_REGISTRATION = true
-
-var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
-
-// MembershipID is used for tests
-var MembershipID onet.ServiceID
+var WAITING_FOR_REGISTRATION = false
 
 // ServiceName is used for registration on the onet.
 const ServiceName = "MemberchainService"
 
+// For Blscosi
+const protocolTimeout = 20 * time.Minute
+
+// MembershipID is used for tests
+var MembershipID onet.ServiceID
 var execReqHistoryMsgID network.MessageTypeID
 var execReplyHistoryMsgID network.MessageTypeID
+var suite = suites.MustFind("bn256.adapter").(*pairing.SuiteBn256)
 
 func init() {
 	var err error
@@ -115,86 +107,6 @@ type storage struct {
 	sync.Mutex
 }
 
-// SetGenesisSignersRequest handles requests for the function
-func (s *Service) SetGenesisSignersRequest(req *SetGenesisSignersRequest) (*SetGenesisSignersReply, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	writeToFile("Function,DeltaT,startTime", dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-	startTime := time.Now()
-
-	s.e = 0
-	s.storage.Lock()
-	s.storage.Signers = make([]SignersSet, 0)
-	s.storage.Unlock()
-	s.SetGenesisSigners(req.Servers)
-	writeToFile(fmt.Sprintf("GenesisSignersRequest - 0 - end, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-	return &SetGenesisSignersReply{}, nil
-}
-
-//ExecEpochRequest handles requests for the function
-func (s *Service) ExecEpochRequest(req *ExecEpochRequest) (*ExecEpochReply, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	startTime := time.Now()
-	if s.e != req.Epoch-1 {
-		err = s.UpdateHistoryWith(s.GetRandomName())
-		if err != nil {
-			return nil, err
-		}
-	}
-	writeToFile(fmt.Sprintf("ExecEpochRequest - 2 - AfterUpdate, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-	log.LLvl1("WRITING TO OS : ", dir+"/"+s.PrefixForReadingFile+"/Data/Throughput/"+s.Name+".txt,  ------------------------------------------")
-	log.LLvl1("................................................................................................", dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-	err = s.CreateProofForEpoch(req.Epoch)
-	if err != nil {
-		log.LLvl3("ERROR IN CREATE PROOF : ", err)
-		writeToFile(s.Name+",False,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data/Throughput/"+s.Name+".txt")
-	} else {
-		writeToFile(s.Name+",True,"+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data/Throughput/"+s.Name+".txt")
-	}
-
-	if START_EPOCH {
-		// TODO change with a random leader
-		if s.Name == "node_0" {
-			err = s.GetConsencusOnNewSigners()
-			if err != nil {
-				return nil, err
-			}
-		}
-		err = s.StartNewEpoch()
-		if err != nil {
-			return nil, err
-		}
-		log.LLvl1("PASSS: ", s.Name, "is ending epoch", s.e)
-	}
-	return &ExecEpochReply{}, nil
-}
-
-// ExecWriteSigners handles writing request
-func (s *Service) ExecWriteSigners(req *ExecWriteSigners) (*ExecWriteSignersReply, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	signRep := s.GetSigners(1)
-	names, err := s.GetNamesFromSignerSet(signRep.Set)
-	if err != nil {
-		panic(err)
-	}
-	writeToFile("Joined,Epoch", dir+"/"+s.PrefixForReadingFile+"/Data/SignerSet"+s.Name+".txt")
-	for _, name := range names {
-		writeToFile(name+","+strconv.Itoa(int(s.e)), dir+"/"+s.PrefixForReadingFile+"/Data/SignerSet"+s.Name+".txt")
-	}
-
-	return &ExecWriteSignersReply{}, nil
-}
-
 // SetGenesisSigners is used to let now to the node what are the first signers.
 func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) {
 	s.Cycle.Set()
@@ -222,134 +134,6 @@ func (s *Service) SetGenesisSigners(servers map[*network.ServerIdentity]string) 
 	s.storage.Signers[0] = signers
 	s.storage.Unlock()
 	log.LLvl1(s.Name, "is set ..", s.Cycle)
-}
-
-func (s *Service) addSignerFromMessage(ann gpr.Announce) error {
-	s.InteractionMtx.Lock()
-	s.CountInteractions[s.GetEpoch()][ann.Name]++
-	s.InteractionMtx.Unlock()
-
-	s.ServersMtx.Lock()
-	s.Servers[ann.Name] = ann.Server
-	s.ServerIdentityToName[ann.Signer] = ann.Name
-	s.ServersMtx.Unlock()
-	return s.addSigner(ann.Signer, ann.Proof, ann.Epoch)
-}
-
-// addSigner will add one signer to the storage if the proof is convincing
-func (s *Service) addSigner(signer network.ServerIdentityID, proof *gpr.SignatureResponse, e int) error {
-	if proof != nil {
-		if e < 0 {
-			return errors.New("Epoch cannot be negative")
-		}
-		s.storage.Lock()
-
-		if e > len(s.storage.Signers) {
-			log.LLvl1(" Error in add signer ? ")
-			return errors.New("Epoch is too in the future")
-		}
-
-		if e == len(s.storage.Signers) {
-			s.storage.Signers = append(s.storage.Signers, make(SignersSet))
-		}
-
-		if s.e > Epoch(e) {
-			return errors.New(" Error in add signer - Cannot sign for previous epochs ")
-		}
-		if s.Cycle.GetTimeTillNextEpoch() < TIME_FOR_CONSENCUS || s.Cycle.GetEpoch() >= Epoch(e) {
-			return errors.New(" Error in add signer - Cannot sign for previous epochs ")
-		}
-
-		s.storage.Signers[Epoch(e)][signer] = *proof
-		s.storage.Unlock()
-		return nil
-	}
-	return fmt.Errorf("Addsigner cannot be completed for %v as %v did not send a signature", s.Name, signer)
-
-}
-
-// GetEpoch returns the current epoch
-func (s *Service) GetEpoch() Epoch {
-	return s.e
-}
-
-// GetSigners gives the registrations that are stored on this node
-func (s *Service) GetSigners(e Epoch) *SignersReply {
-	s.storage.Lock()
-	defer s.storage.Unlock()
-	if e < 0 || e >= Epoch(len(s.storage.Signers)) {
-		return &SignersReply{Set: nil}
-	}
-	return &SignersReply{Set: s.storage.Signers[e]}
-
-}
-
-func getKeys(m SignersSet) []network.ServerIdentityID {
-	var keys []network.ServerIdentityID
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(a, b int) bool {
-		aB := [16]byte(keys[a])
-		bB := [16]byte(keys[b])
-		return bytes.Compare(aB[:], bB[:]) < 0
-	})
-	return keys
-}
-func (s *Service) getGlobalRoster() *onet.Roster {
-	sis := []*network.ServerIdentity{}
-	s.ServersMtx.Lock()
-	for _, v := range s.Servers {
-		sis = append(sis, v)
-	}
-	s.ServersMtx.Unlock()
-
-	return onet.NewRoster(sis)
-}
-
-func (s *Service) getRosterForEpoch(e Epoch) (*onet.Roster, error) {
-	s.storage.Lock()
-	mbrs, err := s.getServerIdentityFromSignersSet(s.storage.Signers[s.e])
-	if err != nil {
-		defer s.storage.Unlock()
-		return nil, err
-	}
-	if _, ok := s.storage.Signers[s.e][s.ServerIdentity().ID]; !ok {
-		defer s.storage.Unlock()
-		return nil, errors.New("One node cannot start a new Epoch if it didn't registrate")
-	}
-	s.storage.Unlock()
-
-	return onet.NewRoster(mbrs), nil
-
-}
-
-func (s *Service) getServerIdentityFromSignersSet(m SignersSet) ([]*network.ServerIdentity, error) {
-	mbrsIDs := getKeys(m)
-	var mbrs []*network.ServerIdentity
-	ro := s.getGlobalRoster()
-	for _, mID := range mbrsIDs {
-		_, si := ro.Search(mID)
-		if si == nil {
-			return nil, errors.New("Server Identity not found in Roster")
-		}
-		mbrs = append(mbrs, si)
-	}
-	return mbrs, nil
-}
-
-// GetNamesFromSignerSet return name from signers set
-func (s *Service) GetNamesFromSignerSet(m SignersSet) ([]string, error) {
-	mbrsIDs := getKeys(m)
-	var mbrs []string
-	for _, mID := range mbrsIDs {
-		name, ok := s.ServerIdentityToName[mID]
-		if !ok {
-			return nil, errors.New("Server Identity not found in ServerIdentityToName")
-		}
-		mbrs = append(mbrs, name)
-	}
-	return mbrs, nil
 }
 
 // CreateProofForEpoch will get signatures from Signers from previous epoch
@@ -451,60 +235,6 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 
 }
 
-// GetConsencusOnNewSigners is run by the previous commitee, the signed result is sent to the new nodes.
-func (s *Service) GetConsencusOnNewSigners() error {
-
-	if s.Cycle.GetCurrentPhase() != EPOCH {
-		log.LLvl1(s.Name, "is waiting ", s.Cycle.GetTimeTillNextEpoch()-TIME_FOR_CONSENCUS, "s to Get the Consencus")
-		time.Sleep(s.Cycle.GetTimeTillNextEpoch() - TIME_FOR_CONSENCUS)
-	}
-	timeCons := time.Now()
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Consensus after", time.Now().Sub(timeCons), " \033[0m")
-	ro, err := s.getRosterForEpoch(s.e)
-	if err != nil {
-		return err
-	}
-	log.Lvl1("\033[48;5;33m", s.Name, " Starts Agree on State after", time.Now().Sub(timeCons), " \033[0m")
-	// Agree on Signers
-	_, err = s.AgreeOnState(ro, SIGNERSMSG)
-	if err != nil {
-		log.LLvl1(" \033[38;5;1m", s.Name, " is not passing the Signers Agree, Error :   ", err, " \033[0m")
-		return err
-	}
-
-	//log.LLvl1("Send Signature after", time.Now().Sub(timeCons), sign)
-	newSigners := s.GetSigners(s.e + 1)
-
-	var siList []*network.ServerIdentity
-	s.ServersMtx.Lock()
-	for sID := range newSigners.Set {
-		if sID != s.ServerIdentity().ID {
-			name := s.ServerIdentityToName[sID]
-			siList = append(siList, s.Servers[name])
-		}
-	}
-	s.ServersMtx.Unlock()
-
-	dir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	writeToFile(s.Name+",GetConsencusOnNewSigners,"+strconv.Itoa(len(siList))+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
-	writeToFile(fmt.Sprintf("GetConsencusOnNewSigners - 1 - Consensus, %v, %v", int64(time.Now().Sub(timeCons)/time.Millisecond), timeCons), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-	for _, si := range siList {
-		//log.LLvl1("Send History to ", si, " after", time.Now().Sub(timeCons))
-		go func(SI *network.ServerIdentity) {
-			panicErr := s.SendHistory(SI)
-			if panicErr != nil {
-				panic(panicErr)
-			}
-		}(si)
-	}
-	s.EpochChan <- s.e + 1
-	writeToFile(fmt.Sprintf("GetConsencusOnNewSigners - 2 - After Send, %v, %v", int64(time.Now().Sub(timeCons)/time.Millisecond), timeCons), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-	return nil
-}
-
 // StartNewEpoch stops the registration for nodes and run CRUX
 func (s *Service) StartNewEpoch() error {
 	if s.Cycle.GetCurrentPhase() != EPOCH {
@@ -580,77 +310,6 @@ func (s *Service) StartNewEpoch() error {
 	return err
 }
 
-// AgreeOnState checks that the members of the roster have the same signers + same maps
-func (s *Service) AgreeOnState(roster *onet.Roster, msg []byte) (protocol.BlsSignature, error) {
-	// generate the tree
-	nNodes := len(roster.List)
-	rooted := roster.NewRosterWithRoot(s.ServerIdentity())
-	if rooted == nil {
-		return nil, errors.New("we're not in the roster")
-	}
-
-	tree := rooted.GenerateNaryTree(nNodes)
-	if tree == nil {
-		return nil, errors.New("failed to generate tree")
-	}
-
-	writeToFile(s.Name+",AgreeOnState,"+strconv.Itoa(nNodes)+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
-
-	s.CountTwoMessagesPerNodesInRoster(rooted)
-	// configure the BlsCosi protocol
-	pi, err := s.CreateProtocol(agreeProtocolName, tree)
-	if err != nil {
-		return nil, errors.New("Couldn't make new protocol: " + err.Error())
-	}
-	p := pi.(*protocol.BlsCosi)
-	p.CreateProtocol = s.CreateProtocol
-	p.Timeout = s.Timeout
-	p.Msg = msg
-
-	st := State{
-		Signers:   getKeys(s.GetSigners(s.e).Set),
-		HashPings: s.getHashPings(),
-		Epoch:     s.e,
-	}
-
-	p.Data, err = protobuf.Encode(&st)
-	if err != nil {
-		return nil, err
-	}
-
-	// Threshold before the subtrees so that we can optimize situation
-	// like a threshold of one
-	if s.Threshold > 0 {
-		p.Threshold = s.Threshold
-	}
-
-	if s.NSubtrees > 0 {
-		err = p.SetNbrSubTree(s.NSubtrees)
-		if err != nil {
-			p.Done()
-			return nil, err
-		}
-	}
-
-	// start the protocol
-	log.Lvl3("Cosi Service starting up root protocol")
-	if err = p.Start(); err != nil {
-		return nil, err
-	}
-	// wait for reply. This will always eventually return.
-	sig := <-p.FinalSignature
-
-	if sig == nil {
-		log.LLvl1(s.Name, s.PingDistances, s.getHashPings())
-		return nil, errors.New("Protocol output an empty signature")
-	}
-
-	res := protocol.BlsSignature(sig)
-	publics := rooted.ServicePublics(ServiceName)
-
-	return res, res.Verify(suite, msg, publics)
-}
-
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
 // the one starting the protocol) so it's the Service that will be called to
 // generate the PI on all others node.
@@ -692,211 +351,6 @@ func (s *Service) tryLoad() error {
 	return nil
 }
 
-func (s *Service) getServers() map[string]*network.ServerIdentity {
-	s.ServersMtx.Lock()
-	dst := make(map[string]*network.ServerIdentity, len(s.Servers))
-
-	for k, v := range s.Servers {
-		dst[k] = v
-	}
-	s.ServersMtx.Unlock()
-	return dst
-}
-
-func (s *Service) getepochOfEntryMap() map[string]Epoch {
-	temp := make(map[network.ServerIdentityID]Epoch)
-	s.storage.Lock()
-	for i := len(s.storage.Signers) - 1; i >= 0; i-- {
-		for id := range s.storage.Signers[i] {
-			temp[id] = Epoch(i)
-		}
-	}
-	s.storage.Unlock()
-
-	ret := make(map[string]Epoch)
-	s.ServersMtx.Lock()
-	for id, e := range temp {
-		ret[s.ServerIdentityToName[id]] = e
-	}
-	s.ServersMtx.Unlock()
-	return ret
-}
-
-// UpdateHistoryWith will send an ReqHistory to the service in parameter
-func (s *Service) UpdateHistoryWith(name string) error {
-	dir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	log.Lvl3("Updating ", s.Name, "with ", name)
-	startTime := time.Now()
-	s.ServersMtx.Lock()
-	si, ok := s.Servers[name]
-	if !ok {
-		return fmt.Errorf("%s is not aware of server named %s", s.ServerIdentity(), name)
-	}
-	s.ServersMtx.Unlock()
-	writeToFile(fmt.Sprintf("UpdateHistoryWith - 1 - ServerLock, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-
-	err = s.SendRaw(si, &ReqHistory{SenderIdentity: s.ServerIdentity()})
-	sendHistoryTimeOut := 10 * time.Second
-	select {
-	case s.e = <-s.EpochChan:
-		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - Answer, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-		s.InteractionMtx.Lock()
-		if len(s.CountInteractions) <= int(s.GetEpoch()) {
-			// TODO : refactor
-			for len(s.CountInteractions) <= int(s.GetEpoch()) {
-				s.CountInteractions = append(s.CountInteractions, make(map[string]int))
-			}
-		}
-		s.CountInteractions[s.GetEpoch()][name]++
-		s.InteractionMtx.Unlock()
-		writeToFile(fmt.Sprintf("UpdateHistoryWith - 3 - Answer Processed, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-		writeToFile(s.Name+",UpdateHistoryWith, 1"+","+strconv.Itoa(int(s.e)), "Data/messages.txt")
-		return err
-	case <-time.After(sendHistoryTimeOut):
-		writeToFile(fmt.Sprintf("UpdateHistoryWith - 2 - CHURNED, %v, %v", int64(time.Now().Sub(startTime)/time.Millisecond), startTime), dir+"/"+s.PrefixForReadingFile+"/Data/Timing/"+s.Name+".txt")
-		newName := "node_0"
-		if s.Name == "node_0" {
-			newName = "node_1"
-		}
-		log.LLvl1(name, "HAS CHURN AFTER REQUEST OF ", s.Name, " UPDATING WITH ", newName, " ------------@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-		err := s.UpdateHistoryWith(newName)
-		return err
-	}
-}
-
-// SendHistory send my version of History to the given SI
-func (s *Service) SendHistory(si *network.ServerIdentity) error {
-	if s.ServerIdentity().ID == si.ID {
-		return fmt.Errorf("%v is asked to send History to itself", s.Name)
-	}
-
-	if name, ok := s.ServerIdentityToName[si.ID]; ok {
-		log.LLvl1(s.Name, "-", s.ServerIdentity(), " is sending History to ", si, "-", name)
-	} else {
-		log.LLvl1(s.Name, "-", s.ServerIdentity(), " is sending History to new SI :", si)
-	}
-
-	s.storage.Lock()
-	// Sending directely a []SignerSet is not working,
-	// This solution flatten the data and reconstruct it afterwards
-	// If protobuf.Encode is corrected it might not be needed anymore
-	var signersKey []network.ServerIdentityID
-	var signersValue []gpr.SignatureResponse
-	var signersIndex []int
-
-	for idx, signerMap := range s.storage.Signers {
-		for k, v := range signerMap {
-			signersIndex = append(signersIndex, idx)
-			signersKey = append(signersKey, k)
-			signersValue = append(signersValue, v)
-		}
-	}
-	s.storage.Unlock()
-
-	s.ServersMtx.Lock()
-	e := s.SendRaw(si, &ReplyHistory{
-		SenderName:           s.Name,
-		Servers:              s.Servers,
-		ServerIdentityToName: s.ServerIdentityToName,
-		SignersKey:           signersKey,
-		SignersValue:         signersValue,
-		SignersIndex:         signersIndex,
-	})
-	s.ServersMtx.Unlock()
-
-	if e != nil {
-		panic(e)
-	}
-	//log.LLvl1(s.Name, "Finish sending to ", si, "with error : ", e)
-	return e
-
-}
-
-// ExecReqHistory will send back the node's version of history
-func (s *Service) ExecReqHistory(env *network.Envelope) error {
-	req, ok := env.Msg.(*ReqHistory)
-	if !ok {
-		log.Error(s.ServerIdentity(), "failed to cast to ReqHistory")
-		return errors.New("failed to cast to ReqHistory")
-	}
-	s.InteractionMtx.Lock()
-	s.CountInteractions[s.GetEpoch()][req.SenderName] += 2
-	s.InteractionMtx.Unlock()
-
-	return s.SendHistory(req.SenderIdentity)
-}
-
-// ExecReplyHistory will update the node's version of history based on the answer
-// Assume nodes will not use that for malicious reasons
-// No check for now
-func (s *Service) ExecReplyHistory(env *network.Envelope) error {
-	log.LLvl1(s.Name, " is executing history.")
-	req, ok := env.Msg.(*ReplyHistory)
-	if !ok {
-		log.Error(s.ServerIdentity(), "failed to cast to ReplyHistory")
-		return errors.New("failed to cast to ReplyHistory")
-	}
-
-	s.InteractionMtx.Lock()
-	if len(s.CountInteractions) != 0 && s.GetEpoch() != 0 {
-		s.CountInteractions[s.GetEpoch()-1][req.SenderName]++
-	}
-	s.InteractionMtx.Unlock()
-
-	s.ServersMtx.Lock()
-	for k, v := range req.Servers {
-		s.Servers[k] = v
-	}
-	for k, v := range req.ServerIdentityToName {
-		s.ServerIdentityToName[k] = v
-	}
-	s.ServersMtx.Unlock()
-	// Reconstruction []SignerSet see ExecReqHistory
-	signers := make([]SignersSet, req.SignersIndex[len(req.SignersIndex)-1]+1)
-
-	for i := 0; i < len(req.SignersIndex); i++ {
-		if len(signers[req.SignersIndex[i]]) == 0 {
-			signers[req.SignersIndex[i]] = make(SignersSet)
-		}
-		signers[req.SignersIndex[i]][req.SignersKey[i]] = req.SignersValue[i]
-	}
-
-	s.storage.Lock()
-	s.storage.Signers = signers
-	l := len(s.storage.Signers)
-	s.storage.Unlock()
-
-	log.Lvl1(s.Name, "is now at Epoch", l-1)
-	// Catching up on Epochs
-	if s.e < Epoch(l-1) {
-		s.EpochChan <- Epoch(l - 1)
-	} else {
-		s.EpochChan <- s.e
-	}
-
-	log.LLvl1("\033[51;5;33m", s.Name, "is done updating. It remains ", s.Cycle.GetTimeTillNextEpoch(), " before the next Epoch \033[0m")
-	return nil
-}
-
-// GetRandomName return a random Name from the list of Servers
-func (s *Service) GetRandomName() string {
-	var names []string
-	s.ServersMtx.Lock()
-	for name := range s.Servers {
-		if name != s.Name {
-			names = append(names, name)
-		}
-	}
-	log.LLvl1(s.Name, "has a this list ", names, " of random names.")
-
-	s.ServersMtx.Unlock()
-	index := rand.Intn(len(names))
-	return names[index]
-}
-
 // newService receives the context that holds information about the node it's
 // running on. Saving and loading can be done using the context. The data will
 // be stored in memory for tests and simulations, and on disk for real deployments.
@@ -923,7 +377,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 		EpochChan: make(chan Epoch, 3),
 	}
 	s.Cycle.Set()
-	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest, s.ExecWriteSigners))
+	log.ErrFatal(s.RegisterHandlers(s.SetGenesisSignersRequest, s.ExecEpochRequest, s.ExecWriteSigners, s.ExecSetDuration, s.ExecUpdateForNewNode, s.ExecCreateProofForEpoch, s.ExecUpdate, s.ExecStartNewEpoch, s.ExecGetConsencusOnNewSigners, s.ExecPause))
 
 	// Register function from one service to another
 	s.RegisterProcessorFunc(execReqHistoryMsgID, s.ExecReqHistory)
