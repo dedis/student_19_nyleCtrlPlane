@@ -7,8 +7,7 @@ set server_lanstr ""
 tb-use-endnodeshaping 1
 for {set i 1} {$i <= $server_total} {incr i} {
         set server($i) [$ns node]
-          tb-set-hardware $server($i) dl380g3
-          #tb-set-hardware $server($i) MicroCloud
+        tb-set-hardware $server($i) dl380g3
         tb-set-node-os $server($i) Ubuntu1404-64-STD
         append server_lanstr "$server($i) "
 }
