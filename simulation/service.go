@@ -19,8 +19,8 @@ import (
 	"go.dedis.ch/onet/v3/network"
 )
 
-const EXP = 88
-const LOCAL = false
+const EXP = 11
+const LOCAL = true
 
 var EXPERIMENT_FOLDER = ""
 
@@ -62,8 +62,10 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	} else {
 		s.CreateRoster(sc, hosts, 2000)
 	}*/
-	if EXP == 7 || EXP == 8 {
-		s.CreateRoster(sc, hosts, 100)
+	if EXP == 7 || EXP == 8 || EXP == 11 {
+		s.CreateRoster(sc, hosts, 20)
+	} else if EXP == 10 {
+		s.CreateRoster(sc, hosts, 20)
 	} else {
 		s.CreateRoster(sc, hosts, 999)
 	}
@@ -81,7 +83,7 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 // tree-structure to speed up the first round.
 func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 	name := GetServerIdentityToName(config.Server.ServerIdentity, config.Roster)
-	log.LLvl3("Initializing node-index", name)
+	log.LLvl3("Initializing node-index", name, config.Server.ServerIdentity)
 
 	myservice := config.GetService(mbrSer.ServiceName).(*mbrSer.Service)
 	myservice.Name = name
@@ -101,6 +103,11 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 		mbrSer.EPOCH_DUR = 20 * time.Second
 	}
 
+	if EXP == 0 || EXP == 11 {
+		mbrSer.REGISTRATION_DUR = 10 * time.Second
+		mbrSer.EPOCH_DUR = 10 * time.Second
+	}
+
 	return s.SimulationBFTree.Node(config)
 
 }
@@ -108,6 +115,10 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 // RunSystemNormally is not an experiment, just run the system normally
 func RunSystemNormally(roster *onet.Roster, clients []*nylechain.Client) error {
 	size := len(roster.List)
+	for i, s := range roster.List {
+		log.LLvl1("Roster: ", i, ":", s)
+
+	}
 	servers := make(map[*network.ServerIdentity]string)
 	nbrFirstSigners := 4
 	for i := 0; i < nbrFirstSigners; i++ {
@@ -120,7 +131,11 @@ func RunSystemNormally(roster *onet.Roster, clients []*nylechain.Client) error {
 		clients[i].SetGenesisSignersRequest(roster.List[i], servers)
 	}
 
-	nbrEpoch := mbrSer.Epoch(2)
+	nbrEpoch := mbrSer.Epoch(20)
+
+	if LOCAL {
+		nbrEpoch = mbrSer.Epoch(5)
+	}
 	joiningPerEpoch := int(1 / float64(nbrEpoch) * float64(size))
 
 	var wg sync.WaitGroup

@@ -176,6 +176,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	ro := onet.NewRoster(mbrs)
 
 	buf, err := s.SignatureRequest(&SignatureRequest{Message: msg, Roster: ro, Epoch: e})
+	log.LLvl1(s.Name, " had finished is signature request in create proof")
 	if err != nil {
 		return err
 	}
@@ -204,7 +205,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 	nbNodes := len(ro.List)
 
 	gossipTimeOut := baseCommunication * time.Duration(nbNodes) * 2
-	gossipTimeOut = s.Cycle.GetTimeTillNextEpoch() / 2
+	gossipTimeOut = s.Cycle.GetTimeTillNextEpoch()
 
 	p := pi.(*gpr.GossipRegistationProtocol)
 	p.TimeOut = gossipTimeOut
@@ -216,6 +217,7 @@ func (s *Service) CreateProofForEpoch(e Epoch) error {
 		Epoch:  int(s.e + 1),
 	}
 
+	log.LLvl1(s.Name, " will start the gossip protocol after", time.Now().Sub(startTime))
 	p.Start()
 
 	select {

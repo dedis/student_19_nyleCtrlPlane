@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
 )
 
 // AddSignersCallback is a callback function that is called in the protocol
@@ -60,28 +61,33 @@ func (p *GossipRegistationProtocol) Start() error {
 // Done is called.
 func (p *GossipRegistationProtocol) Dispatch() error {
 	defer p.Done()
+	startTime := time.Now()
 	nConf := 1
 	ann := <-p.announceChan
 	err := p.addSigners(ann.Announce)
 	if err != nil {
+		log.LLvl1("Add Signer error in gossip protocol : ", err)
 		nConf = 0
 	}
-
+	log.LLvl1(p.Info(), "Add Signers", p.Host(), p.Index(), "after", time.Now().Sub(startTime))
 	if p.IsLeaf() {
+		log.LLvl1(p.Info(), "is leaf", p.Host(), p.Index(), "after", time.Now().Sub(startTime))
 		return p.SendToParent(&Reply{nConf})
 	}
 	p.SendToChildren(&ann.Announce)
 	select {
 	case replies := <-p.repliesChan:
+
 		for _, r := range replies {
 			nConf += r.Confirmations
 		}
 		if !p.IsRoot() {
 			return p.SendToParent(&Reply{nConf})
 		}
-
+		log.LLvl1(p.Info(), "Finished", p.Host(), p.Index(), "after", time.Now().Sub(startTime))
 		p.ConfirmationsChan <- nConf
 	case <-time.After(p.TimeOut):
+		log.LLvl1(p.Info(), "Time Out", p.Host(), p.Index(), "after", time.Now().Sub(startTime))
 		p.ConfirmationsChan <- nConf
 	}
 
