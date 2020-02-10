@@ -19,7 +19,7 @@ import (
 	"go.dedis.ch/onet/v3/network"
 )
 
-const EXP = 88
+const EXP = 10
 const LOCAL = false
 
 var EXPERIMENT_FOLDER = ""
@@ -64,6 +64,8 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	}*/
 	if EXP == 7 || EXP == 8 {
 		s.CreateRoster(sc, hosts, 100)
+	} else if EXP == 10 {
+		s.CreateRoster(sc, hosts, 10)
 	} else {
 		s.CreateRoster(sc, hosts, 999)
 	}
@@ -101,6 +103,11 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 		mbrSer.EPOCH_DUR = 20 * time.Second
 	}
 
+	if EXP == 0 {
+		mbrSer.REGISTRATION_DUR = 10 * time.Second
+		mbrSer.EPOCH_DUR = 3 * time.Minute
+	}
+
 	return s.SimulationBFTree.Node(config)
 
 }
@@ -120,7 +127,11 @@ func RunSystemNormally(roster *onet.Roster, clients []*nylechain.Client) error {
 		clients[i].SetGenesisSignersRequest(roster.List[i], servers)
 	}
 
-	nbrEpoch := mbrSer.Epoch(2)
+	nbrEpoch := mbrSer.Epoch(5)
+
+	if LOCAL {
+		nbrEpoch = mbrSer.Epoch(5)
+	}
 	joiningPerEpoch := int(1 / float64(nbrEpoch) * float64(size))
 
 	var wg sync.WaitGroup

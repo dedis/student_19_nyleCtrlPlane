@@ -36,12 +36,12 @@ func (s *Service) Setup(req *InitRequest) {
 	s.Nodes.ServerIdentityToName = make(map[network.ServerIdentityID]string)
 
 	//subfolder
-	readline, err := ReadFileLineByLine("folder_str")
-	subfolder := readline()
 	folderStr := "/utils/NodesFiles/"
-	if err == nil {
-		folderStr += subfolder + "/"
-	}
+	//readline, err := ReadFileLineByLine("folder_str")
+	//subfolder := readline()
+	//if err == nil {
+	//	folderStr += subfolder + "/"
+	//}
 
 	log.LLvl1("Reading from : ", s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
 	readNodePositionFromFile(s.Nodes.All, s.PrefixForReadingFile+folderStr+"nodes"+strconv.Itoa(len(s.Nodes.All))+".txt")
@@ -93,7 +93,7 @@ func (s *Service) Setup(req *InitRequest) {
 	if USE_SPACE_TIME {
 		s.GetInteractionDistances()
 	} else {
-		s.getPings(true)
+		s.getPings(false)
 	}
 	if USE_LOCARNO {
 		SetLevels(s.Nodes.All, s.getepochOfEntryMap())
@@ -273,6 +273,11 @@ func (s *Service) genTrees(RandomLevels bool, Levels int, Optimized bool, Optimi
 		folderStr += "Random/"
 	} else {
 		folderStr += "Locarno/"
+	}
+
+	err = os.MkdirAll(folderStr, 0777)
+	if err != nil {
+		log.LLvl1("ERROR WHILE CREATING FOLDER : ", err, "=====================================================================================================================")
 	}
 
 	log.LLvl1("Writing maps to : ", folderStr+"gentree-"+s.Nodes.GetServerIdentityToName(s.ServerIdentity())+"-epoch"+strconv.Itoa(int(s.e)))
