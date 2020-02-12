@@ -29,7 +29,7 @@ var EXPERIMENT_FOLDER = ""
  */
 
 func init() {
-	onet.SimulationRegister("TemplateService", NewSimulationService)
+	onet.SimulationRegister("LocarnoLotteryService", NewSimulationService)
 }
 
 // SimulationService only holds the BFTree simulation

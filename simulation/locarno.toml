@@ -1,6 +1,6 @@
-Simulation = "TemplateService"
-Servers = 70
-Bf = 34
+Simulation = "LocarnoLotteryService"
+Servers = 60
+Bf = 59
 Rounds = 1
 CloseWait = 6000
 RunWait = "6000s"
